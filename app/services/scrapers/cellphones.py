@@ -99,16 +99,71 @@ class CellphonesScraper(BaseScraper):
             specifications=specifications
         )
 
-    def scrape_category(self, category: str, limit: int = 10) -> List[ScrapedProductItem]:
-        """Triển khai mẫu cho cào danh sách sản phẩm theo category."""
-        # Danh sách mẫu demo sản phẩm hot phục vụ kiểm thử nhanh
-        sample_urls = [
-            "https://cellphones.com.vn/iphone-15-pro-max.html",
-            "https://cellphones.com.vn/samsung-galaxy-s24-ultra.html",
-        ]
-        results = []
-        for url in sample_urls[:limit]:
-            item = self.scrape_product(url)
-            if item:
-                results.append(item)
+    def get_category_product_urls(self, category: str, limit: int = 15) -> List[str]:
+        """Lấy danh sách link sản phẩm thực tế từ trang danh mục CellphoneS."""
+        headers = {
+            "User-Agent": (
+                "Mozilla/5.0 (Windows NT 10.0; Win64; x64) "
+                "AppleWebKit/537.36 (KHTML, like Gecko) "
+                "Chrome/124.0.0.0 Safari/537.36"
+            ),
+            "Accept-Language": "vi-VN,vi;q=0.9,en-US;q=0.8,en;q=0.7",
+        }
+        
+        category_url = "https://cellphones.com.vn/laptop.html" if category.lower() == "laptop" else "https://cellphones.com.vn/mobile.html"
+        try:
+            res = requests.get(category_url, headers=headers, timeout=12)
+            res.raise_for_status()
+        except requests.exceptions.RequestException as e:
+            logger.error(f"[CellphoneS] Lỗi tải trang danh mục {category_url}: {e}")
+            return []
+
+        soup = BeautifulSoup(res.text, "html.parser")
+        product_urls = []
+        
+        for a in soup.find_all("a", href=True):
+            href = a["href"].strip()
+            if not href.endswith(".html") or "/sforum" in href or "/tin-tuc" in href:
+                continue
+            
+            # Kiểm tra URL sản phẩm hợp lệ
+            if category.lower() == "laptop":
+                if "/laptop" in href and not any(sub in href for sub in ["/laptop.html", "/laptop/"]):
+                    if href.startswith("http"):
+                        product_urls.append(href)
+                    else:
+                        product_urls.append(f"https://cellphones.com.vn{href if href.startswith('/') else '/' + href}")
+            else:
+                # Ngành hàng phone: điện thoại
+                if any(k in href for k in ["iphone", "samsung", "xiaomi", "oppo", "dien-thoai"]) and not any(sub in href for sub in ["/mobile.html", "/mobile/"]):
+                    if href.startswith("http"):
+                        product_urls.append(href)
+                    else:
+                        product_urls.append(f"https://cellphones.com.vn{href if href.startswith('/') else '/' + href}")
+
+        # Khử trùng lặp mà vẫn giữ thứ tự
+        seen = set()
+        unique_urls = []
+        for u in product_urls:
+            if u not in seen:
+                seen.add(u)
+                unique_urls.append(u)
+
+        return unique_urls[:limit]
+
+    def scrape_category(self, category: str, limit: int = 15) -> List[ScrapedProductItem]:
+        """Cào danh sách sản phẩm theo category (laptop / phone) từ các URL thực tế."""
+        urls = self.get_category_product_urls(category, limit=limit)
+        logger.info(f"[CellphoneS] Tìm thấy {len(urls)} link sản phẩm cho ngành {category}")
+
+        results: List[ScrapedProductItem] = []
+        for url in urls:
+            try:
+                item = self.scrape_product(url)
+                if item and item.product_name and item.product_name != "N/A":
+                    results.append(item)
+            except Exception as e:
+                logger.warning(f"[CellphoneS] Lỗi khi cào sản phẩm {url}: {e}")
+                continue
+
         return results
