@@ -1,6 +1,7 @@
 from typing import Dict, Type
 from app.services.scrapers.base import BaseScraper
 from app.services.scrapers.cellphones import CellphonesScraper
+from app.services.scrapers.hoangha import HoanghaScraper
 from app.schemas.crawl import SourceEnum
 
 
@@ -8,6 +9,7 @@ class ScraperFactory:
     """Factory để tạo và quản lý các scraper theo nguồn (Strategy Pattern)."""
     _scrapers: Dict[str, BaseScraper] = {
         SourceEnum.CELLPHONES.value: CellphonesScraper(),
+        SourceEnum.HOANGHA.value: HoanghaScraper(),
     }
 
     @classmethod

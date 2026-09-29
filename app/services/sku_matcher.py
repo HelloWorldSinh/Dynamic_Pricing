@@ -137,8 +137,9 @@ class SkuMatcher:
 
         # 5. Laptop Series: Phải đúng dòng
         laptop_lines = [
+            "macbook air", "macbook pro", "macbook",
             "aspire 7", "aspire go", "aspire lite", "nitro v", "nitro lite", "nitro", "predator", "swift",
-            "vivobook go", "vivobook", "tuf gaming", "rog strix", "zenbook",
+            "vivobook go", "vivobook s14", "vivobook 14", "vivobook", "tuf gaming", "rog strix", "zenbook",
             "ideapad slim", "ideapad gaming", "loq", "legion", "thinkbook",
             "inspiron", "vostro", "latitude", "pavilion", "victus", "omen", "katana"
         ]
@@ -218,8 +219,11 @@ class SkuMatcher:
                 if scraped_model_id and dim_model_id and scraped_model_id != dim_model_id:
                     continue
                 
-                # Nếu một bên có model_id cụ thể (ví dụ iPhone 18) mà bên kia không có -> không ghép
-                if scraped_model_id and not dim_model_id:
+                # Nếu một bên có model_id cụ thể (ví dụ iPhone 18) mà bên kia không có -> không ghép đối với điện thoại
+                if detected_brand in ["apple", "iphone", "samsung", "oppo", "xiaomi"]:
+                    if (scraped_model_id and not dim_model_id) or (not scraped_model_id and dim_model_id):
+                        continue
+                elif scraped_model_id and not dim_model_id:
                     continue
                 
                 # Trích xuất RAM & ROM của FPT
@@ -244,6 +248,11 @@ class SkuMatcher:
                     
                 score = min(0.95, ratio + bonus)
                 
+                # Nếu cả 2 bên đều có Part-Number nhưng khác nhau -> Không được Approved, tối đa PENDING
+                dim_parts = self.extract_part_numbers(dim_name)
+                if scraped_parts and dim_parts and not set(scraped_parts).intersection(set(dim_parts)):
+                    score = min(0.79, score)
+
                 # Nếu là tên nhóm chung chung như "Series" thì không được cho điểm quá cao để tránh tự động Approved
                 if is_series_generic:
                     score = min(0.79, score)
