@@ -74,8 +74,87 @@ class SkuMatcher:
         t = re.sub(r"\s+", " ", t).strip()
         return t
 
+    @staticmethod
+    def extract_storage(text: str) -> List[str]:
+        """Trích xuất danh sách dung lượng bộ nhớ trong ROM/SSD (VD: 128gb, 256gb, 512gb, 1tb, 2tb)."""
+        if not text:
+            return []
+        found = []
+        for m in re.finditer(r"\b(64|128|256|512)\s*gb\b", text, re.I):
+            found.append(f"{m.group(1)}gb".lower())
+        for m in re.finditer(r"\b(1|2)\s*tb\b", text, re.I):
+            found.append(f"{m.group(1)}tb".lower())
+        return list(set(found))
+
+    @staticmethod
+    def extract_ram(text: str) -> List[str]:
+        """Trích xuất dung lượng RAM (VD: 4gb, 6gb, 8gb, 12gb, 16gb, 24gb, 32gb)."""
+        if not text:
+            return []
+        found = []
+        for m in re.finditer(r"\b(4|6|8|12|16|24|32)\s*gb\b", text, re.I):
+            found.append(f"{m.group(1)}gb".lower())
+        return list(set(found))
+
+    @staticmethod
+    def extract_model_identifier(text: str) -> Optional[str]:
+        """Trích xuất định danh model cốt lõi (Hard Model Constraint).
+        Ngăn chặn triệt để việc nhầm lẫn:
+        - iPhone 18 với iPhone 14 / iPhone 17
+        - Galaxy Z Fold với Galaxy S25 / S26
+        - Laptop Aspire với Nitro / TUF Gaming
+        """
+        if not text:
+            return None
+        t = text.lower()
+        
+        # 1. iPhone: bắt buộc đúng thế hệ (14, 15, 16, 17, 18, SE) + phân khúc (pro max, pro, plus, e, mini)
+        ip = re.search(r"\biphone\s*(\d+|se|x|xs|xr)\s*(pro\s*max|pro|plus|mini|e)?\b", t)
+        if ip:
+            gen = ip.group(1)
+            sub = (ip.group(2) or "").replace(" ", "")
+            return f"iphone_{gen}_{sub}"
+            
+        # 2. Samsung: bắt buộc đúng dòng (z fold, z flip, s, a, m) + thế hệ số
+        ss = re.search(r"\bgalaxy\s*(z\s*fold|z\s*flip|s|a|m)\s*(\d+)\s*(ultra|plus|fe|edge)?\b", t)
+        if ss:
+            series = ss.group(1).replace(" ", "")
+            num = ss.group(2)
+            sub = (ss.group(3) or "")
+            return f"samsung_{series}{num}_{sub}"
+
+        # 3. Xiaomi / Redmi / Poco
+        redmi = re.search(r"\b(?:xiaomi\s+)?(redmi\s*note\s*\d+[a-z]?|redmi\s*\d+[a-z]?|poco\s*[a-z0-9]+|xiaomi\s*\d+[a-z]?)\b", t)
+        if redmi:
+            return re.sub(r"\s+", "_", redmi.group(1).strip())
+
+        # 4. Oppo: bắt buộc phân biệt rõ ultra, pro, plus, s
+        oppo = re.search(r"\boppo\s*(find\s*[a-z0-9]+|reno\s*[a-z0-9]+|a\s*\d+[a-z]?)\s*(ultra|pro|plus|fe|s)?\b", t)
+        if oppo:
+            main = oppo.group(1).replace(" ", "_")
+            sub = oppo.group(2) or ""
+            return f"oppo_{main}_{sub}".rstrip("_")
+
+        # 5. Laptop Series: Phải đúng dòng
+        laptop_lines = [
+            "aspire 7", "aspire go", "aspire lite", "nitro v", "nitro lite", "nitro", "predator", "swift",
+            "vivobook go", "vivobook", "tuf gaming", "rog strix", "zenbook",
+            "ideapad slim", "ideapad gaming", "loq", "legion", "thinkbook",
+            "inspiron", "vostro", "latitude", "pavilion", "victus", "omen", "katana"
+        ]
+        for line in laptop_lines:
+            if line in t:
+                return line.replace(" ", "_")
+
+        return None
+
     def match_single_item(self, scraped_name: str, competitor_price: Optional[int] = None) -> Dict[str, Any]:
-        """Thực hiện ghép cặp 1 sản phẩm cào với danh mục chuẩn."""
+        """Thực hiện ghép cặp 1 sản phẩm cào với danh mục chuẩn.
+        Tuân thủ:
+        1. Exact Part-Number (100% tin cậy)
+        2. Hard Model Identifier (Bắt buộc phải cùng thế hệ và dòng máy)
+        3. Thuộc tính RAM / ROM (Chỉ approved khi cấu hình trùng khớp)
+        """
         scraped_parts = self.extract_part_numbers(scraped_name)
         
         best_sku_id = None
@@ -110,44 +189,67 @@ class SkuMatcher:
                 if best_sku_id:
                     break
 
-        # --- TẦNG 2: NORMALIZED ATTRIBUTE FUZZY MATCH ---
+        # --- TẦNG 2: NORMALIZED ATTRIBUTE VỚI RÀNG BUỘC MODEL CỨNG ---
         if not best_sku_id:
             c_clean = self.clean_product_name(scraped_name)
+            scraped_model_id = self.extract_model_identifier(scraped_name)
             
             # Trích xuất thương hiệu chính
             brands = ["apple", "iphone", "samsung", "xiaomi", "oppo", "acer", "asus", "lenovo", "dell", "hp", "msi", "poco", "honor"]
             detected_brand = next((b for b in brands if b in c_clean), None)
             
-            # Trích xuất cấu hình RAM & Ổ cứng
-            s_ram = re.findall(r"\b(4|8|12|16|32|64)gb\b", c_clean)
-            s_rom = re.findall(r"\b(64|128|256|512|1tb|2tb)\b", c_clean)
+            # Trích xuất cấu hình RAM & Ổ cứng bằng helper chuẩn
+            s_ram = self.extract_ram(c_clean)
+            s_rom = self.extract_storage(c_clean)
+            is_series_generic = "series" in c_clean.lower()
             
             for _, row in self.df_dim.iterrows():
                 dim_sku_id = str(row["sku_id"])
                 dim_name = str(row["sku_name"])
                 dim_clean = self.clean_product_name(dim_name)
+                dim_model_id = self.extract_model_identifier(dim_name)
                 
-                # Nếu khác thương hiệu thì bỏ qua ngay
+                # RÀNG BUỘC 1: Nếu khác thương hiệu thì bỏ qua ngay
                 if detected_brand and detected_brand not in dim_clean:
                     continue
+                
+                # RÀNG BUỘC 2: NẾU ĐÃ BẮT ĐƯỢC MODEL IDENTIFIER THÌ BẮT BUỘC PHẢI TRÙNG NHAU
+                # Tránh tuyệt đối: iPhone 18 ghép iPhone 14, Z Fold8 ghép S25
+                if scraped_model_id and dim_model_id and scraped_model_id != dim_model_id:
+                    continue
+                
+                # Nếu một bên có model_id cụ thể (ví dụ iPhone 18) mà bên kia không có -> không ghép
+                if scraped_model_id and not dim_model_id:
+                    continue
+                
+                # Trích xuất RAM & ROM của FPT
+                dim_ram = self.extract_ram(dim_clean)
+                dim_rom = self.extract_storage(dim_clean)
+
+                # RÀNG BUỘC 3: Nếu là điện thoại, bắt buộc cùng ROM nếu cả 2 bên đều có thông số ROM
+                if detected_brand in ["apple", "iphone", "samsung", "oppo", "xiaomi"]:
+                    if s_rom and dim_rom and set(s_rom) != set(dim_rom):
+                        continue # Khác dung lượng bộ nhớ thì không được ghép
                 
                 # Tính độ tương đồng chuỗi cơ sở
                 ratio = SequenceMatcher(None, c_clean, dim_clean).ratio()
                 
-                # Thưởng điểm nếu trùng khớp RAM và ROM
-                dim_ram = re.findall(r"\b(4|8|12|16|32|64)gb\b", dim_clean)
-                dim_rom = re.findall(r"\b(64|128|256|512|1tb|2tb)\b", dim_clean)
-                
                 bonus = 0.0
                 if s_ram and dim_ram and set(s_ram) == set(dim_ram):
-                    bonus += 0.12
+                    bonus += 0.1
                 if s_rom and dim_rom and set(s_rom) == set(dim_rom):
-                    bonus += 0.12
+                    bonus += 0.1
+                if scraped_model_id and scraped_model_id == dim_model_id:
+                    bonus += 0.15 # Thưởng lớn nếu trùng chính xác model định danh
                     
                 score = min(0.95, ratio + bonus)
                 
-                # Ngưỡng chấp nhận ghép cặp tối thiểu 0.68
-                if score > best_confidence and score >= 0.68:
+                # Nếu là tên nhóm chung chung như "Series" thì không được cho điểm quá cao để tránh tự động Approved
+                if is_series_generic:
+                    score = min(0.79, score)
+                
+                # Chỉ chấp nhận khi độ tương đồng đủ cao và đúng model
+                if score > best_confidence and score >= 0.75:
                     best_confidence = score
                     best_sku_id = dim_sku_id
                     best_sku_name = dim_name
@@ -229,14 +331,23 @@ class SkuMatcher:
         df_sheet2 = pd.DataFrame(sheet2_rows)
 
         # --- 3. Xuất ra Excel với định dạng chuyên nghiệp ---
-        with pd.ExcelWriter(output_excel_path, engine="openpyxl") as writer:
-            df_sheet1.to_excel(writer, sheet_name="Scraped_All_Data", index=False)
-            df_sheet2.to_excel(writer, sheet_name="SKU_Mapping", index=False)
+        actual_path = output_excel_path
+        try:
+            with pd.ExcelWriter(actual_path, engine="openpyxl") as writer:
+                df_sheet1.to_excel(writer, sheet_name="Scraped_All_Data", index=False)
+                df_sheet2.to_excel(writer, sheet_name="SKU_Mapping", index=False)
+        except PermissionError:
+            from datetime import datetime
+            actual_path = os.path.join(os.path.dirname(output_excel_path), f"crawl_and_sku_mapping_output_{datetime.now().strftime('%H%M%S')}.xlsx")
+            logger.warning(f"File {output_excel_path} đang mở trong ứng dụng khác. Lưu sang: {actual_path}")
+            with pd.ExcelWriter(actual_path, engine="openpyxl") as writer:
+                df_sheet1.to_excel(writer, sheet_name="Scraped_All_Data", index=False)
+                df_sheet2.to_excel(writer, sheet_name="SKU_Mapping", index=False)
 
         # Áp dụng styling OpenPyXL
-        self._apply_excel_styling(output_excel_path)
-        logger.info(f"Đã xuất và định dạng thành công file Excel 2 sheet tại: {output_excel_path}")
-        return output_excel_path
+        self._apply_excel_styling(actual_path)
+        logger.info(f"Đã xuất và định dạng thành công file Excel 2 sheet tại: {actual_path}")
+        return actual_path
 
     @staticmethod
     def _apply_excel_styling(file_path: str):

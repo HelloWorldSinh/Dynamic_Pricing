@@ -33,11 +33,11 @@ def main():
         demand_events_path="data/demand_events_20260723.xlsx"
     )
     
-    output_path = os.path.join("data", "crawl_and_sku_mapping_output.xlsx")
-    matcher.process_and_export_excel(scraped_items, output_excel_path=output_path)
+    target_path = os.path.join("data", "crawl_and_sku_mapping_output.xlsx")
+    actual_path = matcher.process_and_export_excel(scraped_items, output_excel_path=target_path)
     
     # Đọc lại và in thống kê
-    df_map = pd.read_excel(output_path, sheet_name="SKU_Mapping")
+    df_map = pd.read_excel(actual_path, sheet_name="SKU_Mapping")
     total = len(df_map)
     approved = len(df_map[df_map["Trạng thái (Status)"] == "APPROVED"])
     pending = len(df_map[df_map["Trạng thái (Status)"] == "PENDING"])
@@ -50,7 +50,7 @@ def main():
     print(f" - Khớp tự động (APPROVED): {approved} ({approved/total*100:.1f}%)")
     print(f" - Cần duyệt lại (PENDING):  {pending} ({pending/total*100:.1f}%)")
     print(f" - Không khớp (UNMATCHED):   {unmatched} ({unmatched/total*100:.1f}%)")
-    print(f"\nFile Excel hoàn chỉnh đã được tạo tại: {output_path}")
+    print(f"\nFile Excel hoàn chỉnh đã được tạo tại: {actual_path}")
     print("\nTop 10 dòng mẫu từ Sheet 'SKU_Mapping':")
     cols_to_print = ["STT", "Mã SKU FPT", "Tên sản phẩm chuẩn (FPT Shop)", "Giá đối thủ (VND)", "Độ tin cậy (Confidence)", "Trạng thái (Status)"]
     print(df_map[cols_to_print].head(10).to_string(index=False))
