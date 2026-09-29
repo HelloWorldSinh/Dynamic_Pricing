@@ -6,6 +6,9 @@
 *.db
 *.sqlite3
 
+# Temporary scraped raw files
+data/scraped_raw_*.xlsx
+
 # Python & Caching
 __pycache__/
 *.py[cod]
