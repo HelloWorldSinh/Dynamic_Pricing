@@ -561,7 +561,7 @@ if __name__ == "__main__":
 
     # Chạy thử nghiệm cào theo danh mục FPT (mặc định thử nghiệm 20 sản phẩm đầu để phản hồi nhanh)
     # Muốn chạy toàn bộ 329 SKU, truyền limit=None
-    limit_test = None
+    limit_test = 60;
     scraped_raw, master_rows, stats = scraper.scrape_by_fpt_search(
         dim_product_path="data/dim_product.xlsx",
         limit=limit_test,
