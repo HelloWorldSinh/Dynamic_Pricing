@@ -1,4 +1,4 @@
-from typing import Dict, Type
+from typing import Dict
 from app.services.scrapers.base import BaseScraper
 from app.services.scrapers.cellphones import CellphonesScraper
 from app.services.scrapers.hoangha import HoanghaScraper
@@ -17,8 +17,9 @@ class ScraperFactory:
         source_key = source.lower()
         if source_key in cls._scrapers:
             return cls._scrapers[source_key]
-        # Mặc định trả về CellphoneS nếu chưa implement các nguồn khác
-        return cls._scrapers[SourceEnum.CELLPHONES.value]
+        raise ValueError(
+            f"Nguồn cào '{source}' chưa được hỗ trợ. Các nguồn khả dụng: {list(cls._scrapers.keys())}"
+        )
 
     @classmethod
     def register_scraper(cls, source: str, scraper: BaseScraper):

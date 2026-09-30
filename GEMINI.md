@@ -30,11 +30,29 @@ Trước khi thực hiện tác vụ, AI PHẢI chủ động đọc và áp d�
 
 ---
 
-## 4. BỘ KỸ NĂNG NÂNG CAO SUPERPOWERS (obra/superpowers)
-Dự án đã tích hợp bộ kỹ năng **Superpowers** trong `.agents/skills/`:
-- **`using-superpowers`**: Kích hoạt trước mỗi cuộc hội thoại, phân định quy trình tiếp cận trước khi code.
+## 4. BỘ KỸ NĂNG NÂNG CAO SUPERPOWERS (obra/superpowers) — QUY TẮC CƯỠNG CHẾ
+Dự án đã tích hợp bộ kỹ năng **Superpowers** trong `.agents/skills/`.
+
+👉 **BẮT BUỘC 1: KÍCH HOẠT ĐẦU PHIÊN (SKILL INVOCATION)**
+Ở đầu mỗi phiên mới hoặc khi nhận tác vụ mới từ người dùng, AI BẮT BUỘC phải dùng `view_file` đọc file `.agents/skills/using-superpowers/SKILL.md` trước tiên để thiết lập workflow tiếp cận.
+
+👉 **BẮT BUỘC 2: TUYÊN BỐ CÔNG KHAI (TRANSPARENT ANNOUNCEMENT)**
+Trước khi bắt đầu bất kỳ hành động hoặc phản hồi nào, AI PHẢI thông báo rõ ràng cho người dùng theo cú pháp chuẩn:
+> `"Using [tên-skill] to [mục đích cụ thể]"`
+(Ví dụ: `Using using-superpowers to establish workflow`, `Using systematic-debugging to diagnose bug`, `Using test-driven-development to implement feature`).
+
+👉 **BẮT BUỘC 3: QUẢN LÝ TIẾN ĐỘ BẰNG TASK ARTIFACT (TASK TRACKING)**
+Với các tác vụ từ 2 bước trở lên, AI BẮT BUỘC phải tạo một **Task Artifact** (checklist markdown với `ArtifactType: "task"`) theo dõi từng đầu việc và cập nhật trạng thái `- [x]` ngay sau khi hoàn thành mỗi bước.
+
+👉 **NGHIÊM CẤM**:
+- Tuyệt đối không được tự ý thực thi "ngầm" quy trình trong đầu mà không gọi `view_file` nạp `SKILL.md`.
+- Tuyệt đối không được bỏ qua câu lệnh tuyên bố `Using [skill]...` trước người dùng.
+- Không được rationalizing (ngụy biện) rằng tác vụ đơn giản để bỏ qua skill.
+
+### Danh mục kỹ năng Superpowers cốt lõi:
+- **`using-superpowers`**: Kích hoạt đầu mỗi phiên, phân định quy trình tiếp cận trước khi code.
 - **`brainstorming`**: Khảo sát yêu cầu, thiết kế giải pháp và phản biện ý tưởng trước khi lập kế hoạch.
-- **`writing-plans` & `executing-plans`**: Lập kế hoạch chi tiết từng bước (task-by-task) và thực thi theo checklist.
+- **`writing-plans` & `executing-plans`**: Lập kế hoạch chi tiết từng bước (task-by-task) và thực thi theo checklist Task Artifact.
 - **`systematic-debugging`**: Quy trình 4 bước chẩn đoán gốc rễ lỗi (Root Cause Analysis) trước khi sửa code.
 - **`test-driven-development`**: Luôn viết test kiểm thử trước khi bổ sung code tính năng.
 - **`verification-before-completion`**: Chạy kiểm thử và chứng minh bằng bằng chứng thực tế trước khi tuyên bố hoàn thành task.

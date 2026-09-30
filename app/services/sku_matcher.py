@@ -1,67 +1,122 @@
 import re
 import os
 import logging
-from typing import List, Dict, Any, Optional, Tuple
+from typing import List, Dict, Any, Optional
 from difflib import SequenceMatcher
 import pandas as pd
-import openpyxl
-from openpyxl.styles import Font, PatternFill, Alignment, Border, Side
-from openpyxl.utils import get_column_letter
+
+from app.utils.excel_exporter import ExcelExporter
 
 logger = logging.getLogger(__name__)
 
 
 class SkuMatcher:
-    """Service thực hiện ghép cặp sản phẩm cào về với danh mục chuẩn (SKU Matching Engine).
-    Tuân thủ chiến lược 2 tầng theo skill regex-vs-llm-structured-text:
+    """Service thực hiện ghép cặp sản phẩm cào về với danh mục chuẩn FPT Shop (SKU Matching Engine).
+    
+    Tuân thủ chiến lược 2 tầng:
     - Tầng 1: Exact Match bằng mã Part-Number Regex (Độ tin cậy 100%)
-    - Tầng 2: Normalized Attribute Matching (RapidFuzz / Levenshtein + so sánh RAM/ROM)
+    - Tầng 2: Normalized Attribute Matching (RapidFuzz / Levenshtein + so sánh RAM/ROM + Hard Model Constraints)
     """
 
-    def __init__(self, dim_product_path: str = "data/dim_product.xlsx", demand_events_path: str = "data/demand_events_20260723.xlsx"):
+    BRAND_MAP = {
+        "apple": "apple", "iphone": "apple", "macbook": "apple", "ipad": "apple",
+        "samsung": "samsung", "galaxy": "samsung",
+        "xiaomi": "xiaomi", "redmi": "xiaomi", "poco": "xiaomi",
+        "oppo": "oppo", "vivo": "vivo", "realme": "realme", "tecno": "tecno",
+        "acer": "acer", "asus": "asus", "lenovo": "lenovo", "dell": "dell",
+        "hp": "hp", "msi": "msi", "honor": "honor"
+    }
+
+    LAPTOP_LINES = (
+        "macbook air", "macbook pro", "macbook",
+        "aspire 7", "aspire go", "aspire lite", "nitro v", "nitro lite", "nitro", "predator", "swift",
+        "vivobook go", "vivobook s14", "vivobook 14", "vivobook", "tuf gaming", "rog strix", "zenbook",
+        "ideapad slim", "ideapad gaming", "loq", "legion", "thinkbook",
+        "inspiron", "vostro", "latitude", "pavilion", "victus", "omen", "katana"
+    )
+
+    CONFIDENCE_EXACT = 1.0
+    CONFIDENCE_APPROVED_THRESHOLD = 0.85
+    CONFIDENCE_MIN_THRESHOLD = 0.75
+    CONFIDENCE_PENDING_CEILING = 0.79
+
+    def __init__(
+        self,
+        dim_product_path: str = "data/dim_product.xlsx",
+        demand_events_path: str = "data/demand_events_20260723.xlsx"
+    ):
         self.dim_product_path = dim_product_path
         self.demand_events_path = demand_events_path
         self.df_dim = pd.DataFrame()
         self.fpt_prices: Dict[str, int] = {}
+        self.parsed_dim_skus: List[Dict[str, Any]] = []
         self._load_data()
 
-    def _load_data(self):
-        """Nạp danh mục sản phẩm chuẩn FPT và giá tham chiếu."""
+    def _load_data(self) -> None:
+        """Nạp danh mục sản phẩm chuẩn FPT, giá tham chiếu và tiền xử lý (precompute)
+        toàn bộ đặc trưng regex của SKU FPT để tối ưu hiệu năng O(1) khi so khớp.
+        """
         if os.path.exists(self.dim_product_path):
             self.df_dim = pd.read_excel(self.dim_product_path)
-            logger.info(f"Đã nạp {len(self.df_dim)} SKU chuẩn từ {self.dim_product_path}")
+            self._precompute_fpt_skus()
+            logger.info(f"Đã nạp và tiền xử lý {len(self.parsed_dim_skus)} SKU chuẩn từ {self.dim_product_path}")
         else:
             logger.warning(f"Không tìm thấy file danh mục chuẩn: {self.dim_product_path}")
 
         if os.path.exists(self.demand_events_path):
             try:
                 df_dem = pd.read_excel(self.demand_events_path)
-                # Lấy giá median làm giá niêm yết tham chiếu của FPT
                 self.fpt_prices = df_dem.groupby("sku_id")["price_at_event"].median().astype(int).to_dict()
                 logger.info(f"Đã nạp giá tham chiếu FPT cho {len(self.fpt_prices)} SKU")
             except Exception as e:
                 logger.warning(f"Không thể đọc giá từ {self.demand_events_path}: {e}")
 
+    def _precompute_fpt_skus(self) -> None:
+        """Tiền xử lý trước Part Number, Brand, Model ID, RAM, ROM cho toàn bộ danh mục FPT.
+        Tránh tính toán lại hàng triệu phép Regex khi duyệt qua từng sản phẩm cào về.
+        """
+        self.parsed_dim_skus = []
+        for _, row in self.df_dim.iterrows():
+            sku_id = str(row["sku_id"])
+            sku_name = str(row["sku_name"])
+            clean_name = self.clean_product_name(sku_name)
+            self.parsed_dim_skus.append({
+                "sku_id": sku_id,
+                "sku_name": sku_name,
+                "clean_name": clean_name,
+                "brand": self.detect_brand(sku_name),
+                "parts": self.extract_part_numbers(sku_name),
+                "model_id": self.extract_model_identifier(sku_name),
+                "ram": self.extract_ram(clean_name),
+                "rom": self.extract_storage(clean_name),
+            })
+
+    @classmethod
+    def detect_brand(cls, text: str) -> Optional[str]:
+        """Chuẩn hóa và nhận diện thương hiệu chuẩn (Brand Normalization)."""
+        if not text:
+            return None
+        t = text.lower()
+        for kw, canonical in cls.BRAND_MAP.items():
+            if re.search(r"\b" + re.escape(kw) + r"\b", t):
+                return canonical
+        return None
+
     @staticmethod
     def extract_part_numbers(text: str) -> List[str]:
         """Trích xuất danh sách Part-Number từ tên sản phẩm.
         Hỗ trợ các định dạng:
-        - Acer: A715-59G-57TU, ANV15-52-50VA, NL16-71G-71UJ
+        - Acer: A715-59G-57TU, AN515-58-52SP, ANV15-52-50VA, NL16-71G-71UJ
         - Asus: X1404VA-EB355W, FA506NCG-HN329W, UX3407QA-QD299WS
-        - Lenovo: 83UQ003NVN, 83RQ002PVN
+        - Lenovo: 83UQ003NVN, 83RQ002PVN, 83GS001RVN
         - MSI / HP / Dell: B13VEK-2440VN, v.v.
         """
         if not text:
             return []
-        # Pattern 1: Dạng có dấu gạch ngang (ABC-123 hoặc ABC-123-XYZ)
-        p1 = re.findall(r"\b[A-Za-z0-9]{3,}-[A-Za-z0-9]{3,}(?:-[A-Za-z0-9]{2,})?\b", text)
-        # Pattern 2: Mã Lenovo 8x/83 series
+        p1 = re.findall(r"\b[A-Za-z0-9]{2,}-[A-Za-z0-9]{2,}(?:-[A-Za-z0-9]{2,})*\b", text)
         p2 = re.findall(r"\b8[0-9][A-Za-z0-9]{6,8}\b", text)
-        
         parts = set(p1 + p2)
-        # Lọc các chuỗi ngắn hoặc không có số
-        valid_parts = [p.upper() for p in parts if len(p) >= 6 and any(c.isdigit() for c in p)]
-        return valid_parts
+        return [p.upper() for p in parts if len(p) >= 6 and any(c.isdigit() for c in p)]
 
     @staticmethod
     def clean_product_name(text: str) -> str:
@@ -70,9 +125,9 @@ class SkuMatcher:
             return ""
         t = text.lower()
         t = re.sub(r"\|\s*chính hãng\s*(?:vn/a)?", "", t)
-        t = re.sub(r"\b(chính hãng|vn/a|đã kích hoạt|cũ đẹp|đổi trả|5g|4g|lte|mới 100%|new)\b", "", t)
-        t = re.sub(r"\s+", " ", t).strip()
-        return t
+        t = re.sub(r"\b(điện thoại|laptop|máy tính xách tay|máy tính bảng|chính hãng|vn/a|đã kích hoạt|cũ đẹp|đổi trả|5g|4g|lte|mới 100%|new)\b", "", t)
+        t = re.sub(r"[-–|/]", " ", t)
+        return re.sub(r"\s+", " ", t).strip()
 
     @staticmethod
     def extract_storage(text: str) -> List[str]:
@@ -91,36 +146,31 @@ class SkuMatcher:
         """Trích xuất dung lượng RAM (VD: 4gb, 6gb, 8gb, 12gb, 16gb, 24gb, 32gb)."""
         if not text:
             return []
-        found = []
-        for m in re.finditer(r"\b(4|6|8|12|16|24|32)\s*gb\b", text, re.I):
-            found.append(f"{m.group(1)}gb".lower())
+        found = [f"{m.group(1)}gb".lower() for m in re.finditer(r"\b(4|6|8|12|16|24|32)\s*gb\b", text, re.I)]
         return list(set(found))
 
-    @staticmethod
-    def extract_model_identifier(text: str) -> Optional[str]:
+    @classmethod
+    def extract_model_identifier(cls, text: str) -> Optional[str]:
         """Trích xuất định danh model cốt lõi (Hard Model Constraint).
-        Ngăn chặn triệt để việc nhầm lẫn:
-        - iPhone 18 với iPhone 14 / iPhone 17
-        - Galaxy Z Fold với Galaxy S25 / S26
-        - Laptop Aspire với Nitro / TUF Gaming
+        Ngăn chặn việc ghép sai thế hệ hoặc sai dòng máy (VD: iPhone 18 vs iPhone 14, Z Fold8 vs S25).
         """
         if not text:
             return None
         t = text.lower()
-        
-        # 1. iPhone: bắt buộc đúng thế hệ (14, 15, 16, 17, 18, SE) + phân khúc (pro max, pro, plus, e, mini)
+
+        # 1. iPhone
         ip = re.search(r"\biphone\s*(\d+|se|x|xs|xr)\s*(pro\s*max|pro|plus|mini|e)?\b", t)
         if ip:
             gen = ip.group(1)
             sub = (ip.group(2) or "").replace(" ", "")
             return f"iphone_{gen}_{sub}"
-            
-        # 2. Samsung: bắt buộc đúng dòng (z fold, z flip, s, a, m) + thế hệ số
+
+        # 2. Samsung
         ss = re.search(r"\bgalaxy\s*(z\s*fold|z\s*flip|s|a|m)\s*(\d+)\s*(ultra|plus|fe|edge)?\b", t)
         if ss:
             series = ss.group(1).replace(" ", "")
             num = ss.group(2)
-            sub = (ss.group(3) or "")
+            sub = ss.group(3) or ""
             return f"samsung_{series}{num}_{sub}"
 
         # 3. Xiaomi / Redmi / Poco
@@ -128,22 +178,15 @@ class SkuMatcher:
         if redmi:
             return re.sub(r"\s+", "_", redmi.group(1).strip())
 
-        # 4. Oppo: bắt buộc phân biệt rõ ultra, pro, plus, s
+        # 4. Oppo
         oppo = re.search(r"\boppo\s*(find\s*[a-z0-9]+|reno\s*[a-z0-9]+|a\s*\d+[a-z]?)\s*(ultra|pro|plus|fe|s)?\b", t)
         if oppo:
             main = oppo.group(1).replace(" ", "_")
             sub = oppo.group(2) or ""
             return f"oppo_{main}_{sub}".rstrip("_")
 
-        # 5. Laptop Series: Phải đúng dòng
-        laptop_lines = [
-            "macbook air", "macbook pro", "macbook",
-            "aspire 7", "aspire go", "aspire lite", "nitro v", "nitro lite", "nitro", "predator", "swift",
-            "vivobook go", "vivobook s14", "vivobook 14", "vivobook", "tuf gaming", "rog strix", "zenbook",
-            "ideapad slim", "ideapad gaming", "loq", "legion", "thinkbook",
-            "inspiron", "vostro", "latitude", "pavilion", "victus", "omen", "katana"
-        ]
-        for line in laptop_lines:
+        # 5. Laptop Series
+        for line in cls.LAPTOP_LINES:
             if line in t:
                 return line.replace(" ", "_")
 
@@ -157,108 +200,100 @@ class SkuMatcher:
         3. Thuộc tính RAM / ROM (Chỉ approved khi cấu hình trùng khớp)
         """
         scraped_parts = self.extract_part_numbers(scraped_name)
-        
+        scraped_parts_set = set(scraped_parts)
+
         best_sku_id = None
         best_sku_name = None
         best_confidence = 0.0
         match_type = "UNMATCHED"
-        
+
         # --- TẦNG 1: EXACT MATCH QUA PART-NUMBER ---
         if scraped_parts:
-            for _, row in self.df_dim.iterrows():
-                dim_sku_id = str(row["sku_id"])
-                dim_name = str(row["sku_name"])
-                dim_parts = self.extract_part_numbers(dim_name)
-                
+            for item in self.parsed_dim_skus:
+                dim_sku_id = item["sku_id"]
+                dim_name = item["sku_name"]
+                dim_parts_set = set(item["parts"])
+
                 # 1. So sánh giao của hai tập part number
-                common = set(scraped_parts).intersection(set(dim_parts))
-                if common:
+                if scraped_parts_set.intersection(dim_parts_set):
                     best_sku_id = dim_sku_id
                     best_sku_name = dim_name
-                    best_confidence = 1.0
+                    best_confidence = self.CONFIDENCE_EXACT
                     match_type = "EXACT_PART_NUMBER"
                     break
-                
+
                 # 2. Kiểm tra part number cào được có nằm trong tên chuẩn FPT không
-                for p in scraped_parts:
-                    if p in dim_name.upper():
-                        best_sku_id = dim_sku_id
-                        best_sku_name = dim_name
-                        best_confidence = 1.0
-                        match_type = "EXACT_PART_NUMBER"
-                        break
-                if best_sku_id:
+                dim_name_upper = dim_name.upper()
+                if any(p in dim_name_upper for p in scraped_parts):
+                    best_sku_id = dim_sku_id
+                    best_sku_name = dim_name
+                    best_confidence = self.CONFIDENCE_EXACT
+                    match_type = "EXACT_PART_NUMBER"
                     break
 
         # --- TẦNG 2: NORMALIZED ATTRIBUTE VỚI RÀNG BUỘC MODEL CỨNG ---
         if not best_sku_id:
             c_clean = self.clean_product_name(scraped_name)
+            scraped_brand = self.detect_brand(scraped_name)
             scraped_model_id = self.extract_model_identifier(scraped_name)
-            
-            # Trích xuất thương hiệu chính
-            brands = ["apple", "iphone", "samsung", "xiaomi", "oppo", "vivo", "realme", "tecno", "acer", "asus", "lenovo", "dell", "hp", "msi", "poco", "honor"]
-            detected_brand = next((b for b in brands if b in c_clean), None)
-            
-            # Trích xuất cấu hình RAM & Ổ cứng bằng helper chuẩn
+
             s_ram = self.extract_ram(c_clean)
             s_rom = self.extract_storage(c_clean)
+            s_ram_set = set(s_ram)
+            s_rom_set = set(s_rom)
             is_series_generic = "series" in c_clean.lower()
-            
-            for _, row in self.df_dim.iterrows():
-                dim_sku_id = str(row["sku_id"])
-                dim_name = str(row["sku_name"])
-                dim_clean = self.clean_product_name(dim_name)
-                dim_model_id = self.extract_model_identifier(dim_name)
-                
-                # RÀNG BUỘC 1: Nếu khác thương hiệu thì bỏ qua ngay
-                if detected_brand and detected_brand not in dim_clean:
+
+            for item in self.parsed_dim_skus:
+                dim_sku_id = item["sku_id"]
+                dim_name = item["sku_name"]
+                dim_clean = item["clean_name"]
+                dim_brand = item["brand"]
+                dim_model_id = item["model_id"]
+
+                # Ràng buộc 1: Khác thương hiệu thì bỏ qua ngay
+                if scraped_brand and dim_brand and scraped_brand != dim_brand:
                     continue
-                
-                # RÀNG BUỘC 2: NẾU ĐÃ BẮT ĐƯỢC MODEL IDENTIFIER THÌ BẮT BUỘC PHẢI TRÙNG NHAU
-                # Tránh tuyệt đối: iPhone 18 ghép iPhone 14, Z Fold8 ghép S25
+
+                # Ràng buộc 2: Bắt buộc cùng Model Identifier nếu cả 2 bên nhận diện được model
                 if scraped_model_id and dim_model_id and scraped_model_id != dim_model_id:
                     continue
-                
-                # Nếu một bên có model_id cụ thể (ví dụ iPhone 18) mà bên kia không có -> không ghép đối với điện thoại
-                if detected_brand in ["apple", "iphone", "samsung", "oppo", "xiaomi"]:
+
+                if scraped_brand in ["apple", "samsung", "oppo", "xiaomi"]:
                     if (scraped_model_id and not dim_model_id) or (not scraped_model_id and dim_model_id):
                         continue
                 elif scraped_model_id and not dim_model_id:
                     continue
-                
-                # Trích xuất RAM & ROM của FPT
-                dim_ram = self.extract_ram(dim_clean)
-                dim_rom = self.extract_storage(dim_clean)
 
-                # RÀNG BUỘC 3: Nếu là điện thoại, bắt buộc cùng ROM nếu cả 2 bên đều có thông số ROM
-                if detected_brand in ["apple", "iphone", "samsung", "oppo", "xiaomi"]:
-                    if s_rom and dim_rom and set(s_rom) != set(dim_rom):
-                        continue # Khác dung lượng bộ nhớ thì không được ghép
-                
+                dim_ram = item["ram"]
+                dim_rom = item["rom"]
+
+                # Ràng buộc 3: Bắt buộc cùng ROM cho điện thoại nếu cả 2 bên đều có thông số ROM
+                if scraped_brand in ["apple", "samsung", "oppo", "xiaomi"]:
+                    if s_rom and dim_rom and s_rom_set != set(dim_rom):
+                        continue
+
                 # Tính độ tương đồng chuỗi cơ sở
                 ratio = SequenceMatcher(None, c_clean, dim_clean).ratio()
-                
+
                 bonus = 0.0
-                if s_ram and dim_ram and set(s_ram) == set(dim_ram):
+                if s_ram and dim_ram and s_ram_set == set(dim_ram):
                     bonus += 0.1
-                if s_rom and dim_rom and set(s_rom) == set(dim_rom):
+                if s_rom and dim_rom and s_rom_set == set(dim_rom):
                     bonus += 0.1
                 if scraped_model_id and scraped_model_id == dim_model_id:
-                    bonus += 0.15 # Thưởng lớn nếu trùng chính xác model định danh
-                    
-                score = min(0.95, ratio + bonus)
-                
-                # Nếu cả 2 bên đều có Part-Number nhưng khác nhau -> Không được Approved, tối đa PENDING
-                dim_parts = self.extract_part_numbers(dim_name)
-                if scraped_parts and dim_parts and not set(scraped_parts).intersection(set(dim_parts)):
-                    score = min(0.79, score)
+                    bonus += 0.15
 
-                # Nếu là tên nhóm chung chung như "Series" thì không được cho điểm quá cao để tránh tự động Approved
+                score = min(0.95, ratio + bonus)
+
+                # Nếu cả 2 bên đều có Part-Number nhưng khác nhau -> Không được Approved
+                dim_parts_set = set(item["parts"])
+                if scraped_parts_set and dim_parts_set and not scraped_parts_set.intersection(dim_parts_set):
+                    score = min(self.CONFIDENCE_PENDING_CEILING, score)
+
                 if is_series_generic:
-                    score = min(0.79, score)
-                
-                # Chỉ chấp nhận khi độ tương đồng đủ cao và đúng model
-                if score > best_confidence and score >= 0.75:
+                    score = min(self.CONFIDENCE_PENDING_CEILING, score)
+
+                if score > best_confidence and score >= self.CONFIDENCE_MIN_THRESHOLD:
                     best_confidence = score
                     best_sku_id = dim_sku_id
                     best_sku_name = dim_name
@@ -267,11 +302,10 @@ class SkuMatcher:
         # Phân loại trạng thái duyệt
         status = "UNMATCHED"
         if best_sku_id:
-            status = "APPROVED" if best_confidence >= 0.85 else "PENDING"
-            
+            status = "APPROVED" if best_confidence >= self.CONFIDENCE_APPROVED_THRESHOLD else "PENDING"
+
         fpt_price = self.fpt_prices.get(best_sku_id, None) if best_sku_id else None
-        
-        # Tính chênh lệch giá (FPT vs Đối thủ)
+
         price_diff_vnd = None
         price_diff_pct = None
         if fpt_price and competitor_price:
@@ -296,17 +330,10 @@ class SkuMatcher:
         output_excel_path: str = "data/crawl_and_sku_mapping_output.xlsx",
         master_by_fpt: bool = False
     ) -> str:
-        """Quy trình toàn diện Bước 2 & Bước 3:
-        1. So khớp toàn bộ sản phẩm cào về.
-        2. Tạo file Excel chuẩn 2 Sheet (Scraped_All_Data và SKU_Mapping).
-           - Nếu master_by_fpt=True: Sheet 2 lấy toàn bộ 329 SKU của FPT làm chuẩn Master Table,
-             sản phẩm nào đối thủ không có sẽ hiển thị 'N/A' (NOT_FOUND).
-           - Nếu master_by_fpt=False: Giữ nguyên theo danh sách sản phẩm cào được.
-        3. Định dạng styling chuyên nghiệp.
-        """
+        """Ghép cặp sản phẩm cào về và xuất báo cáo Excel 2 sheet (ủy quyền qua ExcelExporter)."""
         logger.info(f"Bắt đầu so khớp {len(scraped_items)} sản phẩm và xuất file Excel (master_by_fpt={master_by_fpt})...")
-        
-        # --- 1. Tạo Data Sheet 1: Scraped_All_Data ---
+
+        # 1. Tạo Data Sheet 1: Scraped_All_Data
         sheet1_rows = []
         for idx, item in enumerate(scraped_items, 1):
             sheet1_rows.append({
@@ -322,11 +349,9 @@ class SkuMatcher:
             })
         df_sheet1 = pd.DataFrame(sheet1_rows)
 
-        # --- 2. Tạo Data Sheet 2: SKU_Mapping ---
+        # 2. Tạo Data Sheet 2: SKU_Mapping
         sheet2_rows = []
-
         if master_by_fpt and not self.df_dim.empty:
-            # Chế độ Master FPT: Lấy toàn bộ 329 SKU của FPT làm trục chuẩn
             source_name = scraped_items[0].get("Nguồn", "ĐỐI THỦ") if scraped_items else "ĐỐI THỦ"
 
             # Tìm best match từ danh sách sản phẩm cào về cho từng SKU FPT
@@ -346,9 +371,9 @@ class SkuMatcher:
                             "competitor_name": scraped_name
                         }
 
-            for idx, (_, row) in enumerate(self.df_dim.iterrows(), 1):
-                sku_id = str(row["sku_id"])
-                sku_name = str(row["sku_name"])
+            for idx, item in enumerate(self.parsed_dim_skus, 1):
+                sku_id = item["sku_id"]
+                sku_name = item["sku_name"]
                 fpt_ref_price = self.fpt_prices.get(sku_id)
 
                 if sku_id in fpt_to_competitor:
@@ -392,9 +417,9 @@ class SkuMatcher:
                 scraped_name = item.get("Tên sản phẩm", item.get("Tên sản phẩm đối thủ", ""))
                 c_price = item.get("Giá bán (VND)")
                 source = item.get("Nguồn", "ĐỐI THỦ")
-                
+
                 match_res = self.match_single_item(scraped_name, c_price)
-                
+
                 sheet2_rows.append({
                     "STT": idx,
                     "Mã SKU FPT": match_res["fpt_sku_id"],
@@ -411,100 +436,9 @@ class SkuMatcher:
                 })
         df_sheet2 = pd.DataFrame(sheet2_rows)
 
-        # --- 3. Xuất ra Excel với định dạng chuyên nghiệp ---
-        actual_path = output_excel_path
-        try:
-            with pd.ExcelWriter(actual_path, engine="openpyxl") as writer:
-                df_sheet1.to_excel(writer, sheet_name="Scraped_All_Data", index=False)
-                df_sheet2.to_excel(writer, sheet_name="SKU_Mapping", index=False)
-        except PermissionError:
-            from datetime import datetime
-            actual_path = os.path.join(os.path.dirname(output_excel_path), f"crawl_and_sku_mapping_output_{datetime.now().strftime('%H%M%S')}.xlsx")
-            logger.warning(f"File {output_excel_path} đang mở trong ứng dụng khác. Lưu sang: {actual_path}")
-            with pd.ExcelWriter(actual_path, engine="openpyxl") as writer:
-                df_sheet1.to_excel(writer, sheet_name="Scraped_All_Data", index=False)
-                df_sheet2.to_excel(writer, sheet_name="SKU_Mapping", index=False)
-
-        # Áp dụng styling OpenPyXL
-        self._apply_excel_styling(actual_path)
-        logger.info(f"Đã xuất và định dạng thành công file Excel 2 sheet tại: {actual_path}")
-        return actual_path
-
-    @staticmethod
-    def _apply_excel_styling(file_path: str):
-        """Định dạng phông chữ, màu sắc, tiền tệ và độ rộng cột."""
-        wb = openpyxl.load_workbook(file_path)
-
-        # Style definition
-        header_fill = PatternFill(start_color="1F4E79", end_color="1F4E79", fill_type="solid") # Navy Blue
-        header_font = Font(name="Calibri", size=11, bold=True, color="FFFFFF")
-        
-        green_fill = PatternFill(start_color="E2EFDA", end_color="E2EFDA", fill_type="solid") # Khớp APPROVED
-        yellow_fill = PatternFill(start_color="FFF2CC", end_color="FFF2CC", fill_type="solid") # Cần duyệt PENDING
-        red_fill = PatternFill(start_color="FCE4D6", end_color="FCE4D6", fill_type="solid") # Unmatched
-        
-        thin_border = Border(
-            left=Side(style='thin', color='D9D9D9'),
-            right=Side(style='thin', color='D9D9D9'),
-            top=Side(style='thin', color='D9D9D9'),
-            bottom=Side(style='thin', color='D9D9D9')
+        # 3. Xuất qua ExcelExporter chuyên trách
+        return ExcelExporter.export_sku_mapping_report(
+            df_sheet1=df_sheet1,
+            df_sheet2=df_sheet2,
+            output_excel_path=output_excel_path
         )
-
-        for sheetname in wb.sheetnames:
-            ws = wb[sheetname]
-            
-            # Format header
-            for col in range(1, ws.max_column + 1):
-                cell = ws.cell(row=1, column=col)
-                cell.fill = header_fill
-                cell.font = header_font
-                cell.alignment = Alignment(horizontal="center", vertical="center", wrap_text=True)
-                ws.row_dimensions[1].height = 28
-
-            # Format data rows
-            for row in range(2, ws.max_row + 1):
-                ws.row_dimensions[row].height = 20
-                for col in range(1, ws.max_column + 1):
-                    cell = ws.cell(row=row, column=col)
-                    cell.border = thin_border
-                    cell.font = Font(name="Calibri", size=10)
-                    
-                    # Căn lề STT
-                    if col == 1:
-                        cell.alignment = Alignment(horizontal="center", vertical="center")
-                    
-                    # Format số tiền VND (nếu là số nguyên > 1000)
-                    if isinstance(cell.value, (int, float)) and cell.value > 1000:
-                        cell.number_format = '#,##0 "₫"'
-                        cell.alignment = Alignment(horizontal="right", vertical="center")
-
-            # Tô màu trạng thái cho Sheet SKU_Mapping
-            if sheetname == "SKU_Mapping":
-                for row in range(2, ws.max_row + 1):
-                    status_cell = ws.cell(row=row, column=12) # Cột Status
-                    conf_cell = ws.cell(row=row, column=11)   # Cột Confidence
-                    
-                    if isinstance(conf_cell.value, (int, float)):
-                        conf_cell.number_format = '0.0%'
-                        conf_cell.alignment = Alignment(horizontal="center", vertical="center")
-                        
-                    if status_cell.value == "APPROVED":
-                        status_cell.fill = green_fill
-                    elif status_cell.value == "PENDING":
-                        status_cell.fill = yellow_fill
-                    elif status_cell.value in ["UNMATCHED", "NOT_FOUND"]:
-                        status_cell.fill = red_fill
-
-            # Auto-fit độ rộng cột
-            for col in ws.columns:
-                max_len = 0
-                col_letter = get_column_letter(col[0].column)
-                for cell in col:
-                    val_str = str(cell.value or "")
-                    if cell.row == 1:
-                        max_len = max(max_len, len(val_str) + 4)
-                    else:
-                        max_len = max(max_len, min(len(val_str), 55)) # Giới hạn tối đa 55 ký tự để không quá bè
-                ws.column_dimensions[col_letter].width = max(max_len + 3, 12)
-
-        wb.save(file_path)

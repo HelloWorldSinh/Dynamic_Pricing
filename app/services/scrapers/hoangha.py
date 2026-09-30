@@ -1,21 +1,10 @@
-import os
-import sys
 import re
 import time
 import logging
-from datetime import datetime
-from typing import Optional, List, Dict, Any, Tuple
-
-# Đảm bảo import được app.* kể cả khi chạy file trực tiếp
-project_root = os.path.abspath(os.path.join(os.path.dirname(__file__), "../../.."))
-if project_root not in sys.path:
-    sys.path.insert(0, project_root)
-
-if hasattr(sys.stdout, 'reconfigure'):
-    sys.stdout.reconfigure(encoding='utf-8')
-
+from typing import Optional, List, Dict, Any
 import requests
 from bs4 import BeautifulSoup
+
 from app.services.scrapers.base import BaseScraper
 from app.schemas.crawl import ScrapedProductItem
 
@@ -47,12 +36,11 @@ class HoanghaScraper(BaseScraper):
             return None
         # Loại bỏ phần trăm giảm giá (VD: - 17%, -15%)
         cleaned = re.sub(r"-\s*\d+%", "", str(price_str))
-        # Tìm cụm số tiền đầu tiên (VD: 46,990,000 hoặc 46.990.000)
         match = re.search(r"(\d[\d\.,]*\d|\d+)", cleaned)
         if match:
             digits = re.sub(r"[^\d]", "", match.group(1))
             val = int(digits) if digits else None
-            # Phòng ngừa lỗi dính 2 số phần trăm ở đuôi (ví dụ: 4699000017 -> 46990000)
+            # Phòng ngừa lỗi dính 2 số phần trăm ở đuôi (VD: 4699000017 -> 46990000)
             if val and val > 500_000_000:
                 val_str = str(val)
                 if len(val_str) >= 10:
@@ -63,8 +51,8 @@ class HoanghaScraper(BaseScraper):
     @staticmethod
     def _extract_storage_from_name(name: str) -> Optional[str]:
         """Trích xuất RAM/ROM từ tên sản phẩm.
-        Ví dụ: 'iPhone 18 Pro 256GB' -> '256 GB'
-               'Samsung Z Fold7 5G 12GB/256GB' -> '12 GB / 256 GB'
+        Ví dụ: 'iPhone 16 Pro 256GB' -> '256 GB'
+               'Samsung Z Fold6 5G 12GB/256GB' -> '12 GB / 256 GB'
         """
         if not name:
             return None
@@ -74,8 +62,8 @@ class HoanghaScraper(BaseScraper):
             return " / ".join(formatted)
         return None
 
-    def _parse_card_specs(self, specs_list: List[str], product_name: str) -> Tuple[Dict[str, Any], str]:
-        """Chuẩn hóa danh sách specs ngắn trên thẻ sản phẩm Hoàng Hà thành dict và chuỗi summary."""
+    def _parse_card_specs(self, specs_list: List[str], product_name: str) -> Dict[str, Any]:
+        """Chuẩn hóa danh sách specs ngắn trên thẻ sản phẩm Hoàng Hà thành dict."""
         specs_dict: Dict[str, Any] = {}
         for s in specs_list:
             s_clean = s.strip()
@@ -90,7 +78,7 @@ class HoanghaScraper(BaseScraper):
                     specs_dict["Bộ nhớ/RAM"] = s_clean
             elif re.search(r"[\d\.,]+\s*(?:\"|inch|inches)", s_clean, re.I):
                 specs_dict["Màn hình"] = s_clean
-            else:
+            elif any(k in s_clean.lower() for k in ["chip", "cpu", "snapdragon", "dimensity", "apple a", "intel", "amd", "ryzen", "core i", "core ultra", "m1", "m2", "m3", "m4"]):
                 if "CPU/Chip" not in specs_dict:
                     specs_dict["CPU/Chip"] = s_clean
 
@@ -100,9 +88,8 @@ class HoanghaScraper(BaseScraper):
             if storage_from_name:
                 specs_dict["Bộ nhớ/RAM"] = storage_from_name
 
-        summary = " | ".join([f"{k}: {v}" for k, v in specs_dict.items()])
-        specs_dict["summary"] = summary
-        return specs_dict, summary
+        specs_dict["summary"] = " | ".join([f"{k}: {v}" for k, v in specs_dict.items()])
+        return specs_dict
 
     def scrape_product(self, url: str) -> Optional[ScrapedProductItem]:
         """Cào chi tiết 1 sản phẩm cụ thể từ Hoàng Hà Mobile."""
@@ -123,8 +110,10 @@ class HoanghaScraper(BaseScraper):
         price_tag = soup.select_one(".current-product-price, .product-price, .price strong, .price")
         old_price_tag = soup.select_one(".product-price-through, .price strike, .price-last")
 
-        strike_tag = old_price_tag.find("strike") if old_price_tag else None
-        old_price_raw = strike_tag.get_text(strip=True) if strike_tag else (old_price_tag.get_text(strip=True) if old_price_tag else None)
+        old_price_raw = None
+        if old_price_tag:
+            strike_tag = old_price_tag.find("strike")
+            old_price_raw = strike_tag.get_text(strip=True) if strike_tag else old_price_tag.get_text(strip=True)
 
         current_price = self._clean_price(price_tag.get_text(strip=True)) if price_tag else None
         original_price = self._clean_price(old_price_raw) if old_price_raw else None
@@ -169,8 +158,7 @@ class HoanghaScraper(BaseScraper):
         results: List[ScrapedProductItem] = []
         seen_urls = set()
         page = 1
-        max_pages = 100  # Duyệt đến khi hết toàn bộ sản phẩm của danh mục
-
+        max_pages = 100
 
         session = requests.Session()
         session.headers.update(self._get_headers())
@@ -194,11 +182,9 @@ class HoanghaScraper(BaseScraper):
                 logger.error(f"[HoangHa] Dừng cào: Không thể tải trang {page_url} sau 3 lần thử.")
                 break
 
-
             soup = BeautifulSoup(res.text, "html.parser")
             container = soup.find(class_="v5-grid-items")
             if not container:
-                # Fallback: tìm container sản phẩm khác
                 container = soup.select_one(".list-product, .grid-items")
                 if not container:
                     break
@@ -234,8 +220,10 @@ class HoanghaScraper(BaseScraper):
                 price_el = card.select_one(".price-tags .price, .price strong, .price")
                 old_price_el = card.select_one(".price.price-last, .price strike")
 
-                strike_el = old_price_el.find("strike") if old_price_el else None
-                old_price_raw = strike_el.get_text(strip=True) if strike_el else (old_price_el.get_text(strip=True) if old_price_el else None)
+                old_price_raw = None
+                if old_price_el:
+                    strike_el = old_price_el.find("strike")
+                    old_price_raw = strike_el.get_text(strip=True) if strike_el else old_price_el.get_text(strip=True)
 
                 current_price = self._clean_price(price_el.get_text()) if price_el else None
                 original_price = self._clean_price(old_price_raw) if old_price_raw else None
@@ -250,7 +238,7 @@ class HoanghaScraper(BaseScraper):
 
                 # Thông số tóm tắt
                 specs_list = [li.get_text(strip=True) for li in card.select(".specs .spec-item, .specs li, .spec-list li")]
-                specs_dict, specs_summary = self._parse_card_specs(specs_list, product_name)
+                specs_dict = self._parse_card_specs(specs_list, product_name)
 
                 item = ScrapedProductItem(
                     source=self.source_name,
@@ -271,124 +259,17 @@ class HoanghaScraper(BaseScraper):
             if page_items_count == 0:
                 logger.info(f"[HoangHa] Không còn sản phẩm mới ở trang {page}. Đã hoàn tất danh mục.")
                 break
-            time.sleep(0.5)  # Tránh nghẽn server và chống rate-limit
+            time.sleep(0.5)
             page += 1
-
 
         logger.info(f"[HoangHa] Hoàn thành cào {len(results)} sản phẩm ngành {category}")
         return results
 
-    def scrape_by_fpt_dim(
-        self,
-        dim_product_path: str = "data/dim_product.xlsx",
-        limit: Optional[int] = None
-    ) -> Tuple[List[Dict[str, Any]], Dict[str, int]]:
-        """Thu thập sản phẩm từ Hoàng Hà Mobile và CHỈ GIỮ LẠI các sản phẩm
-        thuộc danh mục chuẩn dim_product của FPT Shop.
-        
-        Trả về:
-            tuple: (danh_sách_sản_phẩm_đã_lọc_theo_fpt, thống_kê_số_lượng)
-        """
-        logger.info(f"[HoangHa] Bắt đầu cào dữ liệu và lọc theo danh mục chuẩn FPT: {dim_product_path}")
-        
-        # 1. Cào toàn bộ sản phẩm thực tế trên kệ Hoàng Hà
-        phones = self.scrape_category("phone", limit=limit)
-        laptops = self.scrape_category("laptop", limit=limit)
-
-        # 2. Khử trùng lặp
-        unique_items: List[ScrapedProductItem] = []
-        seen = set()
-        for item in (phones + laptops):
-            if item.url not in seen:
-                seen.add(item.url)
-                unique_items.append(item)
-
-        # 3. Nạp SKU Matcher để đối soát và lọc
-        from app.services.sku_matcher import SkuMatcher
-        matcher = SkuMatcher(dim_product_path=dim_product_path)
-
-        now_str = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
-        filtered_rows = []
-        matched_idx = 1
-        stats = {
-            "total_crawled": len(unique_items),
-            "matched_fpt": 0,
-            "approved": 0,
-            "pending": 0,
-            "excluded_unmatched": 0,
-        }
-
-        for item in unique_items:
-            match_res = matcher.match_single_item(item.product_name, item.current_price)
-            status = match_res["status"]
-
-            # CHỈ GIỮ LẠI SẢN PHẨM KHỚP VỚI FPT (APPROVED hoặc PENDING)
-            if status in ["APPROVED", "PENDING"]:
-                specs_summary = item.specifications.get("summary", "N/A") if item.specifications else "N/A"
-                filtered_rows.append({
-                    "STT": matched_idx,
-                    "Mã SKU FPT": match_res["fpt_sku_id"],
-                    "Tên chuẩn FPT": match_res["fpt_sku_name"],
-                    "Nguồn": item.source,
-                    "Tên sản phẩm đối thủ": item.product_name,
-                    "Giá bán (VND)": item.current_price,
-                    "Giá niêm yết (VND)": item.original_price or item.current_price,
-                    "Giá tham chiếu FPT (VND)": match_res["fpt_price"] if match_res["fpt_price"] else "Chưa có giá",
-                    "Độ tin cậy": match_res["confidence_score"],
-                    "Trạng thái khớp": status,
-                    "Còn hàng": "Còn hàng" if item.is_in_stock else "Hết hàng",
-                    "Thông số kỹ thuật tóm tắt": specs_summary,
-                    "URL sản phẩm": item.url,
-                    "Thời gian cào": now_str
-                })
-                matched_idx += 1
-                stats["matched_fpt"] += 1
-                if status == "APPROVED":
-                    stats["approved"] += 1
-                else:
-                    stats["pending"] += 1
-            else:
-                stats["excluded_unmatched"] += 1
-
-        logger.info(
-            f"[HoangHa] Cào được {stats['total_crawled']} SP trên kệ -> "
-            f"Lọc được {stats['matched_fpt']} SP thuộc FPT (Loại bỏ {stats['excluded_unmatched']} SP ngoài luồng)."
-        )
-        return filtered_rows, stats
-
 
 if __name__ == "__main__":
-    import json
-    import pandas as pd
-
     logging.basicConfig(level=logging.INFO, format="%(asctime)s [%(levelname)s] %(message)s")
-
     scraper = HoanghaScraper()
-    print("=" * 80)
-    print("=== CHẠY CÀO HOÀNG HÀ MOBILE (CHỈ LẤY SẢN PHẨM THUỘC DIM PRODUCT FPT) ===")
-    print("=" * 80)
-
-    filtered_rows, stats = scraper.scrape_by_fpt_dim(dim_product_path="data/dim_product.xlsx")
-
-    os.makedirs("data", exist_ok=True)
-    json_path = "data/scraped_products_hoangha.json"
-    excel_path = "data/scraped_raw_hoangha.xlsx"
-
-    with open(json_path, "w", encoding="utf-8") as f:
-        json.dump(filtered_rows, f, ensure_ascii=False, indent=2)
-
-    pd.DataFrame(filtered_rows).to_excel(excel_path, index=False)
-
-    print("\n" + "=" * 80)
-    print(f"KẾT QUẢ THU THẬP & LỌC THEO FPT DIM PRODUCT CHO HOÀNG HÀ:")
-    print("=" * 80)
-    print(f" - Tổng sản phẩm cào trên kệ Hoàng Hà : {stats['total_crawled']}")
-    print(f" - Sản phẩm trùng khớp danh mục FPT    : {stats['matched_fpt']} (LƯU VÀO DATASET)")
-    print(f"     + Khớp chính xác (APPROVED)      : {stats['approved']}")
-    print(f"     + Chờ kiểm duyệt (PENDING)       : {stats['pending']}")
-    print(f" - Sản phẩm ngoài luồng đã LOẠI BỎ    : {stats['excluded_unmatched']}")
-    print(f"\n - Đã lưu cache JSON sạch              : {json_path}")
-    print(f" - Đã lưu bảng Excel chuẩn             : {excel_path}")
-    print("=" * 80)
-
-
+    print("Kiểm thử cào thử nghiệm 3 sản phẩm Hoàng Hà Mobile...")
+    sample_items = scraper.scrape_category("phone", limit=3)
+    for it in sample_items:
+        print(f"- {it.product_name} | Giá: {it.current_price:,}đ | Còn hàng: {it.is_in_stock}")

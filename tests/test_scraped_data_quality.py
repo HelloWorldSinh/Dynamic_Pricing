@@ -1,6 +1,5 @@
 import os
 import sys
-import io
 import shutil
 import tempfile
 import pandas as pd

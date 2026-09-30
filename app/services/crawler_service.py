@@ -1,11 +1,11 @@
 import time
 import uuid
 import logging
-from typing import Optional, Tuple
+from typing import Tuple
 from sqlalchemy.orm import Session
 from app.core.config import settings
 from app.models.crawl_result import CrawlResult
-from app.schemas.crawl import CrawlTriggerRequest, CrawlJobResponse, SourceEnum
+from app.schemas.crawl import CrawlTriggerRequest, CrawlJobResponse
 from app.services.scrapers.factory import ScraperFactory
 
 logger = logging.getLogger(__name__)
