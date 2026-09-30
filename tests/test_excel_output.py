@@ -3,8 +3,13 @@ import sys
 import pandas as pd
 import openpyxl
 
+if hasattr(sys.stdout, 'reconfigure'):
+    sys.stdout.reconfigure(encoding='utf-8')
+
+BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+
 def test_excel_deliverable():
-    file_path = "data/crawl_and_sku_mapping_output.xlsx"
+    file_path = os.path.join(BASE_DIR, "data", "crawl_and_sku_mapping_output.xlsx")
     assert os.path.exists(file_path), f"File {file_path} không tồn tại!"
     assert os.path.getsize(file_path) > 10000, "File quá nhỏ hoặc bị rỗng!"
 

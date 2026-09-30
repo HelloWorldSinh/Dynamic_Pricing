@@ -290,13 +290,21 @@ class SkuMatcher:
             "price_diff_pct": round(price_diff_pct, 1) if price_diff_pct is not None else None
         }
 
-    def process_and_export_excel(self, scraped_items: List[Dict[str, Any]], output_excel_path: str = "data/crawl_and_sku_mapping_output.xlsx") -> str:
+    def process_and_export_excel(
+        self,
+        scraped_items: List[Dict[str, Any]],
+        output_excel_path: str = "data/crawl_and_sku_mapping_output.xlsx",
+        master_by_fpt: bool = False
+    ) -> str:
         """Quy trình toàn diện Bước 2 & Bước 3:
         1. So khớp toàn bộ sản phẩm cào về.
         2. Tạo file Excel chuẩn 2 Sheet (Scraped_All_Data và SKU_Mapping).
+           - Nếu master_by_fpt=True: Sheet 2 lấy toàn bộ 329 SKU của FPT làm chuẩn Master Table,
+             sản phẩm nào đối thủ không có sẽ hiển thị 'N/A' (NOT_FOUND).
+           - Nếu master_by_fpt=False: Giữ nguyên theo danh sách sản phẩm cào được.
         3. Định dạng styling chuyên nghiệp.
         """
-        logger.info(f"Bắt đầu so khớp {len(scraped_items)} sản phẩm và xuất file Excel...")
+        logger.info(f"Bắt đầu so khớp {len(scraped_items)} sản phẩm và xuất file Excel (master_by_fpt={master_by_fpt})...")
         
         # --- 1. Tạo Data Sheet 1: Scraped_All_Data ---
         sheet1_rows = []
@@ -304,7 +312,7 @@ class SkuMatcher:
             sheet1_rows.append({
                 "STT": idx,
                 "Nguồn": item.get("Nguồn", "CELLPHONES"),
-                "Tên sản phẩm cào được": item.get("Tên sản phẩm", ""),
+                "Tên sản phẩm cào được": item.get("Tên sản phẩm", item.get("Tên sản phẩm đối thủ", "")),
                 "Giá bán đối thủ (VND)": item.get("Giá bán (VND)"),
                 "Giá niêm yết (VND)": item.get("Giá niêm yết (VND)"),
                 "Tình trạng kho": item.get("Còn hàng", "Còn hàng"),
@@ -316,27 +324,91 @@ class SkuMatcher:
 
         # --- 2. Tạo Data Sheet 2: SKU_Mapping ---
         sheet2_rows = []
-        for idx, item in enumerate(scraped_items, 1):
-            scraped_name = item.get("Tên sản phẩm", "")
-            c_price = item.get("Giá bán (VND)")
-            source = item.get("Nguồn", "CELLPHONES")
-            
-            match_res = self.match_single_item(scraped_name, c_price)
-            
-            sheet2_rows.append({
-                "STT": idx,
-                "Mã SKU FPT": match_res["fpt_sku_id"],
-                "Tên sản phẩm chuẩn (FPT Shop)": match_res["fpt_sku_name"],
-                "Nguồn đối thủ": source,
-                "Tên sản phẩm đối thủ cào về": scraped_name,
-                "Giá đối thủ (VND)": match_res["competitor_price"],
-                "Giá tham chiếu FPT (VND)": match_res["fpt_price"] if match_res["fpt_price"] else "Chưa có giá",
-                "Chênh lệch giá (FPT - ĐT)": match_res["price_diff_vnd"] if match_res["price_diff_vnd"] is not None else "N/A",
-                "Chênh lệch (%)": f"{match_res['price_diff_pct']}%" if match_res['price_diff_pct'] is not None else "N/A",
-                "Loại khớp (Match Type)": match_res["match_type"],
-                "Độ tin cậy (Confidence)": match_res["confidence_score"],
-                "Trạng thái (Status)": match_res["status"],
-            })
+
+        if master_by_fpt and not self.df_dim.empty:
+            # Chế độ Master FPT: Lấy toàn bộ 329 SKU của FPT làm trục chuẩn
+            source_name = scraped_items[0].get("Nguồn", "ĐỐI THỦ") if scraped_items else "ĐỐI THỦ"
+
+            # Tìm best match từ danh sách sản phẩm cào về cho từng SKU FPT
+            fpt_to_competitor: Dict[str, Dict[str, Any]] = {}
+            for item in scraped_items:
+                scraped_name = item.get("Tên sản phẩm", item.get("Tên sản phẩm đối thủ", ""))
+                c_price = item.get("Giá bán (VND)")
+                match_res = self.match_single_item(scraped_name, c_price)
+                if match_res["status"] in ["APPROVED", "PENDING"]:
+                    fpt_sku = match_res["fpt_sku_id"]
+                    conf = match_res["confidence_score"]
+                    if fpt_sku not in fpt_to_competitor or conf > fpt_to_competitor[fpt_sku]["confidence"]:
+                        fpt_to_competitor[fpt_sku] = {
+                            "item": item,
+                            "match_res": match_res,
+                            "confidence": conf,
+                            "competitor_name": scraped_name
+                        }
+
+            for idx, (_, row) in enumerate(self.df_dim.iterrows(), 1):
+                sku_id = str(row["sku_id"])
+                sku_name = str(row["sku_name"])
+                fpt_ref_price = self.fpt_prices.get(sku_id)
+
+                if sku_id in fpt_to_competitor:
+                    c_data = fpt_to_competitor[sku_id]
+                    m = c_data["match_res"]
+                    c_price = m["competitor_price"]
+                    diff_vnd = m["price_diff_vnd"]
+                    diff_pct = m["price_diff_pct"]
+
+                    sheet2_rows.append({
+                        "STT": idx,
+                        "Mã SKU FPT": sku_id,
+                        "Tên sản phẩm chuẩn (FPT Shop)": sku_name,
+                        "Nguồn đối thủ": source_name,
+                        "Tên sản phẩm đối thủ cào về": c_data["competitor_name"],
+                        "Giá đối thủ (VND)": c_price,
+                        "Giá tham chiếu FPT (VND)": fpt_ref_price if fpt_ref_price else "Chưa có giá",
+                        "Chênh lệch giá (FPT - ĐT)": diff_vnd if diff_vnd is not None else "N/A",
+                        "Chênh lệch (%)": f"{diff_pct}%" if diff_pct is not None else "N/A",
+                        "Loại khớp (Match Type)": m["match_type"],
+                        "Độ tin cậy (Confidence)": m["confidence_score"],
+                        "Trạng thái (Status)": m["status"],
+                    })
+                else:
+                    sheet2_rows.append({
+                        "STT": idx,
+                        "Mã SKU FPT": sku_id,
+                        "Tên sản phẩm chuẩn (FPT Shop)": sku_name,
+                        "Nguồn đối thủ": source_name,
+                        "Tên sản phẩm đối thủ cào về": "N/A",
+                        "Giá đối thủ (VND)": "N/A",
+                        "Giá tham chiếu FPT (VND)": fpt_ref_price if fpt_ref_price else "Chưa có giá",
+                        "Chênh lệch giá (FPT - ĐT)": "N/A",
+                        "Chênh lệch (%)": "N/A",
+                        "Loại khớp (Match Type)": "NOT_FOUND",
+                        "Độ tin cậy (Confidence)": 0.0,
+                        "Trạng thái (Status)": "NOT_FOUND",
+                    })
+        else:
+            for idx, item in enumerate(scraped_items, 1):
+                scraped_name = item.get("Tên sản phẩm", item.get("Tên sản phẩm đối thủ", ""))
+                c_price = item.get("Giá bán (VND)")
+                source = item.get("Nguồn", "CELLPHONES")
+                
+                match_res = self.match_single_item(scraped_name, c_price)
+                
+                sheet2_rows.append({
+                    "STT": idx,
+                    "Mã SKU FPT": match_res["fpt_sku_id"],
+                    "Tên sản phẩm chuẩn (FPT Shop)": match_res["fpt_sku_name"],
+                    "Nguồn đối thủ": source,
+                    "Tên sản phẩm đối thủ cào về": scraped_name,
+                    "Giá đối thủ (VND)": match_res["competitor_price"],
+                    "Giá tham chiếu FPT (VND)": match_res["fpt_price"] if match_res["fpt_price"] else "Chưa có giá",
+                    "Chênh lệch giá (FPT - ĐT)": match_res["price_diff_vnd"] if match_res["price_diff_vnd"] is not None else "N/A",
+                    "Chênh lệch (%)": f"{match_res['price_diff_pct']}%" if match_res['price_diff_pct'] is not None else "N/A",
+                    "Loại khớp (Match Type)": match_res["match_type"],
+                    "Độ tin cậy (Confidence)": match_res["confidence_score"],
+                    "Trạng thái (Status)": match_res["status"],
+                })
         df_sheet2 = pd.DataFrame(sheet2_rows)
 
         # --- 3. Xuất ra Excel với định dạng chuyên nghiệp ---
@@ -421,7 +493,7 @@ class SkuMatcher:
                         status_cell.fill = green_fill
                     elif status_cell.value == "PENDING":
                         status_cell.fill = yellow_fill
-                    elif status_cell.value == "UNMATCHED":
+                    elif status_cell.value in ["UNMATCHED", "NOT_FOUND"]:
                         status_cell.fill = red_fill
 
             # Auto-fit độ rộng cột

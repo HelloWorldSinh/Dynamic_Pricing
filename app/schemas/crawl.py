@@ -20,6 +20,7 @@ class CrawlTriggerRequest(BaseModel):
     source: SourceEnum = Field(default=SourceEnum.CELLPHONES, description="Nguồn cần cào: fptshop | cellphones | hoangha | all")
     category: CategoryEnum = Field(default=CategoryEnum.PHONE, description="Ngành hàng: phone | laptop")
     target_url: Optional[str] = Field(default=None, description="URL cụ thể cần cào test (tuỳ chọn)")
+    limit: Optional[int] = Field(default=None, description="Số lượng tối đa cần cào (None = không giới hạn, cào hết các trang)")
 
 
 class CrawlJobResponse(BaseModel):

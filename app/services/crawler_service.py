@@ -47,7 +47,7 @@ class CrawlerService:
             if item:
                 items_to_save.append(item)
         else:
-            items_to_save = scraper.scrape_category(request.category.value, limit=5)
+            items_to_save = scraper.scrape_category(request.category.value, limit=request.limit)
 
         # Lưu dữ liệu vào CSDL
         db: Session = db_session_factory()
