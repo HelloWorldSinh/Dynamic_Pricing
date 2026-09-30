@@ -4,7 +4,6 @@ import re
 import time
 import logging
 from datetime import datetime
-from urllib.parse import quote
 from typing import Optional, List, Dict, Any, Tuple
 
 # Đảm bảo import được app.* kể cả khi chạy file trực tiếp
@@ -21,7 +20,6 @@ from app.services.scrapers.base import BaseScraper
 from app.schemas.crawl import ScrapedProductItem
 
 logger = logging.getLogger(__name__)
-
 
 
 class HoanghaScraper(BaseScraper):
@@ -280,219 +278,24 @@ class HoanghaScraper(BaseScraper):
         logger.info(f"[HoangHa] Hoàn thành cào {len(results)} sản phẩm ngành {category}")
         return results
 
-    @staticmethod
-    def _extract_search_keyword(sku_name: str) -> str:
-        """Trích xuất từ khóa tìm kiếm tối ưu từ tên sản phẩm FPT Shop để search trên Hoàng Hà.
-        - Laptop: Lấy mã Part-Number (VD: AL14-52M-52UU, A715-59G, FA506NCG-HN329W)
-        - Lenovo: Mã 8x (VD: 83ER00EVVN)
-        - Điện thoại: Tên máy + dung lượng GB/TB (VD: iPhone 16e 128GB, Galaxy S24 Ultra 256GB)
-        """
-        clean = re.sub(r'^(Laptop|Điện thoại|ĐTDĐ)\s+', '', str(sku_name), flags=re.IGNORECASE).strip()
-        
-        # 1. Tìm Part-Number (dạng ABC-123 hoặc ABC-123-XYZ)
-        part_match = re.search(r'\b([A-Za-z0-9]{3,8}-[A-Za-z0-9]{2,8}(?:-[A-Za-z0-9]{2,8})?)\b', clean)
-        if part_match:
-            return part_match.group(1).strip()
-        
-        # 2. Lenovo mã 8x (ví dụ 83ER00EVVN)
-        lenovo_match = re.search(r'\b(8[0-9][A-Za-z0-9]{6,8})\b', clean)
-        if lenovo_match:
-            return lenovo_match.group(1).strip()
-
-        # 3. Điện thoại: Lấy tên máy đến dung lượng GB/TB
-        storage_match = re.search(r'^(.*?(\d+\s*(?:GB|TB)))', clean, flags=re.IGNORECASE)
-        if storage_match:
-            return storage_match.group(1).strip()
-            
-        return ' '.join(clean.split()[:4])
-
-    def search_competitor_product(
-        self,
-        sku_id: str,
-        sku_name: str,
-        session: requests.Session,
-        matcher: Any
-    ) -> Tuple[str, Optional[Dict[str, Any]]]:
-        """Gửi request tìm kiếm trực tiếp 1 SKU của FPT lên thanh Search của Hoàng Hà Mobile."""
-        keyword = self._extract_search_keyword(sku_name)
-        search_url = f"{self.BASE_URL}/tim-kiem?kwd={quote(keyword)}"
-        
-        res = None
-        for attempt in range(3):
-            try:
-                res = session.get(search_url, timeout=20)
-                res.raise_for_status()
-                break
-            except requests.exceptions.RequestException:
-                time.sleep(1.5)
-                
-        if not res or res.status_code != 200:
-            return keyword, None
-            
-        soup = BeautifulSoup(res.text, "html.parser")
-        cards = soup.select(".pj16-item-info")
-        
-        for c in cards:
-            title_el = c.select_one("h3 a, a.text-limit")
-            title = title_el.get_text(strip=True) if title_el else ""
-            if not title:
-                a_tag = c.find("a", title=True)
-                if a_tag:
-                    title = a_tag.get("title", "").strip()
-                    
-            if not title:
-                continue
-                
-            href = ""
-            link_el = c.find("a", href=True)
-            if link_el:
-                href = link_el.get("href", "")
-                
-            # Loại bỏ máy cũ, trầy xước, đổi bảo hành
-            if "/kho-san-pham-cu/" in href or "máy cũ" in title.lower() or "tbh" in title.lower():
-                continue
-                
-            price_el = c.select_one(".price strong, strong")
-            price_val = None
-            if price_el:
-                digits = re.sub(r"[^\d]", "", price_el.get_text(strip=True))
-                price_val = int(digits) if digits else None
-                
-            # Kiểm tra xác thực xem kết quả search có đúng là sku_id này không
-            match_res = matcher.match_single_item(title, price_val)
-            if match_res["fpt_sku_id"] == sku_id and match_res["status"] in ["APPROVED", "PENDING"]:
-                full_url = href if href.startswith("http") else f"{self.BASE_URL}{href}"
-                return keyword, {
-                    "fpt_sku_id": sku_id,
-                    "fpt_sku_name": sku_name,
-                    "source": self.source_name,
-                    "competitor_name": title,
-                    "competitor_price": price_val,
-                    "url": full_url,
-                    "match_type": match_res["match_type"],
-                    "confidence_score": match_res["confidence_score"],
-                    "status": match_res["status"]
-                }
-                
-        return keyword, None
-
-    def scrape_by_fpt_search(
-        self,
-        dim_product_path: str = "data/dim_product.xlsx",
-        limit: Optional[int] = None,
-        delay: float = 0.5
-    ) -> Tuple[List[Dict[str, Any]], List[Dict[str, Any]], Dict[str, int]]:
-        """Quy trình cào THỰC SỰ THEO DANH MỤC FPT (Targeted Search Crawl):
-        1. Đọc từng sản phẩm trong dim_product của FPT Shop.
-        2. Tạo từ khóa và gửi request tìm kiếm trực tiếp trên Hoàng Hà Mobile.
-        3. Bóc tách sản phẩm khớp và lưu lại bảng so sánh Master.
-        """
-        import pandas as pd
-        from app.services.sku_matcher import SkuMatcher
-
-        if not os.path.exists(dim_product_path):
-            raise FileNotFoundError(f"Không tìm thấy file danh mục chuẩn: {dim_product_path}")
-
-        df_dim = pd.read_excel(dim_product_path)
-        if limit is not None and limit > 0:
-            df_dim = df_dim.head(limit)
-
-        matcher = SkuMatcher(dim_product_path=dim_product_path)
-        session = requests.Session()
-        session.headers.update(self._get_headers())
-
-        logger.info(f"[HoangHa] Bắt đầu cào tìm kiếm trực tiếp theo {len(df_dim)} SKU của FPT...")
-
-        scraped_raw_items = []
-        master_rows = []
-        now_str = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
-        
-        stats = {
-            "total_fpt_skus": len(df_dim),
-            "matched_found": 0,
-            "approved": 0,
-            "pending": 0,
-            "not_found": 0
-        }
-
-        for idx, (_, row) in enumerate(df_dim.iterrows(), 1):
-            sku_id = str(row["sku_id"])
-            sku_name = str(row["sku_name"])
-            fpt_ref_price = matcher.fpt_prices.get(sku_id)
-
-            keyword, match = self.search_competitor_product(sku_id, sku_name, session, matcher)
-
-            if match:
-                c_price = match["competitor_price"]
-                diff_vnd = fpt_ref_price - c_price if (fpt_ref_price and c_price) else None
-                diff_pct = round((diff_vnd / fpt_ref_price) * 100, 1) if (fpt_ref_price and diff_vnd) else None
-
-                scraped_raw_items.append({
-                    "STT": len(scraped_raw_items) + 1,
-                    "Nguồn": self.source_name,
-                    "Mã SKU FPT": sku_id,
-                    "Tên sản phẩm FPT": sku_name,
-                    "Tên sản phẩm cào được": match["competitor_name"],
-                    "Giá bán đối thủ (VND)": c_price,
-                    "Giá niêm yết (VND)": c_price,
-                    "Còn hàng": "Còn hàng",
-                    "URL sản phẩm": match["url"],
-                    "Thời gian cào": now_str
-                })
-
-                master_rows.append({
-                    "STT": idx,
-                    "Mã SKU FPT": sku_id,
-                    "Tên sản phẩm chuẩn (FPT Shop)": sku_name,
-                    "Nguồn đối thủ": self.source_name,
-                    "Tên sản phẩm đối thủ cào về": match["competitor_name"],
-                    "Giá đối thủ (VND)": c_price,
-                    "Giá tham chiếu FPT (VND)": fpt_ref_price if fpt_ref_price else "Chưa có giá",
-                    "Chênh lệch giá (FPT - ĐT)": diff_vnd if diff_vnd is not None else "N/A",
-                    "Chênh lệch (%)": f"{diff_pct}%" if diff_pct is not None else "N/A",
-                    "Loại khớp (Match Type)": match["match_type"],
-                    "Độ tin cậy (Confidence)": match["confidence_score"],
-                    "Trạng thái (Status)": match["status"],
-                })
-
-                stats["matched_found"] += 1
-                if match["status"] == "APPROVED":
-                    stats["approved"] += 1
-                else:
-                    stats["pending"] += 1
-                logger.info(f"[{idx}/{len(df_dim)}] {sku_id} -> KHỚP: {match['competitor_name'][:35]} | Giá: {c_price:,} đ" if c_price else f"[{idx}/{len(df_dim)}] {sku_id} -> KHỚP: {match['competitor_name'][:35]}")
-            else:
-                master_rows.append({
-                    "STT": idx,
-                    "Mã SKU FPT": sku_id,
-                    "Tên sản phẩm chuẩn (FPT Shop)": sku_name,
-                    "Nguồn đối thủ": self.source_name,
-                    "Tên sản phẩm đối thủ cào về": "N/A (Hoàng Hà không có hàng)",
-                    "Giá đối thủ (VND)": "N/A",
-                    "Giá tham chiếu FPT (VND)": fpt_ref_price if fpt_ref_price else "Chưa có giá",
-                    "Chênh lệch giá (FPT - ĐT)": "N/A",
-                    "Chênh lệch (%)": "N/A",
-                    "Loại khớp (Match Type)": "NOT_FOUND",
-                    "Độ tin cậy (Confidence)": 0.0,
-                    "Trạng thái (Status)": "NOT_FOUND",
-                })
-                stats["not_found"] += 1
-                logger.info(f"[{idx}/{len(df_dim)}] {sku_id} -> KHÔNG TÌM THẤY (KWD: '{keyword}')")
-
-            time.sleep(delay)
-
-        return scraped_raw_items, master_rows, stats
-
     def scrape_by_fpt_dim(
         self,
         dim_product_path: str = "data/dim_product.xlsx",
         limit: Optional[int] = None
     ) -> Tuple[List[Dict[str, Any]], Dict[str, int]]:
-        """Thu thập sản phẩm từ Hoàng Hà Mobile theo catalog rồi lọc theo FPT."""
-        logger.info(f"[HoangHa] Bắt đầu cào dữ liệu catalog và lọc theo danh mục FPT: {dim_product_path}")
+        """Thu thập sản phẩm từ Hoàng Hà Mobile và CHỈ GIỮ LẠI các sản phẩm
+        thuộc danh mục chuẩn dim_product của FPT Shop.
+        
+        Trả về:
+            tuple: (danh_sách_sản_phẩm_đã_lọc_theo_fpt, thống_kê_số_lượng)
+        """
+        logger.info(f"[HoangHa] Bắt đầu cào dữ liệu và lọc theo danh mục chuẩn FPT: {dim_product_path}")
+        
+        # 1. Cào toàn bộ sản phẩm thực tế trên kệ Hoàng Hà
         phones = self.scrape_category("phone", limit=limit)
         laptops = self.scrape_category("laptop", limit=limit)
 
+        # 2. Khử trùng lặp
         unique_items: List[ScrapedProductItem] = []
         seen = set()
         for item in (phones + laptops):
@@ -500,6 +303,7 @@ class HoanghaScraper(BaseScraper):
                 seen.add(item.url)
                 unique_items.append(item)
 
+        # 3. Nạp SKU Matcher để đối soát và lọc
         from app.services.sku_matcher import SkuMatcher
         matcher = SkuMatcher(dim_product_path=dim_product_path)
 
@@ -518,6 +322,7 @@ class HoanghaScraper(BaseScraper):
             match_res = matcher.match_single_item(item.product_name, item.current_price)
             status = match_res["status"]
 
+            # CHỈ GIỮ LẠI SẢN PHẨM KHỚP VỚI FPT (APPROVED hoặc PENDING)
             if status in ["APPROVED", "PENDING"]:
                 specs_summary = item.specifications.get("summary", "N/A") if item.specifications else "N/A"
                 filtered_rows.append({
@@ -545,6 +350,10 @@ class HoanghaScraper(BaseScraper):
             else:
                 stats["excluded_unmatched"] += 1
 
+        logger.info(
+            f"[HoangHa] Cào được {stats['total_crawled']} SP trên kệ -> "
+            f"Lọc được {stats['matched_fpt']} SP thuộc FPT (Loại bỏ {stats['excluded_unmatched']} SP ngoài luồng)."
+        )
         return filtered_rows, stats
 
 
@@ -556,37 +365,30 @@ if __name__ == "__main__":
 
     scraper = HoanghaScraper()
     print("=" * 80)
-    print("=== CHẠY CÀO TÌM KIẾM TRỰC TIẾP THEO TỪNG SKU FPT (TARGETED SEARCH) ===")
+    print("=== CHẠY CÀO HOÀNG HÀ MOBILE (CHỈ LẤY SẢN PHẨM THUỘC DIM PRODUCT FPT) ===")
     print("=" * 80)
 
-    # Chạy thử nghiệm cào theo danh mục FPT (mặc định thử nghiệm 20 sản phẩm đầu để phản hồi nhanh)
-    # Muốn chạy toàn bộ 329 SKU, truyền limit=None
-    limit_test = 60;
-    scraped_raw, master_rows, stats = scraper.scrape_by_fpt_search(
-        dim_product_path="data/dim_product.xlsx",
-        limit=limit_test,
-        delay=0.6
-    )
+    filtered_rows, stats = scraper.scrape_by_fpt_dim(dim_product_path="data/dim_product.xlsx")
 
     os.makedirs("data", exist_ok=True)
     json_path = "data/scraped_products_hoangha.json"
     excel_path = "data/scraped_raw_hoangha.xlsx"
 
     with open(json_path, "w", encoding="utf-8") as f:
-        json.dump(scraped_raw, f, ensure_ascii=False, indent=2)
+        json.dump(filtered_rows, f, ensure_ascii=False, indent=2)
 
-    pd.DataFrame(scraped_raw).to_excel(excel_path, index=False)
+    pd.DataFrame(filtered_rows).to_excel(excel_path, index=False)
 
     print("\n" + "=" * 80)
-    print("KẾT QUẢ CÀO TRỰC TIẾP THEO TỪNG SKU FPT TRÊN HOÀNG HÀ MOBILE:")
+    print(f"KẾT QUẢ THU THẬP & LỌC THEO FPT DIM PRODUCT CHO HOÀNG HÀ:")
     print("=" * 80)
-    print(f" - Tổng SKU FPT đã tìm kiếm               : {stats['total_fpt_skus']}")
-    print(f" - Số SKU tìm thấy trên Hoàng Hà           : {stats['matched_found']} (LƯU VÀO DATASET)")
-    print(f"     + Khớp chính xác (APPROVED)          : {stats['approved']}")
-    print(f"     + Chờ kiểm duyệt (PENDING)           : {stats['pending']}")
-    print(f" - Số SKU đối thủ không có hàng (N/A)     : {stats['not_found']}")
-    print(f"\n - Đã lưu cache JSON sạch                  : {json_path}")
-    print(f" - Đã lưu bảng Excel raw                   : {excel_path}")
+    print(f" - Tổng sản phẩm cào trên kệ Hoàng Hà : {stats['total_crawled']}")
+    print(f" - Sản phẩm trùng khớp danh mục FPT    : {stats['matched_fpt']} (LƯU VÀO DATASET)")
+    print(f"     + Khớp chính xác (APPROVED)      : {stats['approved']}")
+    print(f"     + Chờ kiểm duyệt (PENDING)       : {stats['pending']}")
+    print(f" - Sản phẩm ngoài luồng đã LOẠI BỎ    : {stats['excluded_unmatched']}")
+    print(f"\n - Đã lưu cache JSON sạch              : {json_path}")
+    print(f" - Đã lưu bảng Excel chuẩn             : {excel_path}")
     print("=" * 80)
 
 

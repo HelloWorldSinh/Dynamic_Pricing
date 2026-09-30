@@ -6,7 +6,7 @@
 *.db
 *.sqlite3
 
-# Temporary scraped raw files & test outputs
+# Temporary scraped raw files
 data/scraped_raw_*.xlsx
 data/scraped_products*.json
 

@@ -1,10 +1,10 @@
 import re
 import os
-import json
 import logging
 from typing import List, Dict, Any, Optional, Tuple
 from difflib import SequenceMatcher
 import pandas as pd
+import openpyxl
 from openpyxl.styles import Font, PatternFill, Alignment, Border, Side
 from openpyxl.utils import get_column_letter
 
@@ -196,7 +196,7 @@ class SkuMatcher:
             scraped_model_id = self.extract_model_identifier(scraped_name)
             
             # Trích xuất thương hiệu chính
-            brands = ["apple", "iphone", "samsung", "xiaomi", "oppo", "acer", "asus", "lenovo", "dell", "hp", "msi", "poco", "honor"]
+            brands = ["apple", "iphone", "samsung", "xiaomi", "oppo", "vivo", "realme", "tecno", "acer", "asus", "lenovo", "dell", "hp", "msi", "poco", "honor"]
             detected_brand = next((b for b in brands if b in c_clean), None)
             
             # Trích xuất cấu hình RAM & Ổ cứng bằng helper chuẩn
@@ -311,7 +311,7 @@ class SkuMatcher:
         for idx, item in enumerate(scraped_items, 1):
             sheet1_rows.append({
                 "STT": idx,
-                "Nguồn": item.get("Nguồn", "CELLPHONES"),
+                "Nguồn": item.get("Nguồn", "ĐỐI THỦ"),
                 "Tên sản phẩm cào được": item.get("Tên sản phẩm", item.get("Tên sản phẩm đối thủ", "")),
                 "Giá bán đối thủ (VND)": item.get("Giá bán (VND)"),
                 "Giá niêm yết (VND)": item.get("Giá niêm yết (VND)"),
@@ -391,7 +391,7 @@ class SkuMatcher:
             for idx, item in enumerate(scraped_items, 1):
                 scraped_name = item.get("Tên sản phẩm", item.get("Tên sản phẩm đối thủ", ""))
                 c_price = item.get("Giá bán (VND)")
-                source = item.get("Nguồn", "CELLPHONES")
+                source = item.get("Nguồn", "ĐỐI THỦ")
                 
                 match_res = self.match_single_item(scraped_name, c_price)
                 
@@ -433,7 +433,6 @@ class SkuMatcher:
     @staticmethod
     def _apply_excel_styling(file_path: str):
         """Định dạng phông chữ, màu sắc, tiền tệ và độ rộng cột."""
-        import openpyxl
         wb = openpyxl.load_workbook(file_path)
 
         # Style definition
