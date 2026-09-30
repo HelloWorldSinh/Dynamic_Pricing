@@ -129,5 +129,9 @@ def main(limit: Optional[int] = None, filter_by_dim: bool = True):
 
 
 if __name__ == "__main__":
-    # Mặc định cào và lọc theo dim_product của FPT Shop
-    main(limit=None, filter_by_dim=True)
+    # Hỗ trợ truyền limit từ command line: python run_hoangha_pipeline.py [limit]
+    # Mặc định cào và lọc theo dim_product của FPT Shop (limit=None cào toàn bộ)
+    cli_limit = None
+    if len(sys.argv) > 1 and sys.argv[1].isdigit():
+        cli_limit = int(sys.argv[1])
+    main(limit=cli_limit, filter_by_dim=True)
