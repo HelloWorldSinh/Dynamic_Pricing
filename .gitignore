@@ -1,0 +1,27 @@
+# Data
+data/
+backend/data/
+*.xlsx
+
+# Skills
+.claude/skills/
+.codex/skills/
+**/skills/
+
+# Python cache & environments
+__pycache__/
+*.py[cod]
+*$py.class
+.pytest_cache/
+.venv/
+venv/
+env/
+
+# GitNexus
+.gitnexus/
+
+# System & IDE
+.DS_Store
+Thumbs.db
+.idea/
+.vscode/
