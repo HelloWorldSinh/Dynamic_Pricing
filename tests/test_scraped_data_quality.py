@@ -32,7 +32,10 @@ def load_excel_safe(file_path: str) -> pd.DataFrame:
             cmd = f'powershell -ExecutionPolicy Bypass -Command "Copy-Item -Path \'{file_path}\' -Destination \'{tmp_path}\' -Force"'
             os.system(cmd)
 
-        df = pd.read_excel(tmp_path)
+        import openpyxl
+        xl = openpyxl.load_workbook(tmp_path, read_only=True)
+        sheet = next((s for s in ["CellphoneS_Data", "Scraped_All_Data", "HoangHa_Data"] if s in xl.sheetnames), 0)
+        df = pd.read_excel(tmp_path, sheet_name=sheet)
         return df
     finally:
         if os.path.exists(tmp_path):
@@ -128,18 +131,21 @@ def test_scraped_data_anomalies(file_path: str = None):
     # =========================================================================
     # TEST 4: Kiểm tra bản ghi trùng lặp (Duplicate Products)
     # =========================================================================
-    print("--- 4. KIỂM TRA BẢN GHI SẢN PHẨM TRÙNG LẶP (DUPLICATE ROWS) ---")
-    dup_url_mask = df.duplicated(subset=["URL sản phẩm"], keep=False)
-    dup_rows = df[dup_url_mask]
-    unique_urls = df["URL sản phẩm"].nunique()
-    print(f" + Số URL duy nhất: {unique_urls} / {total_rows}")
-    print(f" + Số dòng bị lặp lại (trùng URL với dòng khác): {len(dup_rows)} dòng ({len(dup_rows) / total_rows * 100:.2f}%)")
+    url_col = next((c for c in ["URL sản phẩm", "URL CellphoneS", "URL", "url"] if c in df.columns), None)
+    if url_col:
+        dup_url_mask = df.duplicated(subset=[url_col], keep=False)
+        dup_rows = df[dup_url_mask]
+        unique_urls = df[url_col].nunique()
+        print(f" + Số URL duy nhất: {unique_urls} / {total_rows}")
+        print(f" + Số dòng bị lặp lại (trùng URL với dòng khác): {len(dup_rows)} dòng ({len(dup_rows) / total_rows * 100:.2f}%)")
 
-    if len(dup_rows) > 0:
-        sample_dup = dup_rows.sort_values(by="URL sản phẩm").head(4)
-        print(" + Ví dụ một số sản phẩm bị lặp lại 2 lần:")
-        for _, r in sample_dup.iterrows():
-            print(f"    - STT: {r['STT']:<5} | Tên: {r['Tên sản phẩm']:<35} | URL: {r['URL sản phẩm']}")
+        if len(dup_rows) > 0:
+            sample_dup = dup_rows.sort_values(by=url_col).head(4)
+            print(" + Ví dụ một số sản phẩm bị lặp lại 2 lần:")
+            for _, r in sample_dup.iterrows():
+                name_col = next((c for c in ["Tên sản phẩm", "Tên sản phẩm cào được", "Tên sản phẩm chuẩn (FPT Shop)", "name"] if c in r), None)
+                name_val = r.get(name_col, "N/A") if name_col else "N/A"
+                print(f"    - STT: {r.get('STT', 'N/A'):<5} | Tên: {str(name_val):<35} | URL: {r[url_col]}")
 
     print(" -> GIẢI THÍCH: Khi scraper phân trang qua GraphQL API (100+ trang), CellphoneS")
     print("    trả về cùng sản phẩm trên nhiều trang hoặc thuộc cả 2 danh mục (phone, laptop).")

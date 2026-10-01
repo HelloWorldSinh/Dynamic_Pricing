@@ -1,7 +1,7 @@
 import re
 import os
 import logging
-from typing import List, Dict, Any, Optional
+from typing import List, Dict, Any, Optional, Tuple
 from difflib import SequenceMatcher
 import pandas as pd
 
@@ -440,5 +440,148 @@ class SkuMatcher:
         return ExcelExporter.export_sku_mapping_report(
             df_sheet1=df_sheet1,
             df_sheet2=df_sheet2,
+            output_excel_path=output_excel_path
+        )
+
+    def match_multi_sources(
+        self,
+        cellphones_items: List[Dict[str, Any]],
+        hoangha_items: List[Dict[str, Any]],
+        output_excel_path: str = "data/crawl_and_sku_mapping_output.xlsx"
+    ) -> str:
+        """So khớp dữ liệu từ cả 2 nguồn (CellphoneS & Hoàng Hà Mobile) với danh mục chuẩn FPT Shop (329 SKUs)
+        và xuất ra 1 file Excel duy nhất gồm 3 sheet:
+        - Sheet 1: FPT_Shop_Comparison (Bảng Master đối sánh 329 SKU FPT với 2 đối thủ song song)
+        - Sheet 2: CellphoneS_Data (Dữ liệu cào thực tế từ CellphoneS)
+        - Sheet 3: HoangHa_Data (Dữ liệu cào thực tế từ Hoàng Hà Mobile)
+        """
+        logger.info(
+            f"Bắt đầu so khớp đa nguồn: CellphoneS ({len(cellphones_items)} SP) + "
+            f"Hoàng Hà ({len(hoangha_items)} SP) với {len(self.parsed_dim_skus)} SKU FPT..."
+        )
+
+        # 1. Chuẩn hóa Data Sheet 2: CellphoneS_Data
+        cps_rows = []
+        for idx, item in enumerate(cellphones_items, 1):
+            cps_rows.append({
+                "STT": idx,
+                "Nguồn": item.get("Nguồn", "CellphoneS"),
+                "Tên sản phẩm cào được": item.get("Tên sản phẩm", item.get("Tên sản phẩm cào được", "")),
+                "Giá bán đối thủ (VND)": item.get("Giá bán (VND)", item.get("Giá bán đối thủ (VND)")),
+                "Giá niêm yết (VND)": item.get("Giá niêm yết (VND)"),
+                "Tình trạng kho": item.get("Còn hàng", item.get("Tình trạng kho", "Còn hàng")),
+                "Thông số kỹ thuật tóm tắt": item.get("Thông số kỹ thuật tóm tắt", "N/A"),
+                "URL sản phẩm": item.get("URL sản phẩm", item.get("URL", "")),
+                "Thời gian cào": item.get("Thời gian cào", "")
+            })
+        df_cellphones = pd.DataFrame(cps_rows)
+
+        # 2. Chuẩn hóa Data Sheet 3: HoangHa_Data
+        hh_rows = []
+        for idx, item in enumerate(hoangha_items, 1):
+            hh_rows.append({
+                "STT": idx,
+                "Nguồn": item.get("Nguồn", "HOANGHA"),
+                "Tên sản phẩm cào được": item.get("Tên sản phẩm", item.get("Tên sản phẩm cào được", "")),
+                "Giá bán đối thủ (VND)": item.get("Giá bán (VND)", item.get("Giá bán đối thủ (VND)")),
+                "Giá niêm yết (VND)": item.get("Giá niêm yết (VND)"),
+                "Tình trạng kho": item.get("Còn hàng", item.get("Tình trạng kho", "Còn hàng")),
+                "Thông số kỹ thuật tóm tắt": item.get("Thông số kỹ thuật tóm tắt", "N/A"),
+                "URL sản phẩm": item.get("URL sản phẩm", item.get("URL", "")),
+                "Thời gian cào": item.get("Thời gian cào", "")
+            })
+        df_hoangha = pd.DataFrame(hh_rows)
+
+        # 3. Thuật toán Mapping Best Match cho từng đối thủ
+        def _build_best_mapping(items: List[Dict[str, Any]]) -> Dict[str, Dict[str, Any]]:
+            mapping: Dict[str, Dict[str, Any]] = {}
+            for it in items:
+                name = it.get("Tên sản phẩm", it.get("Tên sản phẩm cào được", it.get("Tên sản phẩm đối thủ", "")))
+                price = it.get("Giá bán (VND)", it.get("Giá bán đối thủ (VND)"))
+                match_res = self.match_single_item(name, price)
+                status = match_res["status"]
+
+                if status in ["APPROVED", "PENDING"]:
+                    fpt_sku = match_res["fpt_sku_id"]
+                    conf = match_res["confidence_score"]
+
+                    should_replace = False
+                    if fpt_sku not in mapping:
+                        should_replace = True
+                    else:
+                        curr_status = mapping[fpt_sku]["match_res"]["status"]
+                        curr_conf = mapping[fpt_sku]["confidence"]
+                        if status == "APPROVED" and curr_status != "APPROVED":
+                            should_replace = True
+                        elif status == curr_status and conf > curr_conf:
+                            should_replace = True
+
+                    if should_replace:
+                        mapping[fpt_sku] = {
+                            "item": it,
+                            "match_res": match_res,
+                            "confidence": conf,
+                            "name": name,
+                            "price": price,
+                            "stock": it.get("Còn hàng", it.get("Tình trạng kho", "Còn hàng")),
+                            "url": it.get("URL sản phẩm", it.get("URL", ""))
+                        }
+            return mapping
+
+        fpt_to_cps = _build_best_mapping(cellphones_items)
+        fpt_to_hh = _build_best_mapping(hoangha_items)
+
+        # 4. Chuẩn hóa Data Sheet 1: FPT_Shop_Comparison (Master 329 SKU)
+        comparison_rows = []
+        for idx, item in enumerate(self.parsed_dim_skus, 1):
+            sku_id = item["sku_id"]
+            sku_name = item["sku_name"]
+            fpt_ref_price = self.fpt_prices.get(sku_id)
+
+            # Dữ liệu CellphoneS
+            cps_data = fpt_to_cps.get(sku_id)
+            cps_name = cps_data["name"] if cps_data else "N/A"
+            cps_price = cps_data["price"] if cps_data else "N/A"
+            cps_stock = cps_data["stock"] if cps_data else "N/A"
+            cps_conf = cps_data["confidence"] if cps_data else 0.0
+            cps_status = cps_data["match_res"]["status"] if cps_data else "NOT_FOUND"
+            cps_url = cps_data["url"] if cps_data else "N/A"
+
+            # Dữ liệu Hoàng Hà
+            hh_data = fpt_to_hh.get(sku_id)
+            hh_name = hh_data["name"] if hh_data else "N/A"
+            hh_price = hh_data["price"] if hh_data else "N/A"
+            hh_stock = hh_data["stock"] if hh_data else "N/A"
+            hh_conf = hh_data["confidence"] if hh_data else 0.0
+            hh_status = hh_data["match_res"]["status"] if hh_data else "NOT_FOUND"
+            hh_url = hh_data["url"] if hh_data else "N/A"
+
+            comparison_rows.append({
+                "Mã SKU FPT": sku_id,
+                "Tên sản phẩm chuẩn (FPT Shop)": sku_name,
+                "Giá tham chiếu FPT (VND)": fpt_ref_price if fpt_ref_price else "Chưa có giá",
+                # Cột CellphoneS
+                "Tên SP CellphoneS": cps_name,
+                "Giá CellphoneS (VND)": cps_price,
+                "Kho CellphoneS": cps_stock,
+                "Độ tin cậy CPS": cps_conf if cps_data else "N/A",
+                "Trạng thái CPS": cps_status,
+                "URL CellphoneS": cps_url,
+                # Cột Hoàng Hà
+                "Tên SP Hoàng Hà": hh_name,
+                "Giá Hoàng Hà (VND)": hh_price,
+                "Kho Hoàng Hà": hh_stock,
+                "Độ tin cậy HH": hh_conf if hh_data else "N/A",
+                "Trạng thái HH": hh_status,
+                "URL Hoàng Hà": hh_url,
+            })
+
+        df_comparison = pd.DataFrame(comparison_rows)
+
+        # 6. Xuất file Excel 3 Sheets qua ExcelExporter
+        return ExcelExporter.export_multi_source_report(
+            df_comparison=df_comparison,
+            df_cellphones=df_cellphones,
+            df_hoangha=df_hoangha,
             output_excel_path=output_excel_path
         )

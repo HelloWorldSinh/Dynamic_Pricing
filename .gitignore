@@ -8,7 +8,6 @@
 
 # Data
 data/
-backend/data/
 data/scraped_raw_*.xlsx
 data/scraped_products*.json
 

@@ -286,12 +286,22 @@ class CellphonesScraper(BaseScraper):
             }}
             """
 
-            try:
-                res = session.post(self.GRAPHQL_URL, json={"query": query, "variables": {}}, timeout=12)
-                res.raise_for_status()
-                data = res.json()
-            except requests.exceptions.RequestException as e:
-                logger.warning(f"[CellphoneS] Lỗi mạng khi tải trang {page}: {e}. Đang dừng phân trang.")
+            data = None
+            for attempt in range(3):
+                try:
+                    res = session.post(self.GRAPHQL_URL, json={"query": query, "variables": {}}, timeout=15)
+                    res.raise_for_status()
+                    data = res.json()
+                    break
+                except requests.exceptions.RequestException as e:
+                    if attempt < 2:
+                        logger.warning(f"[CellphoneS] Lỗi mạng khi tải trang {page} (lần {attempt + 1}/3): {e}. Đang thử lại sau {2 * (attempt + 1)}s...")
+                        time.sleep(2 * (attempt + 1))
+                    else:
+                        logger.warning(f"[CellphoneS] Lỗi mạng khi tải trang {page} sau 3 lần thử: {e}. Đang dừng phân trang.")
+                        break
+
+            if not data:
                 break
 
             products = data.get("data", {}).get("products")

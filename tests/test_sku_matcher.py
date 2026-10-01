@@ -1,3 +1,4 @@
+import os
 import pytest
 import pandas as pd
 from app.services.sku_matcher import SkuMatcher
@@ -94,3 +95,58 @@ def test_hoangha_extract_storage_from_name():
     """Kiểm tra trích xuất RAM/ROM từ tên sản phẩm Hoàng Hà."""
     assert HoanghaScraper._extract_storage_from_name("iPhone 16 Pro 256GB") == "256 GB"
     assert HoanghaScraper._extract_storage_from_name("Samsung Galaxy Z Fold6 12GB/512GB") == "12 GB / 512 GB"
+
+
+def test_match_multi_sources_logic(mock_matcher, tmp_path):
+    """Kiểm tra so khớp đa nguồn (CellphoneS + Hoàng Hà) và phân tích định giá trên 3 sheets."""
+    cps_items = [
+        {
+            "Nguồn": "CellphoneS",
+            "Tên sản phẩm": "Laptop Acer Gaming Nitro 5 AN515-58-52SP i5 12500H Chính hãng",
+            "Giá bán (VND)": 19500000,
+            "Giá niêm yết (VND)": 23000000,
+            "Còn hàng": "Còn hàng",
+            "Thông số kỹ thuật tóm tắt": "i5 12500H | 16GB | 512GB",
+            "URL sản phẩm": "https://cellphones.com.vn/acer-nitro-5.html",
+            "Thời gian cào": "2026-10-01 12:00:00"
+        }
+    ]
+    hh_items = [
+        {
+            "Nguồn": "HOANGHA",
+            "Tên sản phẩm": "Laptop Acer Gaming Nitro 5 AN515-58-52SP",
+            "Giá bán (VND)": 19990000,
+            "Giá niêm yết (VND)": 22000000,
+            "Còn hàng": "Còn hàng",
+            "Thông số kỹ thuật tóm tắt": "i5 12500H | 16GB | 512GB",
+            "URL sản phẩm": "https://hoanghamobile.com/acer-nitro-5",
+            "Thời gian cào": "2026-10-01 12:00:00"
+        }
+    ]
+
+    out_file = str(tmp_path / "multi_test.xlsx")
+    actual_file = mock_matcher.match_multi_sources(cps_items, hh_items, output_excel_path=out_file)
+
+    assert os.path.exists(actual_file)
+    import openpyxl
+    wb = openpyxl.load_workbook(actual_file)
+    assert wb.sheetnames == ["FPT_Shop_Comparison", "CellphoneS_Data", "HoangHa_Data"]
+
+    df_comp = pd.read_excel(actual_file, sheet_name="FPT_Shop_Comparison")
+    df_cps = pd.read_excel(actual_file, sheet_name="CellphoneS_Data")
+    df_hh = pd.read_excel(actual_file, sheet_name="HoangHa_Data")
+
+    assert len(df_cps) == 1
+    assert len(df_hh) == 1
+    assert len(df_comp) == len(mock_matcher.parsed_dim_skus)
+
+    # Kiểm tra dòng SKU_ACER_NITRO
+    row_nitro = df_comp[df_comp["Mã SKU FPT"] == "SKU_ACER_NITRO"].iloc[0]
+    assert row_nitro["Trạng thái CPS"] == "APPROVED"
+    assert row_nitro["Giá CellphoneS (VND)"] == 19500000
+    assert row_nitro["Trạng thái HH"] == "APPROVED"
+    assert row_nitro["Giá Hoàng Hà (VND)"] == 19990000
+
+    # Xác nhận các cột không cần thiết đã được loại bỏ
+    for col in ["STT", "Ngành hàng", "Giá đối thủ thấp nhất (VND)", "Đối thủ rẻ nhất", "Chênh lệch giá (FPT - Min ĐT)", "Tỷ lệ chênh lệch (%)", "Khuyến nghị định giá"]:
+        assert col not in df_comp.columns, f"Cột {col} vẫn còn trong FPT_Shop_Comparison!"
