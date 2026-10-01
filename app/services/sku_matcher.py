@@ -12,7 +12,7 @@ logger = logging.getLogger(__name__)
 
 class SkuMatcher:
     """Service thực hiện ghép cặp sản phẩm cào về với danh mục chuẩn FPT Shop (SKU Matching Engine).
-    
+
     Tuân thủ chiến lược 2 tầng:
     - Tầng 1: Exact Match bằng mã Part-Number Regex (Độ tin cậy 100%)
     - Tầng 2: Normalized Attribute Matching (RapidFuzz / Levenshtein + so sánh RAM/ROM + Hard Model Constraints)

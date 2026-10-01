@@ -13,13 +13,13 @@ class SkuMapping(Base):
     id = Column(GUID(), primary_key=True, default=uuid.uuid4)
     fpt_product_id = Column(GUID(), ForeignKey("products.id"), nullable=False, index=True)
     competitor_crawl_id = Column(GUID(), ForeignKey("crawl_results.id"), nullable=False, index=True)
-    
+
     # EXACT_PART_NUMBER | NORMALIZED_ATTRIBUTE | MANUAL
     match_type = Column(String(50), nullable=False)
-    
+
     # Confidence Score: 1.0 (Exact 100%), 0.8 - 0.95 (Normalized), 0.6 - 0.79 (Manual queue)
     confidence_score = Column(Float, nullable=False, default=1.0)
-    
+
     # PENDING | APPROVED | REJECTED
     status = Column(String(50), default="APPROVED", nullable=False)
     matched_at = Column(DateTime, default=datetime.utcnow, nullable=False)

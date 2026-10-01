@@ -4,10 +4,9 @@ if hasattr(sys.stdout, "reconfigure"):
 
 from fastapi.testclient import TestClient
 from app.main import app
-from app.core.database import SessionLocal
-from app.models.crawl_result import CrawlResult
 
 client = TestClient(app)
+
 
 def test_health():
     response = client.get("/health")
@@ -16,10 +15,12 @@ def test_health():
     assert data["status"] == "healthy"
     print(" [PASS] Health check OK:", data)
 
+
 def test_docs():
     response = client.get("/docs")
     assert response.status_code == 200
     print(" [PASS] Swagger UI docs (/docs) OK!")
+
 
 def test_trigger_crawl():
     # 1. Gọi lần 1 -> Thành công (202 Accepted)
@@ -37,6 +38,7 @@ def test_trigger_crawl():
     response_debounce = client.post("/api/v1/crawl/trigger", json=payload)
     assert response_debounce.status_code == 429
     print(" [PASS] Cơ chế Debounce 30s hoạt động chuẩn xác (429 Too Many Requests):", response_debounce.json())
+
 
 if __name__ == "__main__":
     print("--- BẮT ĐẦU KIỂM THỬ HỆ THỐNG FASTAPI + CSDL + DEBOUNCE ---")

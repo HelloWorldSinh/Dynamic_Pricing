@@ -11,8 +11,8 @@ if hasattr(sys.stdout, 'reconfigure'):
 
 sys.path.insert(0, os.path.abspath("."))
 
-from app.services.scrapers.factory import ScraperFactory
-from app.services.sku_matcher import SkuMatcher
+from app.services.scrapers.factory import ScraperFactory  # noqa: E402
+from app.services.sku_matcher import SkuMatcher  # noqa: E402
 
 logging.basicConfig(level=logging.INFO, format="%(asctime)s [%(levelname)s] %(message)s")
 logger = logging.getLogger(__name__)

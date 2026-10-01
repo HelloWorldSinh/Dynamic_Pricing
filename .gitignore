@@ -24,3 +24,5 @@ env/
 .vscode/
 .DS_Store
 Thumbs.db
+
+docs/obsidian-notes/

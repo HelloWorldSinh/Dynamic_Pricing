@@ -8,6 +8,7 @@ if hasattr(sys.stdout, 'reconfigure'):
 
 BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 
+
 def test_excel_deliverable():
     file_path = os.path.join(BASE_DIR, "data", "crawl_and_sku_mapping_output.xlsx")
     assert os.path.exists(file_path), f"File {file_path} không tồn tại!"
@@ -28,6 +29,7 @@ def test_excel_deliverable():
     print(f" - Sheet 1 (Scraped_All_Data): {len(df_all)} dòng, {len(df_all.columns)} cột.")
     print(f" - Sheet 2 (SKU_Mapping): {len(df_map)} dòng, {len(df_map.columns)} cột.")
     print(f" - Số lượng sản phẩm ghép cặp thành công: {len(matched)} / {len(df_map)} ({len(matched)/len(df_map)*100:.1f}%)")
+
 
 if __name__ == "__main__":
     test_excel_deliverable()

@@ -11,7 +11,7 @@ if hasattr(sys.stdout, 'reconfigure'):
 # Thêm đường dẫn project vào sys.path
 sys.path.insert(0, os.path.abspath("."))
 
-from app.services.sku_matcher import SkuMatcher
+from app.services.sku_matcher import SkuMatcher  # noqa: E402
 
 logging.basicConfig(level=logging.INFO, format="%(asctime)s [%(levelname)s] %(message)s")
 logger = logging.getLogger(__name__)
@@ -27,22 +27,22 @@ def main():
         scraped_items = json.load(f)
 
     logger.info(f"Đã đọc {len(scraped_items)} sản phẩm từ {json_path}")
-    
+
     matcher = SkuMatcher(
         dim_product_path="data/dim_product.xlsx",
         demand_events_path="data/demand_events_20260723.xlsx"
     )
-    
+
     target_path = os.path.join("data", "crawl_and_sku_mapping_output.xlsx")
     actual_path = matcher.process_and_export_excel(scraped_items, output_excel_path=target_path)
-    
+
     # Đọc lại và in thống kê
     df_map = pd.read_excel(actual_path, sheet_name="SKU_Mapping")
     total = len(df_map)
     approved = len(df_map[df_map["Trạng thái (Status)"] == "APPROVED"])
     pending = len(df_map[df_map["Trạng thái (Status)"] == "PENDING"])
     unmatched = len(df_map[df_map["Trạng thái (Status)"] == "UNMATCHED"])
-    
+
     print("\n" + "="*80)
     print("BÁO CÁO KẾT QUẢ SO KHỚP SKU (BƯỚC 2 & BƯỚC 3):")
     print("="*80)

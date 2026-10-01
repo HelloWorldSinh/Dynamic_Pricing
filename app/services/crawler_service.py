@@ -13,7 +13,7 @@ logger = logging.getLogger(__name__)
 
 class CrawlerService:
     """Deep Module: Điều phối toàn bộ hoạt động cào dữ liệu, debounce và lưu DB."""
-    
+
     # Lưu timestamp lần kích hoạt gần nhất theo source để thực hiện debounce 30s
     _last_triggered: dict = {}
 
@@ -38,7 +38,7 @@ class CrawlerService:
     def execute_crawl_job(cls, task_id: str, request: CrawlTriggerRequest, db_session_factory):
         """Hàm chạy ngầm (Background Task) để cào dữ liệu và ghi vào CSDL."""
         logger.info(f" bắt đầu chạy task {task_id} cho source {request.source} - category {request.category}")
-        
+
         scraper = ScraperFactory.get_scraper(request.source.value)
         items_to_save = []
 
@@ -75,7 +75,7 @@ class CrawlerService:
     def trigger_crawl(cls, request: CrawlTriggerRequest, background_tasks, db_session_factory) -> CrawlJobResponse:
         """Interface gọi cào dữ liệu từ API controller."""
         task_id = str(uuid.uuid4())
-        
+
         # Đưa vào FastAPI BackgroundTasks chạy bất đồng bộ ngầm
         background_tasks.add_task(
             cls.execute_crawl_job,

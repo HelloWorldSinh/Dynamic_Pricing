@@ -12,6 +12,7 @@ if hasattr(sys.stdout, 'reconfigure'):
 
 BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 
+
 def load_excel_safe(file_path: str) -> pd.DataFrame:
     """Đọc file Excel an toàn kể cả khi người dùng đang mở file bằng Excel trên Windows."""
     if not os.path.exists(file_path):

@@ -5,7 +5,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import RedirectResponse
 from app.core.config import settings
 from app.core.database import Base, engine
-import app.models  # Nạp tất cả models vào metadata
+from app import models as _models  # noqa: F401 - registers models with Base.metadata
 from app.api.v1.router import api_router
 
 # Thiết lập log
@@ -17,7 +17,7 @@ logger = logging.getLogger("dynamic_pricing")
 
 
 @asynccontextmanager
-async def lifespan(app: FastAPI):
+async def lifespan(app_instance: FastAPI):
     # Khởi tạo bảng CSDL khi khởi động (đảm bảo chạy ngay không cần gõ lệnh thủ công)
     logger.info(" Đang khởi tạo kết nối CSDL và tự động tạo bảng nếu chưa có...")
     Base.metadata.create_all(bind=engine)
@@ -30,12 +30,12 @@ app = FastAPI(
     title=settings.PROJECT_NAME,
     description="""
     ## Hệ thống Hỗ trợ Định giá Bán lẻ Tự động (Dynamic Pricing System)
-    
+
     ### Tính năng chính Sprint 1:
     * **PBI-001 & PBI-004:** Thu thập dữ liệu đối thủ (CellphoneS, Hoàng Hà, FPT Shop) & Kích hoạt cào tức thời (Debounce 30s).
     * **PBI-006 & PBI-007:** So khớp sản phẩm (Exact Part-Number & Normalized Attribute Match).
     * **PBI-009:** Quản lý tồn kho giả lập FPT Shop (DOH, Giá vốn, Giá sàn).
-    
+
     Tài liệu API tương tác tự động bởi **Swagger UI**.
     """,
     version="1.0.0",

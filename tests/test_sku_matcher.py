@@ -8,7 +8,7 @@ from app.services.scrapers.hoangha import HoanghaScraper
 def mock_matcher():
     """Tạo một SkuMatcher với danh mục FPT giả lập trong RAM để kiểm thử nhanh chóng."""
     matcher = SkuMatcher(dim_product_path="non_existent.xlsx", demand_events_path="non_existent.xlsx")
-    
+
     # Thiết lập danh mục mẫu
     mock_data = [
         {"sku_id": "SKU_ACER_NITRO", "sku_name": "Laptop Acer Gaming Nitro 5 AN515-58-52SP i5 12500H/16GB/512GB/RTX 3050"},
@@ -82,7 +82,7 @@ def test_rom_mismatch_rejection_for_phones(mock_matcher):
 def test_hoangha_clean_price():
     """Kiểm tra bóc tách và làm sạch giá Hoàng Hà."""
     scraper = HoanghaScraper()
-    
+
     # Giá có phần trăm khuyến mãi
     assert scraper._clean_price("- 17% 46,990,000 ₫") == 46990000
     assert scraper._clean_price("24.990.000 ₫ -15%") == 24990000

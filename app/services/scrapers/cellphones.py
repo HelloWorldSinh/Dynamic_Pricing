@@ -1,9 +1,12 @@
-import os
-import sys
-import re
 import json
 import logging
-from typing import Optional, List, Dict, Any
+import os
+import re
+import sys
+from typing import Any, Dict, List, Optional
+
+import requests
+from bs4 import BeautifulSoup
 
 # Đảm bảo import được app.* kể cả khi chạy trực tiếp file này
 project_root = os.path.abspath(os.path.join(os.path.dirname(__file__), "../../.."))
@@ -13,13 +16,10 @@ if project_root not in sys.path:
 if hasattr(sys.stdout, 'reconfigure'):
     sys.stdout.reconfigure(encoding='utf-8')
 
-import requests
-from bs4 import BeautifulSoup
-from app.services.scrapers.base import BaseScraper
-from app.schemas.crawl import ScrapedProductItem
+from app.schemas.crawl import ScrapedProductItem  # noqa: E402
+from app.services.scrapers.base import BaseScraper  # noqa: E402
 
 logger = logging.getLogger(__name__)
-
 
 
 class CellphonesScraper(BaseScraper):
@@ -87,7 +87,6 @@ class CellphonesScraper(BaseScraper):
             formatted = [re.sub(r"(\d+)\s*(GB|TB)", r"\1 \2", m, flags=re.IGNORECASE).upper() for m in matches]
             return " / ".join(formatted)
         return None
-
 
     def scrape_product(self, url: str) -> Optional[ScrapedProductItem]:
         """Cào thông tin chi tiết một sản phẩm cụ thể từ URL HTML."""
@@ -354,7 +353,6 @@ class CellphonesScraper(BaseScraper):
                 # Chuỗi summary hỗ trợ SKU Matcher
                 specs["summary"] = " | ".join([f"{k}: {v}" for k, v in specs.items() if k != "summary"])
 
-
                 item = ScrapedProductItem(
                     source=self.source_name,
                     url=full_url,
@@ -387,4 +385,3 @@ if __name__ == "__main__":
     from collect_sample_data import run_collection
     # Chạy thu thập toàn bộ dữ liệu CellphoneS (không giới hạn)
     run_collection(limit=None)
-

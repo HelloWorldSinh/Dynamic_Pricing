@@ -101,3 +101,51 @@ Dự án đã tích hợp bộ công cụ **[GitHub Spec Kit (Spec-Driven Develo
 9. **`speckit-converge`**: Rà soát độ hội tụ giữa mã nguồn thực tế và spec, phát hiện các task còn sót để hoàn thành 100%.
 10. **`speckit-taskstoissues`**: Xuất các tasks sang hệ thống issue tracker (hỗ trợ cả `.scratch/` và GitHub Issues).
 
+---
+
+## 7. QUY TẮC TÍCH HỢP OBSIDIAN VAULT (KNOWLEDGE BASE & SECOND BRAIN)
+Dự án đã được liên kết trực tiếp 2 chiều với **Obsidian Vault** của lập trình viên:
+- **Thư mục Vault gốc:** `C:\Users\nguye\OneDrive\Tài liệu\Obsidian Vault`
+- **Điểm cầu nối trong Repo (Bridge Junction):** `docs/obsidian-notes/` $\leftrightarrow$ `Obsidian Vault/02_Projects/Dynamic-Pricing/`
+
+👉 **QUY TẮC BẮT BUỘC ĐỐI VỚI AI AGENT:**
+1. **Tra cứu Ngữ cảnh Nghiệp vụ (Domain Context First):**
+   - Trước khi viết code tính năng mới liên quan đến định giá, cào dữ liệu, đối soát SKU hoặc thiết kế DB, AI PHẢI ưu tiên đọc các tài liệu tại `docs/obsidian-notes/`:
+     - `Khám phá Dữ liệu & Ma trận Định giá.md` (Ma trận 9 kịch bản, công thức Composite Score)
+     - `Product Backlog – Dynamic Pricing.md` & `Sprint Plan – Dynamic Pricing System.md`
+     - `Thiết kế Cơ sở Dữ liệu Toàn diện.md` & `Giải thích Kiến trúc Backend và Chi tiết Codebase.md`
+     - `Hiểu code cào dữ liệu và map sku.md`
+2. **Chuẩn mực Lưu trữ Tài liệu & Quyết định Kiến trúc:**
+   - Khi sinh tài liệu kỹ thuật, kiến trúc (ADR), hướng dẫn vận hành (Runbook) hoặc phân tích lỗi: Lưu trực tiếp vào `docs/obsidian-notes/` hoặc thư mục chuyên mục tương ứng trong Vault.
+   - Luôn duy trì cú pháp **Wikilinks hai chiều** `[[Tên Note]]` và YAML Frontmatter (`title`, `tags`, `date`, `status`) để đảm bảo tính liên kết trong Graph View của Obsidian.
+3. **Nhật ký & Báo cáo Tiến độ (Daily Notes):**
+   - Khi người dùng yêu cầu tóm tắt công việc ngày hoặc chuẩn bị Standup, AI hỗ trợ tạo/cập nhật trực tiếp vào `Obsidian Vault/01_Daily/` theo template chuẩn `Daily Note Template.md`.
+
+---
+
+## 8. QUY TẮC CƯỠNG CHẾ BỘ RULES TẠI `.agents/rules/` (DEVELOPMENT & GIT WORKFLOW)
+AI BẮT BUỘC phải đọc và áp dụng nghiêm ngặt các quy tắc kỹ thuật tại `.agents/rules/`:
+
+### 8.1. Quy trình Git & Chuẩn Commit ([.agents/rules/git-workflow.md](file:///c:/Users/nguye/OneDrive/Desktop/Du_an/dynamic-priciing/.agents/rules/git-workflow.md))
+- **Định dạng Commit Chuẩn (Conventional Commits):**
+  ```text
+  <type>: <description>
+
+  <optional body explaining why, context, or issue reference>
+  ```
+  - `type` BẮT BUỘC thuộc một trong các nhãn: `feat`, `fix`, `refactor`, `docs`, `test`, `chore`, `perf`, `ci`.
+  - Giữ commit mang tính nguyên tử (Atomic Commit): Không gộp nhiều thay đổi logic không liên quan vào 1 commit.
+- **Quy chuẩn Tạo Pull Request (PR):**
+  - Luôn kiểm tra toàn bộ lịch sử thay đổi qua `git diff [base-branch]...HEAD`.
+  - Soạn tóm tắt PR toàn diện và kèm checklist kiểm thử (Test Plan with TODOs).
+
+### 8.2. Chu trình Phát triển Tính năng ([.agents/rules/development-workflow.md](file:///c:/Users/nguye/OneDrive/Desktop/Du_an/dynamic-priciing/.agents/rules/development-workflow.md))
+1. **Research & Reuse First:** Tra cứu thư viện và mẫu thiết kế có sẵn trước khi tự viết code mới từ đầu.
+2. **Plan First:** Lập kế hoạch chi tiết, đánh giá dependency và rủi ro trước khi đụng vào code.
+3. **TDD Approach ([.agents/rules/testing.md](file:///c:/Users/nguye/OneDrive/Desktop/Du_an/dynamic-priciing/.agents/rules/testing.md)):**
+   - Viết test trước khi code tính năng (Red $\rightarrow$ Green $\rightarrow$ Refactor).
+   - Đảm bảo độ bao phủ kiểm thử (test coverage) đạt ít nhất 80%.
+4. **Code Review & Security Check ([.agents/rules/code-review.md](file:///c:/Users/nguye/OneDrive/Desktop/Du_an/dynamic-priciing/.agents/rules/code-review.md) & [security.md](file:///c:/Users/nguye/OneDrive/Desktop/Du_an/dynamic-priciing/.agents/rules/security.md)):**
+   - Rà soát mã nguồn ngay sau khi viết xong, xử lý dứt điểm các lỗi Critical & High.
+   - Tuyệt đối không hardcode bí mật (API keys, token, mật khẩu DB) vào code hoặc git commit.
+

@@ -10,7 +10,7 @@ class Settings(BaseSettings):
     ENVIRONMENT: str = "development"
     DATABASE_URL: str = "sqlite:///./dynamic_pricing.db"
     DEBOUNCE_SECONDS: int = 30
-    
+
     # CORS
     CORS_ORIGINS: Union[List[str], str] = ["http://localhost:3000", "http://localhost:5173"]
 

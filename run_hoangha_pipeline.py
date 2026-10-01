@@ -13,8 +13,8 @@ if hasattr(sys.stdout, 'reconfigure'):
 
 sys.path.insert(0, os.path.abspath("."))
 
-from app.services.scrapers.factory import ScraperFactory
-from app.services.sku_matcher import SkuMatcher
+from app.services.scrapers.factory import ScraperFactory  # noqa: E402
+from app.services.sku_matcher import SkuMatcher  # noqa: E402
 
 logging.basicConfig(level=logging.INFO, format="%(asctime)s [%(levelname)s] %(message)s")
 logger = logging.getLogger(__name__)
@@ -23,7 +23,7 @@ logger = logging.getLogger(__name__)
 def main(limit: Optional[int] = None, filter_by_dim: bool = True):
     mode_desc = "CHỈ LẤY SẢN PHẨM THUỘC DIM_PRODUCT FPT" if filter_by_dim else "TOÀN BỘ SẢN PHẨM TRÊN KỆ"
     limit_desc = "KHÔNG GIỚI HẠN (tất cả các trang từ đầu đến cuối)" if (limit is None or limit <= 0) else f"tối đa {limit} SP/ngành"
-    logger.info(f"=== BẮT ĐẦU QUY TRÌNH THU THẬP & SO KHỚP HOÀNG HÀ MOBILE ===")
+    logger.info("=== BẮT ĐẦU QUY TRÌNH THU THẬP & SO KHỚP HOÀNG HÀ MOBILE ===")
     logger.info(f" - Chế độ cào: {mode_desc}")
     logger.info(f" - Phạm vi: {limit_desc}")
 
@@ -122,7 +122,7 @@ def main(limit: Optional[int] = None, filter_by_dim: bool = True):
     print(f"     + Chờ kiểm duyệt (PENDING)         : {pending} SKU ({pending/total_fpt*100:.1f}%)")
     print(f" - Số SKU đối thủ Hoàng Hà KHÔNG CÓ HÀNG: {not_found} SKU ({not_found/total_fpt*100:.1f}%) -> Điền 'N/A'")
     print(f"\nSheet 1 (Scraped_All_Data): Lưu toàn bộ {len(scraped_dict_items)} sản phẩm thực tế cào từ Hoàng Hà.")
-    print(f"Sheet 2 (SKU_Mapping)    : Bảng chuẩn 329 SKU FPT đối soát sang giá Hoàng Hà.")
+    print("Sheet 2 (SKU_Mapping)    : Bảng chuẩn 329 SKU FPT đối soát sang giá Hoàng Hà.")
     print(f"\nFile Excel hoàn chỉnh: {final_file}")
     print(f"File Raw Excel sạch  : {raw_excel_path}")
     print("=" * 80)
