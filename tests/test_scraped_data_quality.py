@@ -3,6 +3,7 @@ import sys
 import shutil
 import tempfile
 import pandas as pd
+import pytest
 from collections import Counter
 
 # Đảm bảo UTF-8 cho console Windows
@@ -44,6 +45,17 @@ def load_excel_safe(file_path: str) -> pd.DataFrame:
 def test_scraped_data_anomalies(file_path: str = None):
     if file_path is None:
         file_path = os.path.join(BASE_DIR, "data", "scraped_raw_step1.xlsx")
+        if not os.path.exists(file_path):
+            for candidate in [
+                os.path.join(BASE_DIR, "data", "crawl_and_sku_mapping_hoangha.xlsx"),
+                os.path.join(BASE_DIR, "data", "crawl_and_sku_mapping_output.xlsx"),
+            ]:
+                if os.path.exists(candidate):
+                    file_path = candidate
+                    break
+            else:
+                pytest.skip("Chưa có file dữ liệu cào để kiểm tra chất lượng")
+
     print("=" * 80)
     print(f"KIỂM THỬ ĐÁNH GIÁ CHẤT LƯỢNG DỮ LIỆU CÀO: {file_path}")
     print("=" * 80)
@@ -54,20 +66,22 @@ def test_scraped_data_anomalies(file_path: str = None):
     print(f"Danh sách các cột (trường): {df.columns.tolist()}\n")
 
     # =========================================================================
-    # TEST 1: Kiểm tra 2 trường giá: "Giá bán (VND)" vs "Giá niêm yết (VND)"
+    # TEST 1: Kiểm tra 2 trường giá: "Giá bán" vs "Giá niêm yết"
     # =========================================================================
     print("--- 1. KIỂM TRA 2 TRƯỜNG GIÁ (GIÁ BÁN vs GIÁ NIÊM YẾT) ---")
-    both_null = df[df["Giá bán (VND)"].isna() & df["Giá niêm yết (VND)"].isna()]
-    same_price = df[(df["Giá bán (VND)"] == df["Giá niêm yết (VND)"]) & df["Giá bán (VND)"].notna()]
-    diff_price = df[(df["Giá bán (VND)"] != df["Giá niêm yết (VND)"]) & df["Giá bán (VND)"].notna()]
+    price_col = next((c for c in ["Giá bán (VND)", "Giá bán đối thủ (VND)", "price_vnd"] if c in df.columns), None)
+    orig_col = next((c for c in ["Giá niêm yết (VND)", "original_price_vnd", "Giá niêm yết"] if c in df.columns), None)
 
-    print(f" + Số dòng có Giá bán == Giá niêm yết: {len(same_price)} / {total_rows} ({len(same_price) / total_rows * 100:.2f}%)")
-    print(f" + Số dòng có Giá bán != Giá niêm yết (có giảm giá): {len(diff_price)} / {total_rows} ({len(diff_price) / total_rows * 100:.2f}%)")
-    print(f" + Số dòng cả 2 giá đều TRỐNG (NaN): {len(both_null)} / {total_rows} ({len(both_null) / total_rows * 100:.2f}%)")
-    print(" -> GIẢI THÍCH: Khi CellphoneS không giảm giá (special_price = 0 hoặc None), code scraper gán:")
-    print("    'original_price = price_val if price_val > 0 else current_price'")
-    print("    và 'Giá niêm yết = original_price if original_price else current_price'")
-    print("    khiến 2 trường Giá bán và Giá niêm yết có giá trị y hệt nhau.\n")
+    if price_col and orig_col:
+        both_null = df[df[price_col].isna() & df[orig_col].isna()]
+        same_price = df[(df[price_col] == df[orig_col]) & df[price_col].notna()]
+        diff_price = df[(df[price_col] != df[orig_col]) & df[price_col].notna()]
+
+        print(f" + Số dòng có Giá bán == Giá niêm yết: {len(same_price)} / {total_rows} ({len(same_price) / total_rows * 100:.2f}%)")
+        print(f" + Số dòng có Giá bán != Giá niêm yết (có giảm giá): {len(diff_price)} / {total_rows} ({len(diff_price) / total_rows * 100:.2f}%)")
+        print(f" + Số dòng cả 2 giá đều TRỐNG (NaN): {len(both_null)} / {total_rows} ({len(both_null) / total_rows * 100:.2f}%)")
+    else:
+        print(" + Bỏ qua kiểm tra giá do không có cột giá phù hợp trong file.")
 
     # =========================================================================
     # TEST 2: Kiểm tra độ đầy đủ của từng cột ("có trường có trường không")

@@ -3,6 +3,7 @@ import logging
 import os
 import re
 import sys
+import time
 from typing import Any, Dict, List, Optional
 
 import requests
@@ -29,6 +30,12 @@ class CellphonesScraper(BaseScraper):
 
     GRAPHQL_URL = "https://api.cellphones.com.vn/v2/graphql/query"
     BASE_URL = "https://cellphones.com.vn"
+
+    # Regex nhận diện và loại bỏ hàng cũ, hàng trưng bày, đã kích hoạt
+    USED_PRODUCT_RE = re.compile(
+        r"da kich hoat|hang cu|doi tra|cu xuoc|cu tray|trung bay|refurbished|cu dep|da qua su dung",
+        re.IGNORECASE,
+    )
 
     # Ánh xạ category name sang Category ID của CellphoneS
     CATEGORY_ID_MAP = {
@@ -239,7 +246,7 @@ class CellphonesScraper(BaseScraper):
         results: List[ScrapedProductItem] = []
         seen_urls = set()
         page = 1
-        page_size = 50
+        page_size = 100
 
         limit_desc = "KHÔNG GIỚI HẠN (từ trang đầu đến cuối)" if (limit is None or limit <= 0) else f"tối đa {limit} sản phẩm"
         logger.info(f"[CellphoneS] Bắt đầu cào ngành '{category}' (Category ID: {cate_id}, Mục tiêu: {limit_desc})...")
@@ -308,6 +315,14 @@ class CellphonesScraper(BaseScraper):
                 # Khử trùng lặp sản phẩm giữa các trang phân trang
                 if full_url in seen_urls:
                     continue
+
+                # Lọc bỏ hàng cũ, hàng trưng bày, đã kích hoạt
+                cond = attrs.get("product_condition")
+                if cond and cond != "Mới":
+                    continue
+                if self.USED_PRODUCT_RE.search(f"{name} {url_path}"):
+                    continue
+
                 seen_urls.add(full_url)
 
                 # Giá bán & Giá niêm yết
@@ -331,6 +346,8 @@ class CellphonesScraper(BaseScraper):
                 cpu_chip = attrs.get("chipset") or attrs.get("cpu")
                 if cpu_chip:
                     specs["CPU/Chip"] = self._clean_html_text(str(cpu_chip))
+                if attrs.get("ram"):
+                    specs["RAM"] = self._clean_html_text(str(attrs.get("ram")))
                 if attrs.get("storage"):
                     specs["Bộ nhớ/RAM"] = self._clean_html_text(str(attrs.get("storage")))
                 else:
@@ -349,6 +366,9 @@ class CellphonesScraper(BaseScraper):
                     specs["HĐH"] = self._clean_html_text(str(os_ver))
                 if attrs.get("manufacturer"):
                     specs["Hãng"] = str(attrs.get("manufacturer"))
+                part_num = attrs.get("laptop_part_number") or attrs.get("model") or attrs.get("part_number")
+                if part_num:
+                    specs["Part Number"] = str(part_num)
 
                 # Chuỗi summary hỗ trợ SKU Matcher
                 specs["summary"] = " | ".join([f"{k}: {v}" for k, v in specs.items() if k != "summary"])
@@ -376,6 +396,7 @@ class CellphonesScraper(BaseScraper):
                 break
 
             page += 1
+            time.sleep(0.05)
 
         logger.info(f"[CellphoneS] Hoàn tất cào {len(results)} sản phẩm ngành '{category}' từ trang 1 đến trang {page}.")
         return results
