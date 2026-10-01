@@ -1,44 +1,39 @@
-<!-- gitnexus:start -->
-# GitNexus — Code Intelligence
+<!-- codegraph:start -->
+# CodeGraph — Code Intelligence
 
-This project is indexed by GitNexus as **Dynamic_Pricing** (29 symbols, 28 relationships, 0 execution flows).
-
-> Index stale? Run `node .gitnexus/run.cjs analyze --index-only` from the project root — it auto-selects an available runner. No `.gitnexus/run.cjs` yet? Bootstrap with `npx`, `bunx`, or `pnpm dlx` — e.g. `bunx gitnexus@latest analyze` (npm 11 npx crash; #1939).
+This project is indexed by **CodeGraph** (indexed in `.codegraph/`).
 
 ## Always Do
 
-- **MUST run impact before editing.** Use `impact({target: "symbolName", direction: "upstream"})` or `node .gitnexus/run.cjs impact "symbolName" --direction upstream --repo .`; report callers, processes, and risk. Never substitute grep for graph analysis.
-- **MUST analyze graph changes before committing.** Use `detect_changes({scope: "all"})` (MCP) or `node .gitnexus/run.cjs detect-changes --scope all --repo .` (CLI fallback). `partial: true` or `truncated: true` is not a clean check — a zero means unseen, not unaffected; re-run it. For regression review: `detect_changes({scope: "compare", base_ref: "master"})` or `node .gitnexus/run.cjs detect-changes --scope compare --base-ref "master" --repo .`.
-- MUST warn on HIGH/CRITICAL `risk` pre-edit; never use `riskSharedAxes` to waive a HIGH/CRITICAL `risk` warning. Compare File/symbol: MCP File omits axes; Graph-RAG expands File.
-- **MUST treat `risk: UNKNOWN` as unresolved, not as low.** An empty caller set is not evidence the symbol is unused — it can also mean the callers are not resolvable by the index (plain-object property access, dynamic dispatch, cross-language calls). `impact` pairs `UNKNOWN` with a `riskNote` saying so. Confirm with a text search before treating the symbol as safe to change or delete; do not proceed on the strength of a zero.
-- **MUST use `query({search_query: "concept"})` for concepts/flows, `context({name: "symbolName"})` for a named symbol, or `impact` for blast radius, on read-only callers, dependencies, imports, or execution flow.** Graph first; text search only for empty/`UNKNOWN`/literals.
-- For security review, `explain({target: "fileOrSymbol"})` lists taint findings (source→sink flows; needs `analyze --pdg`).
+- **CodeGraph First for Search & Architecture:**
+  - Before editing, searching, or exploring the codebase, use CodeGraph CLI or MCP tools:
+    - Search symbols & call paths: `codegraph explore "<query>"`
+    - Find callers: `codegraph callers <symbol>`
+    - Find callees: `codegraph callees <symbol>`
+    - Analyze blast radius (impact analysis): `codegraph impact <symbol>`
+    - Read a symbol or file with dependencies: `codegraph node <symbol_or_path>`
+- **Sync index after changes:**
+  - Run `codegraph sync` after non-trivial file changes, or `codegraph status` to check status.
+- **MUST run impact analysis before editing or refactoring shared code:**
+  - Run `codegraph impact <symbol>` to inspect all callers and dependents before modifying any function, class, or method.
 
 ## Never Do
 
-- NEVER edit a function, class, or method before MCP/CLI impact analysis.
-- NEVER ignore HIGH or CRITICAL risk warnings from impact analysis, and never read `UNKNOWN` as an all-clear — it means the walk could not answer, which is the one verdict that requires confirming by other means.
-- NEVER rename symbols with find-and-replace — use `rename` which understands the call graph.
-- NEVER commit before MCP/CLI graph change analysis.
+- NEVER edit a shared function, class, or method before running `codegraph impact <symbol>`.
+- NEVER substitute full-repo brute-force grep for graph analysis when searching for symbols and call chains.
+- NEVER rename symbols blindly across the codebase without checking call paths with `codegraph callers <symbol>`.
 
-## Resources
+## CLI Reference
 
-| Resource | Use for |
+| Task | Command |
 | --- | --- |
-| `gitnexus://repo/Dynamic_Pricing/context` | Codebase overview, check index freshness |
-| `gitnexus://repo/Dynamic_Pricing/clusters` | All functional areas |
-| `gitnexus://repo/Dynamic_Pricing/processes` | All execution flows |
-| `gitnexus://repo/Dynamic_Pricing/process/{name}` | Step-by-step execution trace |
+| Explore area & call paths | `codegraph explore "<query>"` |
+| Blast radius / Impact analysis | `codegraph impact <symbol>` |
+| Find callers of a function | `codegraph callers <symbol>` |
+| Find callees of a function | `codegraph callees <symbol>` |
+| Inspect symbol node or file | `codegraph node <symbol_or_file>` |
+| Check index status & stats | `codegraph status` |
+| Sync updated files into index | `codegraph sync` |
+| Rebuild index from scratch | `codegraph index` |
 
-## CLI
-
-| Task | Read this skill file |
-| --- | --- |
-| Understand architecture / "How does X work?" | `.claude/skills/gitnexus-exploring/SKILL.md` |
-| Blast radius / "What breaks if I change X?" | `.claude/skills/gitnexus-impact-analysis/SKILL.md` |
-| Trace bugs / "Why is X failing?" | `.claude/skills/gitnexus-debugging/SKILL.md` |
-| Rename / extract / split / refactor | `.claude/skills/gitnexus-refactoring/SKILL.md` |
-| Tools, resources, schema reference | `.claude/skills/gitnexus-guide/SKILL.md` |
-| Index, status, clean, wiki CLI commands | `.claude/skills/gitnexus-cli/SKILL.md` |
-
-<!-- gitnexus:end -->
+<!-- codegraph:end -->
