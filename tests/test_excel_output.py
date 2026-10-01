@@ -28,7 +28,7 @@ def test_excel_deliverable():
     print(f"[TEST PASS] Đã xác thực thành công file {file_path}")
     print(f" - Sheet 1 (Scraped_All_Data): {len(df_all)} dòng, {len(df_all.columns)} cột.")
     print(f" - Sheet 2 (SKU_Mapping): {len(df_map)} dòng, {len(df_map.columns)} cột.")
-    print(f" - Số lượng sản phẩm ghép cặp thành công: {len(matched)} / {len(df_map)} ({len(matched)/len(df_map)*100:.1f}%)")
+    print(f" - Số lượng sản phẩm ghép cặp thành công: {len(matched)} / {len(df_map)} ({len(matched) / len(df_map) * 100:.1f}%)")
 
 
 if __name__ == "__main__":

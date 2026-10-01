@@ -61,9 +61,9 @@ def test_scraped_data_anomalies(file_path: str = None):
     same_price = df[(df["Giá bán (VND)"] == df["Giá niêm yết (VND)"]) & df["Giá bán (VND)"].notna()]
     diff_price = df[(df["Giá bán (VND)"] != df["Giá niêm yết (VND)"]) & df["Giá bán (VND)"].notna()]
 
-    print(f" + Số dòng có Giá bán == Giá niêm yết: {len(same_price)} / {total_rows} ({len(same_price)/total_rows*100:.2f}%)")
-    print(f" + Số dòng có Giá bán != Giá niêm yết (có giảm giá): {len(diff_price)} / {total_rows} ({len(diff_price)/total_rows*100:.2f}%)")
-    print(f" + Số dòng cả 2 giá đều TRỐNG (NaN): {len(both_null)} / {total_rows} ({len(both_null)/total_rows*100:.2f}%)")
+    print(f" + Số dòng có Giá bán == Giá niêm yết: {len(same_price)} / {total_rows} ({len(same_price) / total_rows * 100:.2f}%)")
+    print(f" + Số dòng có Giá bán != Giá niêm yết (có giảm giá): {len(diff_price)} / {total_rows} ({len(diff_price) / total_rows * 100:.2f}%)")
+    print(f" + Số dòng cả 2 giá đều TRỐNG (NaN): {len(both_null)} / {total_rows} ({len(both_null) / total_rows * 100:.2f}%)")
     print(" -> GIẢI THÍCH: Khi CellphoneS không giảm giá (special_price = 0 hoặc None), code scraper gán:")
     print("    'original_price = price_val if price_val > 0 else current_price'")
     print("    và 'Giá niêm yết = original_price if original_price else current_price'")
@@ -77,7 +77,7 @@ def test_scraped_data_anomalies(file_path: str = None):
         non_null_count = df[col].notna().sum()
         null_count = df[col].isna().sum()
         pct = (non_null_count / total_rows) * 100
-        status = "ĐỦ 100%" if null_count == 0 else f"THIẾU {null_count} ({null_count/total_rows*100:.1f}%)"
+        status = "ĐỦ 100%" if null_count == 0 else f"THIẾU {null_count} ({null_count / total_rows * 100:.1f}%)"
         print(f" + Cột [{col:<28}]: Có {non_null_count:>5}/{total_rows} -> {status}")
     print()
 
@@ -119,7 +119,7 @@ def test_scraped_data_anomalies(file_path: str = None):
     dup_rows = df[dup_url_mask]
     unique_urls = df["URL sản phẩm"].nunique()
     print(f" + Số URL duy nhất: {unique_urls} / {total_rows}")
-    print(f" + Số dòng bị lặp lại (trùng URL với dòng khác): {len(dup_rows)} dòng ({len(dup_rows)/total_rows*100:.2f}%)")
+    print(f" + Số dòng bị lặp lại (trùng URL với dòng khác): {len(dup_rows)} dòng ({len(dup_rows) / total_rows * 100:.2f}%)")
 
     if len(dup_rows) > 0:
         sample_dup = dup_rows.sort_values(by="URL sản phẩm").head(4)

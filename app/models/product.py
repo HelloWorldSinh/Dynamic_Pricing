@@ -14,7 +14,7 @@ class Product(Base, TimestampMixin):
     name = Column(String(255), nullable=False, index=True)
     category = Column(String(50), nullable=False, index=True)  # PHONE | LAPTOP
     brand = Column(String(100), nullable=True, index=True)      # Apple, Asus, Dell, Samsung...
-    part_number = Column(String(100), nullable=True, index=True) # Mã Part hãng (vd: 83JC00LVVN)
+    part_number = Column(String(100), nullable=True, index=True)  # Mã Part hãng (vd: 83JC00LVVN)
     specs = Column(JSON, nullable=True)                        # CPU, RAM, Ổ cứng, Màu sắc...
     is_active = Column(Boolean, default=True, nullable=False)
 
