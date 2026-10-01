@@ -1,7 +1,16 @@
+# Environment variables
+.env
+*.env
+
+# Databases
+*.db
+*.sqlite3
+
 # Data
 data/
 backend/data/
-*.xlsx
+data/scraped_raw_*.xlsx
+data/scraped_products*.json
 
 # Skills
 .claude/skills/
@@ -20,8 +29,11 @@ env/
 # GitNexus
 .gitnexus/
 
-# System & IDE
-.DS_Store
-Thumbs.db
+# IDE & OS
 .idea/
 .vscode/
+.DS_Store
+Thumbs.db
+~$*.xlsx
+
+docs/obsidian-notes/
