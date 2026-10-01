@@ -16,8 +16,9 @@
 2. **Quản lý Database Migration:**
    - Sử dụng **Alembic** để tự động quản lý phiên bản và đồng bộ bảng CSDL.
 3. **Deep Modules & Crawler Engine:**
-   - **Strategy Pattern:** `BaseScraper` -> `CellphonesScraper`.
+   - **Strategy Pattern:** `BaseScraper` -> `CellphonesScraper`, `HoanghaScraper`.
    - **CrawlerService:** Quản lý BackgroundTasks và cơ chế **Debounce 30 giây** bảo vệ hệ thống.
+   - **SKU Matching Engine:** So khớp 2 tầng chuẩn Clean Architecture, tra cứu $O(1)$ qua Inverted Index (`app/services/matching/`).
 4. **FastAPI & Swagger UI:**
    - Tự động sinh tài liệu API trực quan tại `/docs`.
    - Cấu hình sẵn CORS cho Frontend (React/Vite) kết nối.
@@ -55,8 +56,18 @@ Truy cập Swagger UI trên trình duyệt:
 
 ---
 
-## 🧪 Kiểm thử nhanh
-Chạy script kiểm thử toàn bộ API và CSDL:
+## 🧪 Chạy Pipeline Đối Soát Đa Nguồn (Full Pipeline)
 ```bash
-python verify_setup.py
+# Chạy đầy đủ cào CellphoneS + Hoàng Hà và đối soát với 329 SKU FPT Shop
+python run_full_pipeline.py
+
+# Hoặc dùng cache JSON để đối soát nhanh không cần cào lại mạng
+python run_full_pipeline.py --skip-scrape
+```
+
+---
+
+## 🧪 Kiểm thử (Test Suite)
+```bash
+pytest
 ```
