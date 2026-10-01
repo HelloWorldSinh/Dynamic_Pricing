@@ -611,67 +611,11 @@ async def run(args: argparse.Namespace) -> int:
     for sku in skus:
         skus_by_category[sku.category].append(sku)
 
-    # Use default cache in backend/data/cellphones_raw_cache.json if available
-    default_cache = Path("backend/data/cellphones_raw_cache.json")
-    cache_path = Path(args.cache_file) if args.cache_file else default_cache
-
-    cached_catalog: dict[str, list[dict]] = {}
-    if args.use_cache and cache_path.exists():
-        print(f"Loading CellphoneS catalog snapshot from cache: {cache_path}...")
-        try:
-            with open(cache_path, "r", encoding="utf-8") as f:
-                cached_catalog = json.load(f)
-        except Exception as exc:
-            print(f"Cache read error: {exc}, will fetch live...")
-
     reports: dict[str, CrawlReport] = {}
     errors: dict[str, str] = {}
 
     for category in ("mobile", "laptop"):
         if not skus_by_category.get(category):
-            continue
-
-        if category in cached_catalog and cached_catalog[category]:
-            items = cached_catalog[category]
-            print(f"Loaded {len(items)} {category} offerings from snapshot cache.")
-            parsed_products = []
-            for item in items:
-                gen = item.get("general", {})
-                filt = item.get("filterable", {})
-                attrs = gen.get("attributes", {})
-                name = gen.get("name", "").strip()
-                url_path = gen.get("url_path", "").strip()
-                if not name or not url_path:
-                    continue
-                price = filt.get("special_price") or filt.get("price")
-                orig_price = filt.get("price")
-                stock = filt.get("stock", 0)
-                raw_status = "Còn hàng" if stock and stock > 0 else "Hết hàng"
-                parsed_products.append(
-                    ScrapedProduct(
-                        source="CellphoneS",
-                        name=name,
-                        product_url=f"https://cellphones.com.vn/{url_path}",
-                        price_vnd=int(price) if price else None,
-                        original_price_vnd=int(orig_price) if orig_price and int(orig_price) > (int(price) if price else 0) else None,
-                        raw_status=raw_status,
-                        crawled_at=datetime.now(),
-                        manufacturer=gen.get("manufacturer") or attrs.get("manufacturer"),
-                        part_number=attrs.get("laptop_part_number"),
-                        attributes=attrs,
-                    )
-                )
-            reports[category] = CrawlReport(
-                source="CellphoneS",
-                crawled_at=datetime.now(),
-                products=tuple(parsed_products),
-                discovered_count=len(parsed_products),
-                rejected_count=0,
-                pages_crawled=0,
-                failed_urls=(),
-                truncated=False,
-                truncation_reason=None,
-            )
             continue
 
         config = CrawlConfig(
@@ -733,8 +677,6 @@ def main() -> None:
     parser.add_argument("--sheet", default="dim_product", help="Input worksheet name")
     parser.add_argument("--output", help="Output workbook path; defaults to timestamped file in data/")
     parser.add_argument("--max-products-per-category", type=int, default=4000)
-    parser.add_argument("--use-cache", action="store_true", help="Force use of local cached catalog")
-    parser.add_argument("--cache-file", help="Path to catalog cache JSON")
     args = parser.parse_args()
 
     if args.max_products_per_category < 1:
