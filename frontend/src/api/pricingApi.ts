@@ -1,7 +1,7 @@
 import { apiClient } from './client';
-import { PriceComparisonItem, PricingRecommendation } from '../types/pricing';
+import { PriceComparisonItem, PricingRecommendation, PriceChangeHistoryItem } from '../types/pricing';
 import { SkuMappingPair } from '../types/matching';
-import { mockPriceMatrix, mockRecommendations, mockMappingQueue } from './mockData';
+import { mockPriceMatrix, mockRecommendations, mockMappingQueue, mockPriceHistory } from './mockData';
 
 // Price Comparison Matrix
 export async function getPriceMatrixApi(category?: string): Promise<PriceComparisonItem[]> {
@@ -41,6 +41,30 @@ export async function rejectRecommendationApi(id: string): Promise<void> {
     await apiClient.post(`/pricing/recommendations/${id}/reject`);
   } catch (error) {
     console.log('[Pricing API] Local reject simulated for:', id);
+  }
+}
+
+export async function getPriceHistoryApi(): Promise<PriceChangeHistoryItem[]> {
+  try {
+    const res = await apiClient.get<PriceChangeHistoryItem[]>('/pricing/history');
+    return res.data;
+  } catch (error) {
+    return mockPriceHistory;
+  }
+}
+
+export async function applyCustomPriceApi(
+  id: string,
+  customPrice: number,
+  changeType: 'AI_RECOMMENDED' | 'MANUAL_CONFIG' = 'MANUAL_CONFIG'
+): Promise<void> {
+  try {
+    await apiClient.post(`/pricing/recommendations/${id}/apply-custom`, {
+      custom_price: customPrice,
+      change_type: changeType,
+    });
+  } catch (error) {
+    console.log('[Pricing API] Local custom price simulated for:', id, customPrice, changeType);
   }
 }
 

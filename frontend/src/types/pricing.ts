@@ -29,6 +29,8 @@ export interface PriceComparisonItem {
   status: 'SAFE' | 'WARNING' | 'DANGER' | 'EQUAL';
 }
 
+export type ApprovalTabType = 'PENDING' | 'APPROVED' | 'REJECTED' | 'HISTORY';
+
 export interface PricingRecommendation {
   id: string;
   sku: string;
@@ -45,9 +47,33 @@ export interface PricingRecommendation {
   min_competitor_price: number;
   competitor_name: string;
   competitor_in_stock: boolean;
+  cellphones_price?: number;
+  cellphones_in_stock?: boolean;
+  hoangha_price?: number;
+  hoangha_in_stock?: boolean;
   scenario: string; // e.g., "Kịch bản 4: DOH > 45 ngày & CellphoneS còn hàng"
   margin_impact_percent: number;
   status: 'PENDING' | 'APPROVED' | 'REJECTED';
   reviewed_at?: string;
   reviewed_by?: string;
 }
+
+export interface PriceChangeHistoryItem {
+  id: string;
+  sku: string;
+  product_name: string;
+  category: 'PHONE' | 'LAPTOP';
+  old_price: number;
+  new_price: number;
+  price_change: number; // new_price - old_price
+  price_change_percent: number;
+  cost_price: number;
+  floor_price: number;
+  margin_percent: number;
+  change_type: 'AI_RECOMMENDED' | 'MANUAL_CONFIG';
+  scenario: string;
+  changed_by: string;
+  changed_at: string;
+  status: 'APPLIED' | 'SYNCED_POS';
+}
+

@@ -1,5 +1,5 @@
 import React from 'react';
-import { ShieldCheck, Check, X, TrendingDown } from 'lucide-react';
+import { ShieldCheck, Check, X, TrendingDown, Eye } from 'lucide-react';
 import { PricingRecommendation } from '../../types/pricing';
 import { formatCurrencyVND, formatPercent } from '../../utils/formatters';
 
@@ -10,6 +10,7 @@ interface RecommendationTableProps {
   onToggleSelectAll: () => void;
   onApprove: (id: string) => void;
   onReject: (id: string) => void;
+  onOpenDetail: (item: PricingRecommendation) => void;
 }
 
 export const RecommendationTable: React.FC<RecommendationTableProps> = ({
@@ -19,6 +20,7 @@ export const RecommendationTable: React.FC<RecommendationTableProps> = ({
   onToggleSelectAll,
   onApprove,
   onReject,
+  onOpenDetail,
 }) => {
   if (items.length === 0) {
     return (
@@ -49,7 +51,6 @@ export const RecommendationTable: React.FC<RecommendationTableProps> = ({
               <th className="py-3 px-3 text-center">Đề xuất mới</th>
               <th className="py-3 px-3 text-right">Giá sàn bảo vệ</th>
               <th className="py-3 px-3 text-center">Biên lợi nhuận</th>
-              <th className="py-3 px-4">Kịch bản &amp; Căn cứ</th>
               <th className="py-3 px-4 text-center">Thao tác</th>
             </tr>
           </thead>
@@ -78,7 +79,7 @@ export const RecommendationTable: React.FC<RecommendationTableProps> = ({
                   </td>
 
                   {/* Product Info */}
-                  <td className="py-3 px-4 max-w-[240px]">
+                  <td className="py-3 px-4 max-w-[280px]">
                     <div className="font-semibold text-slate-900 dark:text-slate-100 truncate" title={item.product_name}>
                       {item.product_name}
                     </div>
@@ -138,46 +139,47 @@ export const RecommendationTable: React.FC<RecommendationTableProps> = ({
                     </span>
                   </td>
 
-                  {/* Scenario & Reason */}
-                  <td className="py-3 px-4 max-w-[280px]">
-                    <div className="text-[11px] text-slate-700 dark:text-slate-300 line-clamp-2">
-                      {item.scenario}
-                    </div>
-                    <div className="text-[10px] text-slate-400 mt-0.5">
-                      Đối thủ: {item.competitor_name} ({formatCurrencyVND(item.min_competitor_price)})
-                    </div>
-                  </td>
-
                   {/* Action Buttons */}
                   <td className="py-3 px-4 text-center">
-                    {item.status === 'PENDING' ? (
-                      <div className="flex items-center justify-center gap-1.5">
-                        <button
-                          onClick={() => onApprove(item.id)}
-                          className="p-1.5 rounded-lg bg-emerald-600 hover:bg-emerald-500 text-white transition shadow-sm"
-                          title="Phê duyệt giá này"
-                        >
-                          <Check className="w-3.5 h-3.5" />
-                        </button>
-                        <button
-                          onClick={() => onReject(item.id)}
-                          className="p-1.5 rounded-lg bg-slate-100 hover:bg-rose-50 dark:bg-slate-800 dark:hover:bg-rose-950/40 text-slate-600 hover:text-rose-600 dark:text-slate-400 dark:hover:text-rose-400 transition"
-                          title="Từ chối đề xuất"
-                        >
-                          <X className="w-3.5 h-3.5" />
-                        </button>
-                      </div>
-                    ) : (
-                      <span
-                        className={`text-[11px] font-semibold px-2 py-0.5 rounded-full ${
-                          item.status === 'APPROVED'
-                            ? 'bg-emerald-100 text-emerald-800 dark:bg-emerald-900/50 dark:text-emerald-300'
-                            : 'bg-slate-100 text-slate-600 dark:bg-slate-800 dark:text-slate-400'
-                        }`}
+                    <div className="flex items-center justify-center gap-1.5">
+                      <button
+                        onClick={() => onOpenDetail(item)}
+                        className="px-2.5 py-1.5 rounded-lg bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-200 transition font-medium flex items-center gap-1 shadow-sm text-[11px]"
+                        title="Xem chi tiết căn cứ và biểu đồ giá 3 shop"
                       >
-                        {item.status === 'APPROVED' ? 'Đã duyệt' : 'Đã từ chối'}
-                      </span>
-                    )}
+                        <Eye className="w-3.5 h-3.5 text-slate-500 dark:text-slate-400" />
+                        <span>Detail</span>
+                      </button>
+
+                      {item.status === 'PENDING' ? (
+                        <>
+                          <button
+                            onClick={() => onApprove(item.id)}
+                            className="p-1.5 rounded-lg bg-emerald-600 hover:bg-emerald-500 text-white transition shadow-sm"
+                            title="Phê duyệt giá này"
+                          >
+                            <Check className="w-3.5 h-3.5" />
+                          </button>
+                          <button
+                            onClick={() => onReject(item.id)}
+                            className="p-1.5 rounded-lg bg-slate-100 hover:bg-rose-50 dark:bg-slate-800 dark:hover:bg-rose-950/40 text-slate-600 hover:text-rose-600 dark:text-slate-400 dark:hover:text-rose-400 transition"
+                            title="Từ chối đề xuất"
+                          >
+                            <X className="w-3.5 h-3.5" />
+                          </button>
+                        </>
+                      ) : (
+                        <span
+                          className={`text-[11px] font-semibold px-2 py-0.5 rounded-full ${
+                            item.status === 'APPROVED'
+                              ? 'bg-emerald-100 text-emerald-800 dark:bg-emerald-900/50 dark:text-emerald-300'
+                              : 'bg-slate-100 text-slate-600 dark:bg-slate-800 dark:text-slate-400'
+                          }`}
+                        >
+                          {item.status === 'APPROVED' ? 'Đã duyệt' : 'Đã từ chối'}
+                        </span>
+                      )}
+                    </div>
                   </td>
                 </tr>
               );

@@ -1,13 +1,15 @@
 import React from 'react';
-import { Clock, CheckCheck, XCircle } from 'lucide-react';
+import { Clock, CheckCheck, XCircle, History } from 'lucide-react';
+import { ApprovalTabType } from '../../types/pricing';
 
 interface ApprovalFilterTabsProps {
-  currentTab: 'PENDING' | 'APPROVED' | 'REJECTED';
-  onTabChange: (tab: 'PENDING' | 'APPROVED' | 'REJECTED') => void;
+  currentTab: ApprovalTabType;
+  onTabChange: (tab: ApprovalTabType) => void;
   counts: {
     pending: number;
     approved: number;
     rejected: number;
+    history?: number;
   };
 }
 
@@ -37,6 +39,13 @@ export const ApprovalFilterTabs: React.FC<ApprovalFilterTabsProps> = ({
       icon: XCircle,
       count: counts.rejected,
       badgeColor: 'bg-slate-100 text-slate-700 dark:bg-slate-800 dark:text-slate-300',
+    },
+    {
+      id: 'HISTORY' as const,
+      label: 'Lịch sử thay đổi giá',
+      icon: History,
+      count: counts.history ?? 0,
+      badgeColor: 'bg-blue-100 text-blue-800 dark:bg-blue-900/50 dark:text-blue-300',
     },
   ];
 

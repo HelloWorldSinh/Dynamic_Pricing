@@ -1,4 +1,4 @@
-import { PriceComparisonItem, PricingRecommendation } from '../types/pricing';
+import { PriceComparisonItem, PricingRecommendation, PriceChangeHistoryItem } from '../types/pricing';
 import { SkuMappingPair } from '../types/matching';
 import { CrawlResult } from '../types/crawl';
 
@@ -180,6 +180,10 @@ export const mockRecommendations: PricingRecommendation[] = [
     min_competitor_price: 17890000,
     competitor_name: 'CellphoneS',
     competitor_in_stock: true,
+    cellphones_price: 17890000,
+    cellphones_in_stock: true,
+    hoangha_price: 17990000,
+    hoangha_in_stock: true,
     scenario: 'Kịch bản 4: DOH = 54d (>45d) & CellphoneS còn hàng -> Khuyến nghị hạ giá bám sát đối thủ',
     margin_impact_percent: -2.3,
     status: 'PENDING'
@@ -200,6 +204,10 @@ export const mockRecommendations: PricingRecommendation[] = [
     min_competitor_price: 14290000,
     competitor_name: 'CellphoneS',
     competitor_in_stock: true,
+    cellphones_price: 14290000,
+    cellphones_in_stock: true,
+    hoangha_price: 14490000,
+    hoangha_in_stock: true,
     scenario: 'Kịch bản 4 (Floor Guard): Đối thủ 14.290.000đ thấp hơn giá sàn -> Tự động cap về giá sàn 14.595.000đ',
     margin_impact_percent: -1.8,
     status: 'PENDING'
@@ -220,11 +228,73 @@ export const mockRecommendations: PricingRecommendation[] = [
     min_competitor_price: 34290000,
     competitor_name: 'CellphoneS',
     competitor_in_stock: true,
+    cellphones_price: 34290000,
+    cellphones_in_stock: true,
+    hoangha_price: 34390000,
+    hoangha_in_stock: true,
     scenario: 'Kịch bản 2: DOH thấp (18d), FPT cao hơn 2% -> Đề xuất giảm nhẹ 500k giữ lợi thế thương hiệu',
     margin_impact_percent: -0.8,
     status: 'PENDING'
   }
 ];
+
+export const mockPriceHistory: PriceChangeHistoryItem[] = [
+  {
+    id: 'hist-001',
+    sku: 'FPT-IPHONE-16PM-256',
+    product_name: 'iPhone 16 Pro Max 256GB Titan Sa Mạc',
+    category: 'PHONE',
+    old_price: 35490000,
+    new_price: 34990000,
+    price_change: -500000,
+    price_change_percent: -1.41,
+    cost_price: 31000000,
+    floor_price: 32550000,
+    margin_percent: 11.4,
+    change_type: 'AI_RECOMMENDED',
+    scenario: 'Kịch bản 2: Cạnh tranh đợt mở bán, bám sát CellphoneS',
+    changed_by: 'Pricing Analyst',
+    changed_at: '2026-10-04T16:20:00Z',
+    status: 'SYNCED_POS'
+  },
+  {
+    id: 'hist-002',
+    sku: 'FPT-SS-S24U-256',
+    product_name: 'Samsung Galaxy S24 Ultra 12GB 256GB Xám Titan',
+    category: 'PHONE',
+    old_price: 27990000,
+    new_price: 26890000,
+    price_change: -1100000,
+    price_change_percent: -3.93,
+    cost_price: 24200000,
+    floor_price: 25410000,
+    margin_percent: 10.0,
+    change_type: 'MANUAL_CONFIG',
+    scenario: 'Chỉnh tay theo chương trình Flash Sale cuối tuần (DOH: 38d)',
+    changed_by: 'Senior Pricing Manager',
+    changed_at: '2026-10-03T09:15:00Z',
+    status: 'SYNCED_POS'
+  },
+  {
+    id: 'hist-003',
+    sku: 'FPT-MAC-AIR-M3',
+    product_name: 'MacBook Air 13 inch M3 8GB 256GB Midnight',
+    category: 'LAPTOP',
+    old_price: 26990000,
+    new_price: 25990000,
+    price_change: -1000000,
+    price_change_percent: -3.7,
+    cost_price: 23500000,
+    floor_price: 24675000,
+    margin_percent: 9.8,
+    change_type: 'AI_RECOMMENDED',
+    scenario: 'Kịch bản 4: Hoàng Hà Mobile giảm giá sốc, FPT đồng bộ giá mới',
+    changed_by: 'Pricing Analyst',
+    changed_at: '2026-10-02T14:45:00Z',
+    status: 'SYNCED_POS'
+  }
+];
+
 
 export const mockMappingQueue: SkuMappingPair[] = [
   {
