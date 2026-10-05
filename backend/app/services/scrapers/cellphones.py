@@ -234,10 +234,12 @@ class CellphonesScraper(BaseScraper):
 
         return urls
 
-    def scrape_category(self, category: str, limit: Optional[int] = None) -> List[ScrapedProductItem]:
-        """Cào danh sách sản phẩm theo category (phone / laptop) từ CellphoneS.
-        Nếu limit=None hoặc <= 0, cào TOÀN BỘ từ trang đầu (page 1) đến trang cuối cùng.
-        """
+    def scrape_category(
+        self,
+        category: str,
+        limit: Optional[int] = None,
+        on_progress: Optional[Any] = None,
+    ) -> List[ScrapedProductItem]:
         cate_id = self.CATEGORY_ID_MAP.get(category.lower(), "3")
         headers = self._get_api_headers(category)
         session = requests.Session()
@@ -399,6 +401,8 @@ class CellphonesScraper(BaseScraper):
                     break
 
             logger.info(f"[CellphoneS] Trang {page}: Thu thập được {page_items_count} sản phẩm (Tổng tích lũy: {len(results)})")
+            if on_progress:
+                on_progress(page, None, len(results), f"CellphoneS trang {page}: Đã thu thập {len(results)} sản phẩm...")
 
             # Nếu trang hiện tại trả về ít hơn page_size thì đây là trang cuối
             if len(products) < page_size:

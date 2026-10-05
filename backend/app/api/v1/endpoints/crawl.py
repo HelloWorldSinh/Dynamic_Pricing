@@ -3,7 +3,7 @@ from fastapi import APIRouter, BackgroundTasks, HTTPException, status, Depends
 from sqlalchemy.orm import Session
 from app.core.database import get_db, SessionLocal
 from app.models.crawl_result import CrawlResult
-from app.schemas.crawl import CrawlTriggerRequest, CrawlJobResponse
+from app.schemas.crawl import CrawlTriggerRequest, CrawlJobResponse, CrawlProgressResponse
 from app.services.crawler_service import CrawlerService
 
 router = APIRouter()
@@ -34,6 +34,22 @@ def trigger_crawl(
         background_tasks=background_tasks,
         db_session_factory=SessionLocal
     )
+
+
+@router.get(
+    "/status/{task_id}",
+    response_model=CrawlProgressResponse,
+    summary="Tra cứu tiến độ tác vụ cào dữ liệu theo task_id",
+    description="Lấy trạng thái thực thi, phần trăm hoàn thành, số sản phẩm đã cào của job cào dữ liệu."
+)
+def get_crawl_task_status(task_id: str):
+    task = CrawlerService.get_task_status(task_id)
+    if not task:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail=f"Không tìm thấy tác vụ cào với task_id '{task_id}'."
+        )
+    return task
 
 
 @router.get(

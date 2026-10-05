@@ -30,6 +30,21 @@ class CrawlJobResponse(BaseModel):
     started_at: datetime = Field(default_factory=datetime.utcnow)
 
 
+class CrawlProgressResponse(BaseModel):
+    task_id: str
+    source: str
+    category: str
+    status: str = Field(description="PENDING | RUNNING | COMPLETED | FAILED")
+    current_page: int = 0
+    total_pages: Optional[int] = 1
+    scraped_count: int = 0
+    progress_percent: int = 0
+    message: str = ""
+    started_at: Optional[str] = None
+    completed_at: Optional[str] = None
+    error: Optional[str] = None
+
+
 class ScrapedProductItem(BaseModel):
     source: str
     url: str

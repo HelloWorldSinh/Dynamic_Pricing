@@ -146,10 +146,12 @@ class HoanghaScraper(BaseScraper):
             specifications=specifications
         )
 
-    def scrape_category(self, category: str, limit: Optional[int] = None) -> List[ScrapedProductItem]:
-        """Cào danh mục sản phẩm (điện thoại hoặc laptop) từ Hoàng Hà Mobile theo phân trang.
-        Nếu limit=None hoặc <= 0, cào toàn bộ các trang.
-        """
+    def scrape_category(
+        self,
+        category: str,
+        limit: Optional[int] = None,
+        on_progress: Optional[Any] = None,
+    ) -> List[ScrapedProductItem]:
         if category.lower() == "laptop":
             base_category_url = f"{self.BASE_URL}/laptop"
         else:
@@ -256,6 +258,8 @@ class HoanghaScraper(BaseScraper):
                     break
 
             logger.info(f"[HoangHa] Trang {page}: Thu thập được {page_items_count} sản phẩm (Tổng hiện tại: {len(results)})")
+            if on_progress:
+                on_progress(page, None, len(results), f"Hoàng Hà trang {page}: Đã thu thập {len(results)} sản phẩm...")
             if page_items_count == 0:
                 logger.info(f"[HoangHa] Không còn sản phẩm mới ở trang {page}. Đã hoàn tất danh mục.")
                 break
