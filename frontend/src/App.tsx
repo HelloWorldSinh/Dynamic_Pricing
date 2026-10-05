@@ -11,7 +11,7 @@ import { AiAssistantManager } from './components/ai/AiAssistantManager';
 import { PriceComparisonItem } from './types/pricing';
 
 const AppContent: React.FC = () => {
-  const { askExplanationForSku, openExpanded } = useAiChat();
+  const { askExplanationForSku } = useAiChat();
   const [selectedProduct, setSelectedProduct] = useState<PriceComparisonItem | null>(null);
 
   const handleExplainProduct = (product: PriceComparisonItem) => {
@@ -37,23 +37,6 @@ const AppContent: React.FC = () => {
           {activeTab === 'mapping' && <SkuMatchingPage />}
 
           {activeTab === 'crawler' && <CrawlManagerPage />}
-
-          {activeTab === 'ai' && (
-            <div className="rounded-2xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 p-8 text-center shadow-sm">
-              <h3 className="text-base font-bold text-slate-900 dark:text-white mb-2">
-                AI Pricing Studio
-              </h3>
-              <p className="text-xs text-slate-500 mb-4 max-w-md mx-auto">
-                Khung làm việc AI Studio mở rộng cho phép tương tác chuyên sâu, truy vấn RAG bảng giá thị trường và phân tích quyết định giá.
-              </p>
-              <button
-                onClick={openExpanded}
-                className="px-5 py-2.5 rounded-xl bg-orange-600 hover:bg-orange-500 text-white font-semibold text-xs shadow-lg shadow-orange-600/30 transition"
-              >
-                Mở Không Gian Phân Tích AI (Expanded Studio)
-              </button>
-            </div>
-          )}
 
           {/* Product Detail Modal */}
           <ProductDetailModal

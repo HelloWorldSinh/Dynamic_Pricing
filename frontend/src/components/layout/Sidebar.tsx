@@ -4,13 +4,12 @@ import {
   CheckCheck, 
   GitCompare, 
   RefreshCw, 
-  Bot, 
   ChevronLeft, 
   ChevronRight,
   ShieldCheck
 } from 'lucide-react';
 
-export type NavTab = 'matrix' | 'approvals' | 'mapping' | 'crawler' | 'ai';
+export type NavTab = 'matrix' | 'approvals' | 'mapping' | 'crawler';
 
 interface SidebarProps {
   activeTab: NavTab;
@@ -52,13 +51,6 @@ export const Sidebar: React.FC<SidebarProps> = ({
       label: 'Crawl Operations',
       description: 'Giám sát 3 nguồn',
       icon: RefreshCw,
-    },
-    {
-      id: 'ai' as NavTab,
-      label: 'AI Pricing Studio',
-      description: 'Hỏi đáp & Explainable AI',
-      icon: Bot,
-      badge: 'RAG',
     },
   ];
 

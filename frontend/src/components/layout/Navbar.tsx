@@ -33,10 +33,6 @@ export const Navbar: React.FC<NavbarProps> = ({
       title: 'Crawl Operations & Raw Inspector',
       subtitle: 'Giám sát tiến trình cào dữ liệu, lịch trình tự động & kiểm tra dữ liệu thô',
     },
-    ai: {
-      title: 'AI Pricing Studio',
-      subtitle: 'Trợ lý AI hỏi đáp RAG & Thẻ giải thích minh bạch quyết định định giá',
-    },
   };
 
   const current = titles[activeTab];
