@@ -1,0 +1,92 @@
+import React, { useState, useEffect } from 'react';
+import { GitCompare, CheckCircle2 } from 'lucide-react';
+import { SkuDiffCard } from '../components/mapping/SkuDiffCard';
+import { SkuMappingPair } from '../types/matching';
+import { 
+  getSkuMappingQueueApi, 
+  approveSkuMappingApi, 
+  rejectSkuMappingApi 
+} from '../api/pricingApi';
+
+export const SkuMatchingPage: React.FC = () => {
+  const [queue, setQueue] = useState<SkuMappingPair[]>([]);
+  const [loading, setLoading] = useState(true);
+
+  const fetchQueue = async () => {
+    setLoading(true);
+    try {
+      const data = await getSkuMappingQueueApi();
+      setQueue(data.filter((item) => item.status === 'PENDING'));
+    } catch (error) {
+      console.error('Lỗi nạp hàng đợi đối soát SKU:', error);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    fetchQueue();
+  }, []);
+
+  const handleApprove = async (id: string) => {
+    await approveSkuMappingApi(id);
+    setQueue((prev) => prev.filter((item) => item.id !== id));
+  };
+
+  const handleReject = async (id: string) => {
+    await rejectSkuMappingApi(id);
+    setQueue((prev) => prev.filter((item) => item.id !== id));
+  };
+
+  return (
+    <div>
+      {/* Intro Header */}
+      <div className="mb-6 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+        <div>
+          <h2 className="text-sm font-bold text-slate-900 dark:text-white flex items-center gap-2">
+            Hàng Đợi Đối Soát SKU Thủ Công (Manual Mapping Queue)
+            <span className="text-[11px] px-2 py-0.5 rounded-full bg-amber-100 dark:bg-amber-950/60 text-amber-700 dark:text-amber-400 font-semibold">
+              PBI-008 Confidence 60% – 79%
+            </span>
+          </h2>
+          <p className="text-xs text-slate-500 mt-1">
+            Rà soát các cặp sản phẩm nghi ngờ để đảm bảo dữ liệu so sánh chuẩn xác 100%. Xác nhận ghép cặp sẽ tự động lưu lại cho các lần cào sau.
+          </p>
+        </div>
+
+        <div className="text-xs text-slate-500 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 px-3 py-2 rounded-xl flex items-center gap-2">
+          <GitCompare className="w-4 h-4 text-orange-500" />
+          <span>Còn <strong className="font-bold text-slate-900 dark:text-white">{queue.length}</strong> cặp cần duyệt</span>
+        </div>
+      </div>
+
+      {/* Main List */}
+      {loading ? (
+        <div className="p-12 text-center text-slate-400 text-xs">
+          Đang nạp dữ liệu hàng đợi đối soát...
+        </div>
+      ) : queue.length === 0 ? (
+        <div className="rounded-xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 p-12 text-center shadow-sm">
+          <CheckCircle2 className="w-8 h-8 text-emerald-500 mx-auto mb-2" />
+          <h3 className="text-sm font-bold text-slate-800 dark:text-slate-200">
+            Hàng đợi trống!
+          </h3>
+          <p className="text-xs text-slate-500 mt-1">
+            Toàn bộ sản phẩm đều đã được đối soát chính xác 100% hoặc vượt ngưỡng tự động.
+          </p>
+        </div>
+      ) : (
+        <div className="space-y-4">
+          {queue.map((pair) => (
+            <SkuDiffCard
+              key={pair.id}
+              pair={pair}
+              onApprove={handleApprove}
+              onReject={handleReject}
+            />
+          ))}
+        </div>
+      )}
+    </div>
+  );
+};
