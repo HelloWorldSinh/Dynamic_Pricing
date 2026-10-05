@@ -1,6 +1,7 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { GitCompare, CheckCircle2 } from 'lucide-react';
 import { SkuDiffCard } from '../components/mapping/SkuDiffCard';
+import { Pagination } from '../components/common/Pagination';
 import { SkuMappingPair } from '../types/matching';
 import { 
   getSkuMappingQueueApi, 
@@ -11,6 +12,10 @@ import {
 export const SkuMatchingPage: React.FC = () => {
   const [queue, setQueue] = useState<SkuMappingPair[]>([]);
   const [loading, setLoading] = useState(true);
+
+  // Pagination
+  const [currentPage, setCurrentPage] = useState(1);
+  const [pageSize, setPageSize] = useState(5);
 
   const fetchQueue = async () => {
     setLoading(true);
@@ -27,6 +32,20 @@ export const SkuMatchingPage: React.FC = () => {
   useEffect(() => {
     fetchQueue();
   }, []);
+
+  const totalPages = Math.ceil(queue.length / pageSize) || 1;
+
+  // Auto-clamp page if items are removed
+  useEffect(() => {
+    if (currentPage > totalPages) {
+      setCurrentPage(Math.max(1, totalPages));
+    }
+  }, [totalPages, currentPage]);
+
+  const paginatedQueue = useMemo(() => {
+    const start = (currentPage - 1) * pageSize;
+    return queue.slice(start, start + pageSize);
+  }, [queue, currentPage, pageSize]);
 
   const handleApprove = async (id: string) => {
     await approveSkuMappingApi(id);
@@ -73,16 +92,32 @@ export const SkuMatchingPage: React.FC = () => {
           </p>
         </div>
       ) : (
-        <div className="space-y-4">
-          {queue.map((pair) => (
-            <SkuDiffCard
-              key={pair.id}
-              pair={pair}
-              onApprove={handleApprove}
-              onReject={handleReject}
-            />
-          ))}
-        </div>
+        <>
+          <div className="space-y-4">
+            {paginatedQueue.map((pair) => (
+              <SkuDiffCard
+                key={pair.id}
+                pair={pair}
+                onApprove={handleApprove}
+                onReject={handleReject}
+              />
+            ))}
+          </div>
+
+          <Pagination
+            currentPage={currentPage}
+            totalPages={totalPages}
+            totalItems={queue.length}
+            pageSize={pageSize}
+            onPageChange={setCurrentPage}
+            onPageSizeChange={(newSize) => {
+              setPageSize(newSize);
+              setCurrentPage(1);
+            }}
+            pageSizeOptions={[3, 5, 10, 20]}
+            itemLabel="cặp đối soát"
+          />
+        </>
       )}
     </div>
   );

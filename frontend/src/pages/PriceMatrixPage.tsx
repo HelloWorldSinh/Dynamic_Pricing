@@ -2,19 +2,19 @@ import React, { useState, useEffect, useMemo } from 'react';
 import { DebounceTriggerBar } from '../components/matrix/DebounceTriggerBar';
 import { MatrixFilterToolbar } from '../components/matrix/MatrixFilterToolbar';
 import { PriceMatrixTable } from '../components/matrix/PriceMatrixTable';
+import { Pagination } from '../components/common/Pagination';
 import { PriceComparisonItem } from '../types/pricing';
 import { getPriceMatrixApi } from '../api/pricingApi';
 
 interface PriceMatrixPageProps {
   categoryFilter: string;
   onOpenProductDetail: (product: PriceComparisonItem) => void;
-  onOpenAiExplain: (product: PriceComparisonItem) => void;
+  onOpenAiExplain?: (product: PriceComparisonItem) => void;
 }
 
 export const PriceMatrixPage: React.FC<PriceMatrixPageProps> = ({
   categoryFilter,
   onOpenProductDetail,
-  onOpenAiExplain,
 }) => {
   const [items, setItems] = useState<PriceComparisonItem[]>([]);
   const [loading, setLoading] = useState(true);
@@ -24,6 +24,10 @@ export const PriceMatrixPage: React.FC<PriceMatrixPageProps> = ({
   const [priceGapFilter, setPriceGapFilter] = useState('ALL');
   const [dohRiskFilter, setDohRiskFilter] = useState(false);
   const [inStockOnlyFilter, setInStockOnlyFilter] = useState(false);
+
+  // Pagination
+  const [currentPage, setCurrentPage] = useState(1);
+  const [pageSize, setPageSize] = useState(10);
 
   const fetchData = async () => {
     setLoading(true);
@@ -40,6 +44,11 @@ export const PriceMatrixPage: React.FC<PriceMatrixPageProps> = ({
   useEffect(() => {
     fetchData();
   }, [categoryFilter]);
+
+  // Reset to page 1 when any filter changes
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [categoryFilter, searchQuery, priceGapFilter, dohRiskFilter, inStockOnlyFilter]);
 
   // Filtered Items logic
   const filteredItems = useMemo(() => {
@@ -88,6 +97,12 @@ export const PriceMatrixPage: React.FC<PriceMatrixPageProps> = ({
     });
   }, [items, categoryFilter, searchQuery, priceGapFilter, dohRiskFilter, inStockOnlyFilter]);
 
+  const totalPages = Math.ceil(filteredItems.length / pageSize) || 1;
+  const paginatedItems = useMemo(() => {
+    const start = (currentPage - 1) * pageSize;
+    return filteredItems.slice(start, start + pageSize);
+  }, [filteredItems, currentPage, pageSize]);
+
   return (
     <div>
       {/* On-Demand Crawl with 30s Debounce */}
@@ -112,11 +127,24 @@ export const PriceMatrixPage: React.FC<PriceMatrixPageProps> = ({
           Đang nạp dữ liệu đối soát giá 3 bên...
         </div>
       ) : (
-        <PriceMatrixTable
-          items={filteredItems}
-          onSelectProduct={onOpenProductDetail}
-          onExplainProduct={onOpenAiExplain}
-        />
+        <>
+          <PriceMatrixTable
+            items={paginatedItems}
+            onSelectProduct={onOpenProductDetail}
+          />
+          <Pagination
+            currentPage={currentPage}
+            totalPages={totalPages}
+            totalItems={filteredItems.length}
+            pageSize={pageSize}
+            onPageChange={setCurrentPage}
+            onPageSizeChange={(newSize) => {
+              setPageSize(newSize);
+              setCurrentPage(1);
+            }}
+            itemLabel="sản phẩm"
+          />
+        </>
       )}
     </div>
   );

@@ -1,7 +1,6 @@
 import React from 'react';
 import { 
   ExternalLink, 
-  Sparkles, 
   Info, 
   ArrowUpDown, 
   TrendingUp, 
@@ -14,13 +13,12 @@ import { formatCurrencyVND, formatPercent } from '../../utils/formatters';
 interface PriceMatrixTableProps {
   items: PriceComparisonItem[];
   onSelectProduct: (item: PriceComparisonItem) => void;
-  onExplainProduct: (item: PriceComparisonItem) => void;
+  onExplainProduct?: (item: PriceComparisonItem) => void;
 }
 
 export const PriceMatrixTable: React.FC<PriceMatrixTableProps> = ({
   items,
   onSelectProduct,
-  onExplainProduct,
 }) => {
   if (items.length === 0) {
     return (
@@ -220,22 +218,13 @@ export const PriceMatrixTable: React.FC<PriceMatrixTableProps> = ({
 
                   {/* Action Buttons */}
                   <td className="py-3 px-4 text-center">
-                    <div className="flex items-center justify-center gap-1.5">
-                      <button
-                        onClick={() => onSelectProduct(item)}
-                        className="px-2.5 py-1.5 rounded-lg border border-slate-200 dark:border-slate-700 hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-700 dark:text-slate-300 text-xs font-medium transition"
-                        title="Xem thông số kỹ thuật chi tiết"
-                      >
-                        Chi tiết
-                      </button>
-                      <button
-                        onClick={() => onExplainProduct(item)}
-                        className="p-1.5 rounded-lg bg-orange-500/10 hover:bg-orange-500/20 text-orange-600 dark:text-orange-400 transition"
-                        title="Hỏi trợ lý AI phân tích lý do giá"
-                      >
-                        <Sparkles className="w-3.5 h-3.5" />
-                      </button>
-                    </div>
+                    <button
+                      onClick={() => onSelectProduct(item)}
+                      className="px-3 py-1.5 rounded-lg border border-slate-200 dark:border-slate-700 hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-700 dark:text-slate-300 text-xs font-medium transition shadow-sm"
+                      title="Xem thông số kỹ thuật chi tiết"
+                    >
+                      Chi tiết
+                    </button>
                   </td>
                 </tr>
               );

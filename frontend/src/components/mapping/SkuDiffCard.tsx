@@ -102,20 +102,35 @@ export const SkuDiffCard: React.FC<SkuDiffCardProps> = ({
               <span className="text-xs font-mono font-bold text-slate-900 dark:text-white">
                 {formatCurrencyVND(pair.competitor_price)}
               </span>
-              <a
-                href={pair.competitor_url}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="text-slate-400 hover:text-slate-600 dark:hover:text-slate-200"
-                title="Mở URL gốc kiểm tra chéo"
-              >
-                <ExternalLink className="w-3 h-3" />
-              </a>
+              {pair.competitor_url && (
+                <a
+                  href={pair.competitor_url}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 transition-colors"
+                  title="Mở URL gốc kiểm tra chéo"
+                >
+                  <ExternalLink className="w-3 h-3" />
+                </a>
+              )}
             </div>
           </div>
 
           <h4 className="text-xs font-semibold text-slate-900 dark:text-slate-100 min-h-[36px] line-clamp-2">
-            {pair.competitor_name}
+            {pair.competitor_url ? (
+              <a
+                href={pair.competitor_url}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="hover:text-blue-600 dark:hover:text-blue-400 hover:underline transition-colors group inline"
+                title={`Mở link sản phẩm đối thủ: ${pair.competitor_url}`}
+              >
+                <span>{pair.competitor_name}</span>
+                <ExternalLink className="w-3 h-3 inline-block ml-1 text-slate-400 group-hover:text-blue-600 dark:group-hover:text-blue-400 opacity-60 group-hover:opacity-100 transition-all align-baseline" />
+              </a>
+            ) : (
+              pair.competitor_name
+            )}
           </h4>
 
           {pair.competitor_part_number && (

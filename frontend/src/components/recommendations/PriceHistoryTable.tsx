@@ -1,49 +1,73 @@
 import React, { useState, useMemo } from 'react';
 import { 
   History, 
-  Search, 
   ArrowRight, 
   TrendingDown, 
   TrendingUp, 
-  Bot, 
-  UserCheck, 
-  CheckCircle2 
+  Eye 
 } from 'lucide-react';
 import { PriceChangeHistoryItem } from '../../types/pricing';
 import { formatCurrencyVND, formatPercent } from '../../utils/formatters';
+import { ProductPriceHistoryModal } from './ProductPriceHistoryModal';
 
-interface PriceHistoryTableProps {
-  items: PriceChangeHistoryItem[];
+export interface ProductPriceHistoryGroup {
+  sku: string;
+  product_name: string;
+  category: string;
+  latestItem: PriceChangeHistoryItem;
+  revisionsCount: number;
 }
 
-export const PriceHistoryTable: React.FC<PriceHistoryTableProps> = ({ items }) => {
-  const [searchQuery, setSearchQuery] = useState('');
-  const [filterType, setFilterType] = useState<'ALL' | 'AI_RECOMMENDED' | 'MANUAL_CONFIG'>('ALL');
+interface PriceHistoryTableProps {
+  products?: ProductPriceHistoryGroup[];
+  items?: PriceChangeHistoryItem[];
+  allItems?: PriceChangeHistoryItem[];
+}
 
-  const filteredItems = useMemo(() => {
-    return items.filter((item) => {
-      // Filter by type
-      if (filterType !== 'ALL' && item.change_type !== filterType) {
-        return false;
-      }
-      // Filter by search
-      if (searchQuery.trim()) {
-        const q = searchQuery.toLowerCase();
-        const matchName = item.product_name.toLowerCase().includes(q);
-        const matchSku = item.sku.toLowerCase().includes(q);
-        const matchScenario = item.scenario.toLowerCase().includes(q);
-        if (!matchName && !matchSku && !matchScenario) return false;
-      }
-      return true;
+export const PriceHistoryTable: React.FC<PriceHistoryTableProps> = ({ 
+  products,
+  items,
+  allItems
+}) => {
+  const [selectedSku, setSelectedSku] = useState<string | null>(null);
+
+  // Group items by product (SKU) if products array is not passed directly
+  const productGroups = useMemo(() => {
+    if (products && products.length > 0) {
+      return products;
+    }
+    if (!items || items.length === 0) {
+      return [];
+    }
+
+    const map = new Map<string, ProductPriceHistoryGroup>();
+    const sourceForCount = allItems || items;
+    const countMap = new Map<string, number>();
+    sourceForCount.forEach((item) => {
+      countMap.set(item.sku, (countMap.get(item.sku) || 0) + 1);
     });
-  }, [items, searchQuery, filterType]);
+
+    items.forEach((item) => {
+      if (!map.has(item.sku)) {
+        map.set(item.sku, {
+          sku: item.sku,
+          product_name: item.product_name,
+          category: item.category,
+          latestItem: item,
+          revisionsCount: countMap.get(item.sku) || 1,
+        });
+      }
+    });
+
+    return Array.from(map.values());
+  }, [products, items, allItems]);
 
   const formatDateTime = (isoString: string) => {
     try {
       const d = new Date(isoString);
       if (isNaN(d.getTime())) return isoString;
       const pad = (n: number) => n.toString().padStart(2, '0');
-      return `${pad(d.getHours())}:${pad(d.getMinutes())} ${pad(d.getDate())}/${pad(d.getMonth() + 1)}/${d.getFullYear()}`;
+      return `${pad(d.getHours())}:${pad(d.getMinutes())} - ${pad(d.getDate())}/${pad(d.getMonth() + 1)}/${d.getFullYear()}`;
     } catch {
       return isoString;
     }
@@ -51,60 +75,11 @@ export const PriceHistoryTable: React.FC<PriceHistoryTableProps> = ({ items }) =
 
   return (
     <div className="space-y-4">
-      {/* Filter & Search Bar */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 p-3 rounded-xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 shadow-sm">
-        <div className="relative flex-1 max-w-md">
-          <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
-          <input
-            type="text"
-            value={searchQuery}
-            onChange={(e) => setSearchQuery(e.target.value)}
-            placeholder="Tìm theo mã SKU, tên sản phẩm hoặc kịch bản..."
-            className="w-full pl-9 pr-3 py-1.5 text-xs bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg text-slate-900 dark:text-slate-100 placeholder-slate-400 focus:outline-none focus:ring-1 focus:ring-orange-500"
-          />
-        </div>
-
-        <div className="flex items-center gap-2 text-xs">
-          <button
-            onClick={() => setFilterType('ALL')}
-            className={`px-3 py-1.5 rounded-lg font-medium transition ${
-              filterType === 'ALL'
-                ? 'bg-orange-600 text-white shadow-sm'
-                : 'bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 hover:bg-slate-200 dark:hover:bg-slate-700'
-            }`}
-          >
-            Tất cả ({items.length})
-          </button>
-          <button
-            onClick={() => setFilterType('AI_RECOMMENDED')}
-            className={`px-3 py-1.5 rounded-lg font-medium transition flex items-center gap-1.5 ${
-              filterType === 'AI_RECOMMENDED'
-                ? 'bg-blue-600 text-white shadow-sm'
-                : 'bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 hover:bg-slate-200 dark:hover:bg-slate-700'
-            }`}
-          >
-            <Bot className="w-3.5 h-3.5" />
-            <span>Đề xuất AI</span>
-          </button>
-          <button
-            onClick={() => setFilterType('MANUAL_CONFIG')}
-            className={`px-3 py-1.5 rounded-lg font-medium transition flex items-center gap-1.5 ${
-              filterType === 'MANUAL_CONFIG'
-                ? 'bg-purple-600 text-white shadow-sm'
-                : 'bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 hover:bg-slate-200 dark:hover:bg-slate-700'
-            }`}
-          >
-            <UserCheck className="w-3.5 h-3.5" />
-            <span>Tự chỉnh tay</span>
-          </button>
-        </div>
-      </div>
-
-      {/* Main Table */}
-      {filteredItems.length === 0 ? (
+      {/* Main Content Table: Direct Product Listing */}
+      {productGroups.length === 0 ? (
         <div className="rounded-xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 p-12 text-center shadow-sm">
           <History className="w-8 h-8 text-slate-400 mx-auto mb-2 opacity-50" />
-          <p className="text-xs text-slate-500">Chưa có bản ghi lịch sử thay đổi giá nào phù hợp.</p>
+          <p className="text-xs text-slate-500">Chưa có sản phẩm nào có lịch sử thay đổi giá phù hợp.</p>
         </div>
       ) : (
         <div className="rounded-xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 shadow-sm overflow-hidden">
@@ -112,49 +87,54 @@ export const PriceHistoryTable: React.FC<PriceHistoryTableProps> = ({ items }) =
             <table className="w-full text-left text-xs border-collapse">
               <thead>
                 <tr className="bg-slate-50/80 dark:bg-slate-800/60 border-b border-slate-200 dark:border-slate-800 text-slate-500 dark:text-slate-400 font-semibold uppercase tracking-wider text-[11px]">
-                  <th className="py-3 px-4">Thời gian áp dụng</th>
                   <th className="py-3 px-4">Sản phẩm &amp; SKU</th>
-                  <th className="py-3 px-4 text-center">Biến động giá</th>
-                  <th className="py-3 px-3 text-right">Chênh lệch</th>
-                  <th className="py-3 px-3 text-center">Biên lợi nhuận</th>
-                  <th className="py-3 px-3 text-center">Phương thức</th>
-                  <th className="py-3 px-4">Căn cứ &amp; Ghi chú</th>
-                  <th className="py-3 px-3 text-center">Trạng thái</th>
+                  <th className="py-3 px-4 text-center">Lần đổi gần nhất</th>
+                  <th className="py-3 px-3 text-right">Mức biến động</th>
+                  <th className="py-3 px-3 text-center">Biên LN</th>
+                  <th className="py-3 px-3 text-center">Số lần đổi giá</th>
+                  <th className="py-3 px-4">Cập nhật cuối</th>
+                  <th className="py-3 px-4 text-center">Thao tác</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-slate-100 dark:divide-slate-800/60">
-                {filteredItems.map((item) => {
-                  const isDecrease = item.price_change < 0;
+                {productGroups.map((group) => {
+                  const isDecrease = group.latestItem.price_change < 0;
 
                   return (
                     <tr
-                      key={item.id}
+                      key={group.sku}
                       className="hover:bg-slate-50/60 dark:hover:bg-slate-800/40 transition-colors"
                     >
-                      {/* Timestamp */}
-                      <td className="py-3 px-4 whitespace-nowrap text-slate-500 dark:text-slate-400 font-mono">
-                        {formatDateTime(item.changed_at)}
+                      {/* Product & SKU - Clickable */}
+                      <td className="py-3 px-4 max-w-[260px]">
+                        <button
+                          onClick={() => setSelectedSku(group.sku)}
+                          className="text-left group flex flex-col focus:outline-none"
+                          title="Nhấn để xem toàn bộ lịch sử các lần chỉnh sửa giá của sản phẩm này"
+                        >
+                          <span className="font-semibold text-slate-900 dark:text-slate-100 group-hover:text-orange-600 dark:group-hover:text-orange-400 group-hover:underline transition-colors truncate">
+                            {group.product_name}
+                          </span>
+                          <div className="flex items-center gap-1.5 mt-0.5">
+                            <span className="text-[10px] font-mono text-slate-500">
+                              {group.sku}
+                            </span>
+                            <span className="text-[9px] px-1.5 py-0.2 rounded bg-slate-100 dark:bg-slate-800 text-slate-500 font-bold uppercase">
+                              {group.category}
+                            </span>
+                          </div>
+                        </button>
                       </td>
 
-                      {/* Product & SKU */}
-                      <td className="py-3 px-4 max-w-[240px]">
-                        <div className="font-semibold text-slate-900 dark:text-slate-100 truncate" title={item.product_name}>
-                          {item.product_name}
-                        </div>
-                        <div className="text-[10px] font-mono text-slate-400 mt-0.5">
-                          {item.sku}
-                        </div>
-                      </td>
-
-                      {/* Old Price -> New Price */}
+                      {/* Latest Price Change */}
                       <td className="py-3 px-4 text-center whitespace-nowrap">
-                        <div className="inline-flex items-center gap-2">
-                          <span className="font-mono text-slate-400 line-through">
-                            {formatCurrencyVND(item.old_price)}
+                        <div className="inline-flex items-center gap-1.5 font-mono">
+                          <span className="text-slate-400 line-through text-[11px]">
+                            {formatCurrencyVND(group.latestItem.old_price)}
                           </span>
                           <ArrowRight className="w-3.5 h-3.5 text-slate-400" />
-                          <span className="font-mono font-bold text-slate-900 dark:text-white">
-                            {formatCurrencyVND(item.new_price)}
+                          <span className="font-bold text-slate-900 dark:text-white">
+                            {formatCurrencyVND(group.latestItem.new_price)}
                           </span>
                         </div>
                       </td>
@@ -168,59 +148,53 @@ export const PriceHistoryTable: React.FC<PriceHistoryTableProps> = ({ items }) =
                               : 'text-emerald-600 dark:text-emerald-400'
                           }`}
                         >
-                          {isDecrease ? (
-                            <TrendingDown className="w-3.5 h-3.5" />
-                          ) : (
-                            <TrendingUp className="w-3.5 h-3.5" />
-                          )}
-                          <span>
-                            {item.price_change > 0 ? '+' : ''}
-                            {formatCurrencyVND(item.price_change)}
-                          </span>
+                          {isDecrease ? <TrendingDown className="w-3.5 h-3.5" /> : <TrendingUp className="w-3.5 h-3.5" />}
+                          <span>{group.latestItem.price_change > 0 ? '+' : ''}{formatCurrencyVND(group.latestItem.price_change)}</span>
                         </span>
                         <div className="text-[10px] text-slate-400 font-normal">
-                          {formatPercent(item.price_change_percent)}
+                          {formatPercent(group.latestItem.price_change_percent)}
                         </div>
                       </td>
 
                       {/* Margin % */}
                       <td className="py-3 px-3 text-center whitespace-nowrap font-mono font-bold">
                         <span className="px-2 py-0.5 rounded bg-emerald-50 dark:bg-emerald-950/40 text-emerald-600 dark:text-emerald-400 border border-emerald-200 dark:border-emerald-900">
-                          {formatPercent(item.margin_percent)}
+                          {formatPercent(group.latestItem.margin_percent)}
                         </span>
                       </td>
 
-                      {/* Change Type */}
+                      {/* Total Revisions Badge */}
                       <td className="py-3 px-3 text-center whitespace-nowrap">
-                        {item.change_type === 'AI_RECOMMENDED' ? (
-                          <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-[10px] font-bold bg-blue-100 text-blue-700 dark:bg-blue-900/50 dark:text-blue-300">
-                            <Bot className="w-3 h-3" />
-                            <span>Đề xuất AI</span>
-                          </span>
-                        ) : (
-                          <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-[10px] font-bold bg-purple-100 text-purple-700 dark:bg-purple-900/50 dark:text-purple-300">
-                            <UserCheck className="w-3 h-3" />
-                            <span>Tự chỉnh tay</span>
-                          </span>
-                        )}
+                        <button
+                          onClick={() => setSelectedSku(group.sku)}
+                          className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-[11px] font-bold bg-orange-50 dark:bg-orange-950/40 text-orange-600 dark:text-orange-400 border border-orange-200 dark:border-orange-800/80 hover:bg-orange-100 dark:hover:bg-orange-900/60 transition shadow-sm"
+                          title="Bấm để xem danh sách các lần sửa giá"
+                        >
+                          <History className="w-3 h-3" />
+                          <span>{group.revisionsCount} lần điều chỉnh</span>
+                        </button>
                       </td>
 
-                      {/* Scenario & By */}
-                      <td className="py-3 px-4 max-w-[260px]">
-                        <div className="text-[11px] text-slate-700 dark:text-slate-300 line-clamp-1" title={item.scenario}>
-                          {item.scenario}
+                      {/* Latest Date & Actor */}
+                      <td className="py-3 px-4 max-w-[200px] whitespace-nowrap">
+                        <div className="font-mono text-slate-600 dark:text-slate-300">
+                          {formatDateTime(group.latestItem.changed_at)}
                         </div>
                         <div className="text-[10px] text-slate-400 mt-0.5">
-                          Bởi: <span className="font-medium text-slate-600 dark:text-slate-400">{item.changed_by}</span>
+                          Bởi: <span className="font-medium text-slate-600 dark:text-slate-300">{group.latestItem.changed_by}</span>
                         </div>
                       </td>
 
-                      {/* Status */}
-                      <td className="py-3 px-3 text-center whitespace-nowrap">
-                        <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-semibold bg-emerald-100 text-emerald-800 dark:bg-emerald-900/50 dark:text-emerald-300">
-                          <CheckCircle2 className="w-3 h-3" />
-                          <span>Đã đồng bộ</span>
-                        </span>
+                      {/* Action Button */}
+                      <td className="py-3 px-4 text-center whitespace-nowrap">
+                        <button
+                          onClick={() => setSelectedSku(group.sku)}
+                          className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-orange-600 hover:bg-orange-500 text-white font-medium text-xs transition shadow-sm"
+                          title="Xem lịch sử các lần sửa đổi giá của sản phẩm này"
+                        >
+                          <Eye className="w-3.5 h-3.5" />
+                          <span>Xem lịch sử ({group.revisionsCount})</span>
+                        </button>
                       </td>
                     </tr>
                   );
@@ -230,6 +204,13 @@ export const PriceHistoryTable: React.FC<PriceHistoryTableProps> = ({ items }) =
           </div>
         </div>
       )}
+
+      {/* Product Price History Modal Popup */}
+      <ProductPriceHistoryModal
+        sku={selectedSku}
+        items={allItems || items || []}
+        onClose={() => setSelectedSku(null)}
+      />
     </div>
   );
 };

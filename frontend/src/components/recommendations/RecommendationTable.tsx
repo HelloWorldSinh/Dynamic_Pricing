@@ -30,7 +30,7 @@ export const RecommendationTable: React.FC<RecommendationTableProps> = ({
     );
   }
 
-  const allSelected = items.length > 0 && selectedIds.length === items.length;
+  const allSelected = items.length > 0 && items.every((item) => selectedIds.includes(item.id));
 
   return (
     <div className="rounded-xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 shadow-sm overflow-hidden">

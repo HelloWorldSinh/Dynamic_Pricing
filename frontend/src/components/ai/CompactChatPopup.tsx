@@ -51,7 +51,7 @@ export const CompactChatPopup: React.FC = () => {
   ];
 
   return (
-    <div className="fixed bottom-6 right-6 z-50 w-[380px] h-[520px] rounded-2xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 shadow-2xl flex flex-col overflow-hidden animate-in fade-in slide-in-from-bottom-4 duration-200">
+    <div className="fixed bottom-6 right-6 z-50 w-[380px] h-[520px] rounded-3xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 shadow-2xl flex flex-col overflow-hidden animate-in fade-in slide-in-from-bottom-4 duration-200">
       {/* Header */}
       <div className="p-3.5 px-4 bg-slate-900 text-white flex items-center justify-between border-b border-slate-800">
         <div className="flex items-center gap-2.5">

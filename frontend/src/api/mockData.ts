@@ -239,6 +239,7 @@ export const mockRecommendations: PricingRecommendation[] = [
 ];
 
 export const mockPriceHistory: PriceChangeHistoryItem[] = [
+  // iPhone 16 Pro Max - 3 revisions
   {
     id: 'hist-001',
     sku: 'FPT-IPHONE-16PM-256',
@@ -258,6 +259,44 @@ export const mockPriceHistory: PriceChangeHistoryItem[] = [
     status: 'SYNCED_POS'
   },
   {
+    id: 'hist-001-prev1',
+    sku: 'FPT-IPHONE-16PM-256',
+    product_name: 'iPhone 16 Pro Max 256GB Titan Sa Mạc',
+    category: 'PHONE',
+    old_price: 35990000,
+    new_price: 35490000,
+    price_change: -500000,
+    price_change_percent: -1.39,
+    cost_price: 31000000,
+    floor_price: 32550000,
+    margin_percent: 12.6,
+    change_type: 'MANUAL_CONFIG',
+    scenario: 'Chỉnh tay theo chiến dịch ra mắt mở bán tuần đầu',
+    changed_by: 'Senior Pricing Manager',
+    changed_at: '2026-09-28T10:15:00Z',
+    status: 'SYNCED_POS'
+  },
+  {
+    id: 'hist-001-prev2',
+    sku: 'FPT-IPHONE-16PM-256',
+    product_name: 'iPhone 16 Pro Max 256GB Titan Sa Mạc',
+    category: 'PHONE',
+    old_price: 36490000,
+    new_price: 35990000,
+    price_change: -500000,
+    price_change_percent: -1.37,
+    cost_price: 31000000,
+    floor_price: 32550000,
+    margin_percent: 13.8,
+    change_type: 'AI_RECOMMENDED',
+    scenario: 'Thiết lập mức giá niêm yết cạnh tranh ban đầu',
+    changed_by: 'Automated AI System',
+    changed_at: '2026-09-20T08:00:00Z',
+    status: 'SYNCED_POS'
+  },
+
+  // Samsung Galaxy S24 Ultra - 3 revisions
+  {
     id: 'hist-002',
     sku: 'FPT-SS-S24U-256',
     product_name: 'Samsung Galaxy S24 Ultra 12GB 256GB Xám Titan',
@@ -276,6 +315,44 @@ export const mockPriceHistory: PriceChangeHistoryItem[] = [
     status: 'SYNCED_POS'
   },
   {
+    id: 'hist-002-prev1',
+    sku: 'FPT-SS-S24U-256',
+    product_name: 'Samsung Galaxy S24 Ultra 12GB 256GB Xám Titan',
+    category: 'PHONE',
+    old_price: 28990000,
+    new_price: 27990000,
+    price_change: -1000000,
+    price_change_percent: -3.45,
+    cost_price: 24200000,
+    floor_price: 25410000,
+    margin_percent: 13.5,
+    change_type: 'AI_RECOMMENDED',
+    scenario: 'Kịch bản 1: Hoàng Hà hạ giá S24 Ultra, AI đề xuất khớp giá',
+    changed_by: 'Pricing Analyst',
+    changed_at: '2026-09-25T14:30:00Z',
+    status: 'SYNCED_POS'
+  },
+  {
+    id: 'hist-002-prev2',
+    sku: 'FPT-SS-S24U-256',
+    product_name: 'Samsung Galaxy S24 Ultra 12GB 256GB Xám Titan',
+    category: 'PHONE',
+    old_price: 29990000,
+    new_price: 28990000,
+    price_change: -1000000,
+    price_change_percent: -3.33,
+    cost_price: 24200000,
+    floor_price: 25410000,
+    margin_percent: 16.5,
+    change_type: 'MANUAL_CONFIG',
+    scenario: 'Chương trình ưu đãi ngày đôi giữa tháng 9',
+    changed_by: 'Pricing Specialist',
+    changed_at: '2026-09-15T09:00:00Z',
+    status: 'SYNCED_POS'
+  },
+
+  // MacBook Air M3 - 2 revisions
+  {
     id: 'hist-003',
     sku: 'FPT-MAC-AIR-M3',
     product_name: 'MacBook Air 13 inch M3 8GB 256GB Midnight',
@@ -291,6 +368,62 @@ export const mockPriceHistory: PriceChangeHistoryItem[] = [
     scenario: 'Kịch bản 4: Hoàng Hà Mobile giảm giá sốc, FPT đồng bộ giá mới',
     changed_by: 'Pricing Analyst',
     changed_at: '2026-10-02T14:45:00Z',
+    status: 'SYNCED_POS'
+  },
+  {
+    id: 'hist-003-prev1',
+    sku: 'FPT-MAC-AIR-M3',
+    product_name: 'MacBook Air 13 inch M3 8GB 256GB Midnight',
+    category: 'LAPTOP',
+    old_price: 27990000,
+    new_price: 26990000,
+    price_change: -1000000,
+    price_change_percent: -3.57,
+    cost_price: 23500000,
+    floor_price: 24675000,
+    margin_percent: 12.9,
+    change_type: 'AI_RECOMMENDED',
+    scenario: 'Tối ưu hóa biên lợi nhuận chiến dịch Back to School',
+    changed_by: 'Pricing Analyst',
+    changed_at: '2026-09-22T11:00:00Z',
+    status: 'SYNCED_POS'
+  },
+
+  // ASUS Vivobook 15 - 2 revisions
+  {
+    id: 'hist-004',
+    sku: 'FPT-ASUS-VIVO15',
+    product_name: 'Laptop ASUS Vivobook 15 OLED A1505VA-L1114W',
+    category: 'LAPTOP',
+    old_price: 19490000,
+    new_price: 18990000,
+    price_change: -500000,
+    price_change_percent: -2.57,
+    cost_price: 16500000,
+    floor_price: 17325000,
+    margin_percent: 13.1,
+    change_type: 'AI_RECOMMENDED',
+    scenario: 'Cân đối mức giá xả hàng tồn kho DOH > 45 ngày',
+    changed_by: 'Pricing Analyst',
+    changed_at: '2026-10-01T15:30:00Z',
+    status: 'SYNCED_POS'
+  },
+  {
+    id: 'hist-004-prev1',
+    sku: 'FPT-ASUS-VIVO15',
+    product_name: 'Laptop ASUS Vivobook 15 OLED A1505VA-L1114W',
+    category: 'LAPTOP',
+    old_price: 19990000,
+    new_price: 19490000,
+    price_change: -500000,
+    price_change_percent: -2.5,
+    cost_price: 16500000,
+    floor_price: 17325000,
+    margin_percent: 15.3,
+    change_type: 'MANUAL_CONFIG',
+    scenario: 'Ưu đãi sinh viên đầu năm học mới',
+    changed_by: 'Pricing Specialist',
+    changed_at: '2026-09-18T10:00:00Z',
     status: 'SYNCED_POS'
   }
 ];

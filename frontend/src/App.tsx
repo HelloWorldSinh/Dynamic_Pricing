@@ -26,7 +26,6 @@ const AppContent: React.FC = () => {
             <PriceMatrixPage
               categoryFilter={categoryFilter}
               onOpenProductDetail={(prod) => setSelectedProduct(prod)}
-              onOpenAiExplain={handleExplainProduct}
             />
           )}
 
