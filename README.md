@@ -1,73 +1,108 @@
-# Dynamic Pricing System - Backend API
+# Dynamic Pricing System - Monorepo
 
 > **Dự án:** LQSMART-OJT — Dynamic Pricing System  
+> **Kiến trúc:** Clean Domain Monorepo (Deep Modules & Clean Seams)  
 > **Backend:** FastAPI (Python 3.11+) + SQLAlchemy + Alembic + PostgreSQL / SQLite  
-> **Scraping:** Strategy Pattern (CellphoneS, FPT Shop, Hoàng Hà) + RapidFuzz
+> **Frontend:** React + Vite + TypeScript (No-Emoji Minimalist Design System)  
+> **Scraping & Matching:** Strategy Pattern (CellphoneS, FPT Shop, Hoàng Hà) + Two-Tiered Matching (Regex + RapidFuzz)
 
 ---
 
-## 🚀 Tính năng đã triển khai (Sprint 1 Foundation)
+## Cấu trúc Thư mục Monorepo
 
-1. **Cơ sở dữ liệu (PostgreSQL / SQLite):**
-   - `products`: Danh mục sản phẩm chuẩn FPT Shop.
-   - `crawl_results`: Dữ liệu cào từ các trang đối thủ (chứa thông số kỹ thuật JSONB).
-   - `sku_mappings`: Bảng đối soát khớp sản phẩm (Confidence Score).
-   - `inventory_mock`: Tồn kho giả lập, số ngày lưu kho (DOH), giá sàn và giá vốn (PBI-009).
-2. **Quản lý Database Migration:**
-   - Sử dụng **Alembic** để tự động quản lý phiên bản và đồng bộ bảng CSDL.
-3. **Deep Modules & Crawler Engine:**
-   - **Strategy Pattern:** `BaseScraper` -> `CellphonesScraper`, `HoanghaScraper`.
-   - **CrawlerService:** Quản lý BackgroundTasks và cơ chế **Debounce 30 giây** bảo vệ hệ thống.
-   - **SKU Matching Engine:** So khớp 2 tầng chuẩn Clean Architecture, tra cứu $O(1)$ qua Inverted Index (`app/services/matching/`).
-4. **FastAPI & Swagger UI:**
-   - Tự động sinh tài liệu API trực quan tại `/docs`.
-   - Cấu hình sẵn CORS cho Frontend (React/Vite) kết nối.
-   - Endpoint: `POST /api/v1/crawl/trigger` kích hoạt cào tức thời (PBI-004).
+```text
+dynamic-pricing/
+├── backend/                      # Toàn bộ mã nguồn Python Backend
+│   ├── app/                      # FastAPI Clean Architecture (api, core, models, schemas, services)
+│   ├── tests/                    # Pytest Test Suite
+│   ├── alembic/                  # Database Migrations
+│   ├── scripts/                  # Pipeline CLI Scripts (run_full_pipeline.py, verify_setup.py...)
+│   ├── data/                     # Dữ liệu mẫu (dim_product.xlsx, sample JSONs)
+│   ├── alembic.ini               # Cấu hình Alembic
+│   ├── pytest.ini                # Cấu hình Pytest
+│   ├── requirements.txt          # Dependencies Python
+│   └── .env                      # Biến môi trường Backend
+│
+├── frontend/                     # Toàn bộ mã nguồn React + Vite + TypeScript Frontend
+│   ├── src/
+│   │   ├── api/                  # API Client Adapter (crawlerApi.ts, matchingApi.ts)
+│   │   ├── components/           # UI Components (MatchingReviewTable, CrawlControlPanel)
+│   │   ├── pages/                # DashboardPage
+│   │   ├── styles/               # CSS Design Tokens (No-Emoji, Color Coding)
+│   │   └── types/                # TypeScript Interfaces
+│   ├── package.json              # Dependencies Node.js
+│   ├── vite.config.ts            # Cấu hình Vite (Port 5173)
+│   └── .env                      # Biến môi trường Frontend (VITE_API_BASE_URL)
+│
+├── docker-compose.yml            # Chỉ chạy Database PostgreSQL cho môi trường dev local
+├── .gitignore                    # Quản lý bỏ qua artifacts Python & Node.js
+└── README.md                     # Hướng dẫn tổng thể
+```
 
 ---
 
-## 🛠️ Hướng dẫn cài đặt & Chạy dự án
+## Hướng dẫn Cài đặt & Vận hành
 
-### 1. Cài đặt thư viện
+### 1. Khởi chạy CSDL (Tùy chọn - Docker PostgreSQL)
+Nếu muốn sử dụng PostgreSQL thay vì SQLite mặc định:
 ```bash
+docker-compose up -d
+```
+
+### 2. Vận hành Backend (FastAPI)
+Mở một cửa sổ Terminal:
+```bash
+# 1. Di chuyển vào thư mục backend
+cd backend
+
+# 2. Cài đặt thư viện Python
 pip install -r requirements.txt
-```
 
-### 2. Cấu hình biến môi trường
-File `.env` mặc định sử dụng SQLite để chạy test ngay lập tức mà không cần cài đặt thêm:
-```env
-DATABASE_URL=sqlite:///./dynamic_pricing.db
-DEBOUNCE_SECONDS=30
-```
-*(Nếu muốn dùng PostgreSQL với Docker, xem file `docker-compose.yml` và đổi sang `postgresql+psycopg2://postgres:postgres@localhost:5432/dynamic_pricing`)*
-
-### 3. Đồng bộ CSDL (Migration)
-```bash
+# 3. Đồng bộ Database Migration
 alembic upgrade head
-```
 
-### 4. Khởi động Backend Server
-```bash
+# 4. Khởi động Backend Server
 uvicorn app.main:app --reload --port 8000
 ```
+- Swagger UI Tài liệu tương tác: **http://localhost:8000/docs**
+- Health Check Endpoint: **http://localhost:8000/health**
 
-Truy cập Swagger UI trên trình duyệt:  
-👉 **http://localhost:8000/docs**
+### 3. Vận hành Frontend (React + Vite)
+Mở cửa sổ Terminal thứ hai:
+```bash
+# 1. Di chuyển vào thư mục frontend
+cd frontend
+
+# 2. Cài đặt thư viện Node.js
+npm install
+
+# 3. Khởi động Development Server
+npm run dev
+```
+- Truy cập giao diện ứng dụng: **http://localhost:5173**
 
 ---
 
-## 🧪 Chạy Pipeline Đối Soát Đa Nguồn (Full Pipeline)
-```bash
-# Chạy đầy đủ cào CellphoneS + Hoàng Hà và đối soát với 329 SKU FPT Shop
-python run_full_pipeline.py
+## Chạy Pipeline Đối Soát Đa Nguồn (CLI Scripts)
+Tất cả các script đã được tập trung trong `backend/scripts/`:
 
-# Hoặc dùng cache JSON để đối soát nhanh không cần cào lại mạng
-python run_full_pipeline.py --skip-scrape
+```bash
+# Chạy đầy đủ cào CellphoneS + Hoàng Hà và so khớp với 329 SKU FPT Shop
+python backend/scripts/run_full_pipeline.py
+
+# Hoặc dùng cache JSON để so khớp nhanh (skip scrape mạng)
+python backend/scripts/run_full_pipeline.py --skip-scrape
+
+# Kiểm thử nhanh thiết lập API & Debounce
+python backend/scripts/verify_setup.py
 ```
 
 ---
 
-## 🧪 Kiểm thử (Test Suite)
+## Kiểm thử Tự Động (Test Suite)
+
 ```bash
+# Chạy Pytest từ thư mục backend
+cd backend
 pytest
 ```

@@ -1,6 +1,7 @@
 # Environment variables
 .env
 *.env
+.env.local
 
 # Databases
 *.db
@@ -8,8 +9,8 @@
 
 # Data
 data/
-data/scraped_raw_*.xlsx
-data/scraped_products*.json
+backend/data/scraped_raw_*.xlsx
+backend/data/scraped_products*.json
 
 # Skills
 .claude/skills/
@@ -18,12 +19,22 @@ data/scraped_products*.json
 
 # Python cache & environments
 __pycache__/
+**/__pycache__/
 *.py[cod]
 *$py.class
 .pytest_cache/
+**/.pytest_cache/
 .venv/
 venv/
 env/
+
+# Frontend Node.js
+node_modules/
+**/node_modules/
+dist/
+**/dist/
+dist-ssr/
+*.tsbuildinfo
 
 # GitNexus
 .gitnexus/
