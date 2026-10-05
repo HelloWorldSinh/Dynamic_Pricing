@@ -1,5 +1,5 @@
 import { request } from './client.js';
-import type { CrawlTriggerPayload, CrawlTriggerResponse } from '../types/index.js';
+import type { CrawlTriggerPayload, CrawlTriggerResponse, CrawlProgressResponse } from '../types/index.js';
 
 export const crawlerApi = {
   async trigger(payload: CrawlTriggerPayload): Promise<CrawlTriggerResponse> {
@@ -7,6 +7,10 @@ export const crawlerApi = {
       method: 'POST',
       body: JSON.stringify(payload),
     });
+  },
+
+  async getStatus(taskId: string): Promise<CrawlProgressResponse> {
+    return request<CrawlProgressResponse>(`/crawl/status/${taskId}`);
   },
 
   async checkHealth(): Promise<{ status: string }> {
