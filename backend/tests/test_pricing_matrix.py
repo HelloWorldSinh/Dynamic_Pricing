@@ -77,9 +77,9 @@ def test_composite_score_calculation():
     comp = matrix.calculate_composite(scores)
     assert comp == 0.38
 
-    # Static / Class method call
-    comp_static = ScenarioMatrix.calculate_composite(scores)
-    assert comp_static == 0.38
+    # Keyword arguments call
+    comp_kw = matrix.calculate_composite(scores=scores)
+    assert comp_kw == 0.38
 
     # Custom weights
     custom_w = {"D": 0.50, "I": 0.30, "C": 0.20}
@@ -208,3 +208,28 @@ def test_no_emojis_or_icons_in_results():
             assert sym not in res.scenario_name
             assert sym not in res.action_type
             assert sym not in res.rationale
+
+
+def test_keyword_arguments_invocation():
+    matrix = ScenarioMatrix()
+    scores = SignalScores(1.5, -1.0, 0.5)
+    comp = matrix.calculate_composite(scores=scores, weights={"D": 0.5, "I": 0.3, "C": 0.2})
+    assert comp == 0.55
+
+    match = matrix.evaluate(scores=SignalScores(2.0, 2.0, 2.0))
+    assert match.action_type == "Strong raise"
+
+
+def test_exact_scenario_copy_isolation():
+    matrix = ScenarioMatrix()
+    match1 = matrix.evaluate(SignalScores(2.0, 2.0, 2.0))
+    assert match1.action_type == "Strong raise"
+
+    # Mutate the returned object
+    match1.action_type = "Hacked"
+
+    # Fetch again, verify internal state of EXACT_SCENARIOS is unaffected
+    match2 = matrix.evaluate(SignalScores(2.0, 2.0, 2.0))
+    assert match2.action_type == "Strong raise"
+    assert match1 is not match2
+

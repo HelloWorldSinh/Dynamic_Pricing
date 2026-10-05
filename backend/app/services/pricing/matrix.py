@@ -4,7 +4,8 @@ Maps market signal scores (D, I, C) to 9 business scenarios,
 or falls back to 7 Composite Score action bands.
 """
 
-from typing import Dict, Optional, Tuple, Union
+from dataclasses import replace
+from typing import Dict, Optional, Tuple
 from app.services.pricing.schemas import SignalScores, ScenarioMatch
 
 
@@ -87,47 +88,22 @@ class ScenarioMatrix:
             default_weights.copy() if default_weights else self.DEFAULT_WEIGHTS.copy()
         )
 
-    @classmethod
-    def _compute_composite(
-        cls,
+    def calculate_composite(
+        self,
         scores: SignalScores,
         weights: Optional[Dict[str, float]] = None,
     ) -> float:
-        """Tính điểm tổng hợp làm tròn 2 chữ số thập phân."""
-        w = weights or cls.DEFAULT_WEIGHTS
-        w_d = w.get("D", 0.40)
-        w_i = w.get("I", 0.35)
-        w_c = w.get("C", 0.25)
-        raw_score = (scores.demand_score * w_d) + (scores.inventory_score * w_i) + (scores.competitor_score * w_c)
-        return round(raw_score, 2)
-
-    def calculate_composite(
-        self_or_scores: Union["ScenarioMatrix", SignalScores],
-        scores_or_weights: Optional[Union[SignalScores, Dict[str, float]]] = None,
-        weights: Optional[Dict[str, float]] = None,
-    ) -> float:
-        """Tính điểm tổng hợp Composite Score (hỗ trợ cả instance call và static/class call)."""
-        if isinstance(self_or_scores, SignalScores):
-            scores = self_or_scores
-            eff_weights = weights or (scores_or_weights if isinstance(scores_or_weights, dict) else None)
-        else:
-            scores = scores_or_weights  # type: ignore
-            eff_weights = weights or getattr(self_or_scores, "default_weights", ScenarioMatrix.DEFAULT_WEIGHTS)
-
-        return ScenarioMatrix._compute_composite(scores, eff_weights)
+        """Tính điểm tổng hợp Composite Score thông qua SignalScores."""
+        w = weights or self.default_weights
+        return scores.composite(w)
 
     def evaluate(
-        self_or_scores: Union["ScenarioMatrix", SignalScores],
-        scores_or_weights: Optional[Union[SignalScores, Dict[str, float]]] = None,
+        self,
+        scores: SignalScores,
         weights: Optional[Dict[str, float]] = None,
     ) -> ScenarioMatch:
         """Đánh giá tín hiệu thị trường: ưu tiên 9 kịch bản chuẩn, fallback theo 7 dải Composite Score."""
-        if isinstance(self_or_scores, SignalScores):
-            scores = self_or_scores
-            eff_weights = weights or (scores_or_weights if isinstance(scores_or_weights, dict) else None)
-        else:
-            scores = scores_or_weights  # type: ignore
-            eff_weights = weights or getattr(self_or_scores, "default_weights", ScenarioMatrix.DEFAULT_WEIGHTS)
+        eff_weights = weights or self.default_weights
 
         # 1. Kiểm tra 9 kịch bản đặc thù (+ clearance)
         key = (
@@ -135,11 +111,11 @@ class ScenarioMatrix:
             round(float(scores.inventory_score), 2),
             round(float(scores.competitor_score), 2),
         )
-        if key in ScenarioMatrix.EXACT_SCENARIOS:
-            return ScenarioMatrix.EXACT_SCENARIOS[key]
+        if key in self.EXACT_SCENARIOS:
+            return replace(self.EXACT_SCENARIOS[key])
 
         # 2. Fallback theo 7 dải Composite Score
-        comp = ScenarioMatrix._compute_composite(scores, eff_weights)
+        comp = self.calculate_composite(scores, weights=eff_weights)
 
         if comp >= 1.50:
             return ScenarioMatch(
