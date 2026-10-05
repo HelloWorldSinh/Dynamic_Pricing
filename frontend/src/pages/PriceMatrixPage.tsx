@@ -1,10 +1,9 @@
 import React, { useState, useEffect, useMemo } from 'react';
-import { MetricKpiCards } from '../components/matrix/MetricKpiCards';
 import { DebounceTriggerBar } from '../components/matrix/DebounceTriggerBar';
 import { MatrixFilterToolbar } from '../components/matrix/MatrixFilterToolbar';
 import { PriceMatrixTable } from '../components/matrix/PriceMatrixTable';
 import { PriceComparisonItem } from '../types/pricing';
-import { getPriceMatrixApi, getRecommendationsApi } from '../api/pricingApi';
+import { getPriceMatrixApi } from '../api/pricingApi';
 
 interface PriceMatrixPageProps {
   categoryFilter: string;
@@ -18,7 +17,6 @@ export const PriceMatrixPage: React.FC<PriceMatrixPageProps> = ({
   onOpenAiExplain,
 }) => {
   const [items, setItems] = useState<PriceComparisonItem[]>([]);
-  const [pendingCount, setPendingCount] = useState<number>(0);
   const [loading, setLoading] = useState(true);
 
   // Filters
@@ -30,12 +28,8 @@ export const PriceMatrixPage: React.FC<PriceMatrixPageProps> = ({
   const fetchData = async () => {
     setLoading(true);
     try {
-      const [matrixData, recData] = await Promise.all([
-        getPriceMatrixApi(categoryFilter),
-        getRecommendationsApi(),
-      ]);
+      const matrixData = await getPriceMatrixApi(categoryFilter);
       setItems(matrixData);
-      setPendingCount(recData.filter((r) => r.status === 'PENDING').length);
     } catch (error) {
       console.error('Lỗi nạp dữ liệu ma trận giá:', error);
     } finally {
@@ -96,9 +90,6 @@ export const PriceMatrixPage: React.FC<PriceMatrixPageProps> = ({
 
   return (
     <div>
-      {/* 4 KPI Summary Cards */}
-      <MetricKpiCards items={items} pendingApprovalsCount={pendingCount} />
-
       {/* On-Demand Crawl with 30s Debounce */}
       <DebounceTriggerBar category={categoryFilter} onCrawlCompleted={fetchData} />
 
