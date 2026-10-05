@@ -11,7 +11,13 @@ import pandas as pd
 if hasattr(sys.stdout, 'reconfigure'):
     sys.stdout.reconfigure(encoding='utf-8')
 
-sys.path.insert(0, os.path.abspath("."))
+from pathlib import Path
+
+# Thêm backend root vào sys.path
+BACKEND_DIR = Path(__file__).resolve().parent.parent
+if str(BACKEND_DIR) not in sys.path:
+    sys.path.insert(0, str(BACKEND_DIR))
+DATA_DIR = BACKEND_DIR / "data"
 
 from app.services.scrapers.factory import ScraperFactory  # noqa: E402
 from app.services.sku_matcher import SkuMatcher  # noqa: E402
@@ -48,8 +54,8 @@ def main(limit: Optional[int] = None, filter_by_dim: bool = True):
 
     # 3. Khởi tạo SKU Matcher để đối soát với danh mục chuẩn FPT
     matcher = SkuMatcher(
-        dim_product_path="data/dim_product.xlsx",
-        demand_events_path="data/demand_events_20260723.xlsx"
+        dim_product_path=str(DATA_DIR / "dim_product.xlsx"),
+        demand_events_path=str(DATA_DIR / "demand_events_20260723.xlsx")
     )
 
     # 4. Chuyển đổi và lọc dữ liệu (theo mindset chỉ lấy SP trong dim_product FPT)
@@ -82,14 +88,14 @@ def main(limit: Optional[int] = None, filter_by_dim: bool = True):
     logger.info(f"Sau khi lọc: Giữ lại {len(scraped_dict_items)} SP thuộc FPT (Đã loại bỏ {excluded_count} SP ngoài luồng).")
 
     # 5. Lưu cache JSON sạch
-    os.makedirs("data", exist_ok=True)
-    json_path = "data/scraped_products_hoangha.json"
+    os.makedirs(DATA_DIR, exist_ok=True)
+    json_path = DATA_DIR / "scraped_products_hoangha.json"
     with open(json_path, "w", encoding="utf-8") as f:
         json.dump(scraped_dict_items, f, ensure_ascii=False, indent=2)
     logger.info(f"Đã lưu cache dữ liệu cào tại: {json_path}")
 
     # 6. Lưu file raw Excel chuẩn
-    raw_excel_path = "data/scraped_raw_hoangha.xlsx"
+    raw_excel_path = DATA_DIR / "scraped_raw_hoangha.xlsx"
     try:
         pd.DataFrame(scraped_dict_items).to_excel(raw_excel_path, index=False)
         logger.info(f"Đã lưu bảng raw vào: {raw_excel_path}")
@@ -97,7 +103,7 @@ def main(limit: Optional[int] = None, filter_by_dim: bool = True):
         logger.warning(f"Không thể lưu file {raw_excel_path}: {e}")
 
     # 7. Xuất file kết quả 2 sheet hoàn chỉnh (Scraped_All_Data & SKU_Mapping 329 Master SKU FPT)
-    output_path = "data/crawl_and_sku_mapping_hoangha.xlsx"
+    output_path = str(DATA_DIR / "crawl_and_sku_mapping_hoangha.xlsx")
     final_file = matcher.process_and_export_excel(
         scraped_dict_items,
         output_excel_path=output_path,

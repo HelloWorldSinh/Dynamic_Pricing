@@ -10,8 +10,13 @@ import pandas as pd
 if hasattr(sys.stdout, 'reconfigure'):
     sys.stdout.reconfigure(encoding='utf-8')
 
-# Thêm đường dẫn project vào sys.path
-sys.path.insert(0, os.path.abspath("."))
+from pathlib import Path
+
+# Thêm đường dẫn backend vào sys.path
+BACKEND_DIR = Path(__file__).resolve().parent.parent
+if str(BACKEND_DIR) not in sys.path:
+    sys.path.insert(0, str(BACKEND_DIR))
+DATA_DIR = BACKEND_DIR / "data"
 
 from app.services.scrapers.cellphones import CellphonesScraper
 from app.schemas.crawl import ScrapedProductItem
@@ -72,19 +77,19 @@ def run_collection(limit: Optional[int] = None):
     df = pd.DataFrame(rows)
 
     # Lưu bản JSON
-    os.makedirs("data", exist_ok=True)
-    json_path = os.path.join("data", "scraped_products.json")
+    os.makedirs(DATA_DIR, exist_ok=True)
+    json_path = DATA_DIR / "scraped_products.json"
     with open(json_path, "w", encoding="utf-8") as f:
         json.dump(rows, f, ensure_ascii=False, indent=2)
     logger.info(f"Đã lưu bản cache JSON vào: {json_path}")
 
     # Lưu file Excel với cơ chế fallback nếu file đang mở
-    output_path = os.path.join("data", "scraped_raw_step1.xlsx")
+    output_path = DATA_DIR / "scraped_raw_step1.xlsx"
     try:
         df.to_excel(output_path, index=False)
         logger.info(f"Đã lưu {len(df)} sản phẩm vào file Excel: {output_path}")
     except PermissionError:
-        output_path = os.path.join("data", f"scraped_raw_{datetime.now().strftime('%Y%m%d_%H%M%S')}.xlsx")
+        output_path = DATA_DIR / f"scraped_raw_{datetime.now().strftime('%Y%m%d_%H%M%S')}.xlsx"
         df.to_excel(output_path, index=False)
         logger.info(f"File cũ đang mở trong ứng dụng khác, đã lưu sang: {output_path}")
 

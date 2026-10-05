@@ -4,6 +4,7 @@ import json
 import logging
 import argparse
 from datetime import datetime
+from pathlib import Path
 from typing import Optional, List, Dict, Any
 import pandas as pd
 
@@ -11,8 +12,11 @@ import pandas as pd
 if hasattr(sys.stdout, 'reconfigure'):
     sys.stdout.reconfigure(encoding='utf-8')
 
-# Thêm project root vào sys.path
-sys.path.insert(0, os.path.abspath("."))
+# Thêm backend root vào sys.path
+BACKEND_DIR = Path(__file__).resolve().parent.parent
+if str(BACKEND_DIR) not in sys.path:
+    sys.path.insert(0, str(BACKEND_DIR))
+DATA_DIR = BACKEND_DIR / "data"
 
 from app.services.scrapers.factory import ScraperFactory
 from app.services.sku_matcher import SkuMatcher
@@ -57,8 +61,8 @@ def scrape_cellphones(limit: Optional[int] = None) -> List[Dict[str, Any]]:
     dict_items = convert_scraped_items_to_dict(all_items, "CellphoneS")
 
     # Lưu cache JSON
-    os.makedirs("data", exist_ok=True)
-    cache_path = "data/scraped_products_cellphones.json"
+    os.makedirs(DATA_DIR, exist_ok=True)
+    cache_path = DATA_DIR / "scraped_products_cellphones.json"
     with open(cache_path, "w", encoding="utf-8") as f:
         json.dump(dict_items, f, ensure_ascii=False, indent=2)
     logger.info(f"[CellphoneS] Đã lưu cache tại: {cache_path}")
@@ -85,8 +89,8 @@ def scrape_hoangha(limit: Optional[int] = None) -> List[Dict[str, Any]]:
     dict_items = convert_scraped_items_to_dict(unique_items, "HOANGHA")
 
     # Lưu cache JSON
-    os.makedirs("data", exist_ok=True)
-    cache_path = "data/scraped_products_hoangha.json"
+    os.makedirs(DATA_DIR, exist_ok=True)
+    cache_path = DATA_DIR / "scraped_products_hoangha.json"
     with open(cache_path, "w", encoding="utf-8") as f:
         json.dump(dict_items, f, ensure_ascii=False, indent=2)
     logger.info(f"[Hoàng Hà] Đã lưu cache tại: {cache_path}")
@@ -151,7 +155,7 @@ def main():
     parser.add_argument(
         "--output",
         type=str,
-        default="data/crawl_and_sku_mapping_output.xlsx",
+        default=str(DATA_DIR / "crawl_and_sku_mapping_output.xlsx"),
         help="Đường dẫn file Excel xuất ra (mặc định: data/crawl_and_sku_mapping_output.xlsx)"
     )
     parser.add_argument(
@@ -162,13 +166,13 @@ def main():
     parser.add_argument(
         "--dim-product",
         type=str,
-        default="data/dim_product.xlsx",
+        default=str(DATA_DIR / "dim_product.xlsx"),
         help="Đường dẫn file danh mục SKU chuẩn của FPT Shop"
     )
     parser.add_argument(
         "--demand-events",
         type=str,
-        default="data/demand_events_20260723.xlsx",
+        default=str(DATA_DIR / "demand_events_20260723.xlsx"),
         help="Đường dẫn file giá tham chiếu của FPT Shop"
     )
 
@@ -185,8 +189,8 @@ def main():
 
     if args.skip_scrape:
         logger.info("[MODE: SKIP-SCRAPE] Tải dữ liệu từ cache JSON...")
-        cps_cache = "data/scraped_products_cellphones.json"
-        hh_cache = "data/scraped_products_hoangha.json"
+        cps_cache = DATA_DIR / "scraped_products_cellphones.json"
+        hh_cache = DATA_DIR / "scraped_products_hoangha.json"
 
         if os.path.exists(cps_cache):
             with open(cps_cache, "r", encoding="utf-8") as f:

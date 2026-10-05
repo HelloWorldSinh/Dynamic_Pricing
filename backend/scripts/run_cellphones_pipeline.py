@@ -9,7 +9,13 @@ import pandas as pd
 if hasattr(sys.stdout, 'reconfigure'):
     sys.stdout.reconfigure(encoding='utf-8')
 
-sys.path.insert(0, os.path.abspath("."))
+from pathlib import Path
+
+# Thêm backend root vào sys.path
+BACKEND_DIR = Path(__file__).resolve().parent.parent
+if str(BACKEND_DIR) not in sys.path:
+    sys.path.insert(0, str(BACKEND_DIR))
+DATA_DIR = BACKEND_DIR / "data"
 
 from app.services.scrapers.factory import ScraperFactory  # noqa: E402
 from app.services.sku_matcher import SkuMatcher  # noqa: E402
@@ -55,25 +61,25 @@ def main(limit: int = None):
         })
 
     # Lưu cache JSON
-    os.makedirs("data", exist_ok=True)
-    json_path = "data/scraped_products_cellphones.json"
+    os.makedirs(DATA_DIR, exist_ok=True)
+    json_path = DATA_DIR / "scraped_products_cellphones.json"
     with open(json_path, "w", encoding="utf-8") as f:
         json.dump(scraped_dict_items, f, ensure_ascii=False, indent=2)
     logger.info(f"Đã lưu cache dữ liệu cào tại: {json_path}")
 
     # Đồng bộ lưu vào file cache chung nếu cần cho các script khác
-    common_json_path = "data/scraped_products.json"
+    common_json_path = DATA_DIR / "scraped_products.json"
     with open(common_json_path, "w", encoding="utf-8") as f:
         json.dump(scraped_dict_items, f, ensure_ascii=False, indent=2)
 
     # 4. Khởi chạy SKU Matcher Engine
     logger.info("Đang khởi động thuật toán so khớp SKU Matcher...")
     matcher = SkuMatcher(
-        dim_product_path="data/dim_product.xlsx",
-        demand_events_path="data/demand_events_20260723.xlsx"
+        dim_product_path=str(DATA_DIR / "dim_product.xlsx"),
+        demand_events_path=str(DATA_DIR / "demand_events_20260723.xlsx")
     )
 
-    output_path = "data/crawl_and_sku_mapping_cellphones.xlsx"
+    output_path = str(DATA_DIR / "crawl_and_sku_mapping_cellphones.xlsx")
     final_file = matcher.process_and_export_excel(scraped_dict_items, output_excel_path=output_path)
     logger.info(f"Xuất file Excel thành công tại: {final_file}")
 

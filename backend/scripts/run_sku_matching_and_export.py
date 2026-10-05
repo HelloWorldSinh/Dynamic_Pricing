@@ -8,8 +8,13 @@ import pandas as pd
 if hasattr(sys.stdout, 'reconfigure'):
     sys.stdout.reconfigure(encoding='utf-8')
 
-# Thêm đường dẫn project vào sys.path
-sys.path.insert(0, os.path.abspath("."))
+from pathlib import Path
+
+# Thêm đường dẫn backend vào sys.path
+BACKEND_DIR = Path(__file__).resolve().parent.parent
+if str(BACKEND_DIR) not in sys.path:
+    sys.path.insert(0, str(BACKEND_DIR))
+DATA_DIR = BACKEND_DIR / "data"
 
 from app.services.sku_matcher import SkuMatcher  # noqa: E402
 
@@ -18,7 +23,7 @@ logger = logging.getLogger(__name__)
 
 
 def main():
-    json_path = os.path.join("data", "scraped_products.json")
+    json_path = DATA_DIR / "scraped_products.json"
     if not os.path.exists(json_path):
         logger.error(f"Không tìm thấy file dữ liệu cào: {json_path}")
         return
@@ -29,11 +34,11 @@ def main():
     logger.info(f"Đã đọc {len(scraped_items)} sản phẩm từ {json_path}")
 
     matcher = SkuMatcher(
-        dim_product_path="data/dim_product.xlsx",
-        demand_events_path="data/demand_events_20260723.xlsx"
+        dim_product_path=str(DATA_DIR / "dim_product.xlsx"),
+        demand_events_path=str(DATA_DIR / "demand_events_20260723.xlsx")
     )
 
-    target_path = os.path.join("data", "crawl_and_sku_mapping_output.xlsx")
+    target_path = str(DATA_DIR / "crawl_and_sku_mapping_output.xlsx")
     actual_path = matcher.process_and_export_excel(scraped_items, output_excel_path=target_path)
 
     # Đọc lại và in thống kê
