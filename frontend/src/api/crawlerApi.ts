@@ -26,6 +26,26 @@ export async function triggerCrawlApi(source: CrawlSource, category: string): Pr
   }
 }
 
+export async function triggerDualCrawlApi(category: string): Promise<CrawlJobResponse[]> {
+  const cat = category.toLowerCase() === 'all' ? 'laptop' : category.toLowerCase();
+  return Promise.all([
+    triggerCrawlApi('CELLPHONES', cat),
+    triggerCrawlApi('HOANGHA', cat),
+  ]);
+}
+
+export async function getLatestCrawlTimeApi(): Promise<string | null> {
+  try {
+    const res = await apiClient.get<CrawlResult[]>('/crawl/results', { params: { limit: 1 } });
+    if (res.data && res.data.length > 0 && res.data[0].crawled_at) {
+      return res.data[0].crawled_at;
+    }
+  } catch (error) {
+    console.warn('[Crawler API] Could not fetch latest crawl time:', error);
+  }
+  return mockCrawlResults[0]?.crawled_at || new Date().toISOString();
+}
+
 export async function getCrawlResultsApi(source?: CrawlSource): Promise<CrawlResult[]> {
   try {
     const params = source ? { source } : {};

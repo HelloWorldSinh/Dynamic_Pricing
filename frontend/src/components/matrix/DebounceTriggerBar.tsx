@@ -1,7 +1,6 @@
 import React, { useState, useEffect } from 'react';
-import { RefreshCw, Play, CheckCircle, AlertCircle } from 'lucide-react';
-import { triggerCrawlApi } from '../../api/crawlerApi';
-import { CrawlSource } from '../../types/crawl';
+import { RefreshCw, Play, CheckCircle, AlertCircle, Clock } from 'lucide-react';
+import { triggerDualCrawlApi, getLatestCrawlTimeApi } from '../../api/crawlerApi';
 
 interface DebounceTriggerBarProps {
   category: string;
@@ -12,10 +11,25 @@ export const DebounceTriggerBar: React.FC<DebounceTriggerBarProps> = ({
   category,
   onCrawlCompleted,
 }) => {
-  const [selectedSource, setSelectedSource] = useState<CrawlSource>('CELLPHONES');
   const [isCrawling, setIsCrawling] = useState(false);
   const [countdown, setCountdown] = useState<number>(0);
+  const [lastUpdated, setLastUpdated] = useState<string | null>(null);
   const [feedback, setFeedback] = useState<{ type: 'success' | 'error'; message: string } | null>(null);
+
+  // Fetch initial latest crawl timestamp from server
+  useEffect(() => {
+    let isMounted = true;
+    const loadTime = async () => {
+      const time = await getLatestCrawlTimeApi();
+      if (isMounted && time) {
+        setLastUpdated(time);
+      }
+    };
+    loadTime();
+    return () => {
+      isMounted = false;
+    };
+  }, []);
 
   // Handle Debounce countdown timer
   useEffect(() => {
@@ -32,6 +46,17 @@ export const DebounceTriggerBar: React.FC<DebounceTriggerBarProps> = ({
     return () => clearInterval(interval);
   }, [countdown]);
 
+  const formatTimestamp = (isoString: string): string => {
+    try {
+      const d = new Date(isoString);
+      if (isNaN(d.getTime())) return isoString;
+      const pad = (n: number) => n.toString().padStart(2, '0');
+      return `${pad(d.getHours())}:${pad(d.getMinutes())} ${pad(d.getDate())}/${pad(d.getMonth() + 1)}/${d.getFullYear()}`;
+    } catch {
+      return isoString;
+    }
+  };
+
   const handleTrigger = async () => {
     if (countdown > 0 || isCrawling) return;
 
@@ -39,10 +64,12 @@ export const DebounceTriggerBar: React.FC<DebounceTriggerBarProps> = ({
     setFeedback(null);
 
     try {
-      const res = await triggerCrawlApi(selectedSource, category === 'ALL' ? 'laptop' : category);
+      await triggerDualCrawlApi(category);
+      const nowIso = new Date().toISOString();
+      setLastUpdated(nowIso);
       setFeedback({
         type: 'success',
-        message: `${res.message || 'Đã kích hoạt cào dữ liệu thành công'}. Debounce 30s đang kích hoạt.`,
+        message: 'Đã kích hoạt cào dữ liệu song song CellphoneS & Hoàng Hà Mobile thành công.',
       });
       setCountdown(30); // 30s debounce protection
       onCrawlCompleted();
@@ -67,34 +94,18 @@ export const DebounceTriggerBar: React.FC<DebounceTriggerBarProps> = ({
   return (
     <div className="p-4 rounded-xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 mb-6 shadow-sm">
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-        {/* Source selector & Title */}
-        <div className="flex items-center gap-3">
+        {/* Last updated timestamp */}
+        <div className="flex items-center gap-2.5">
           <span className="p-2 rounded-lg bg-orange-500/10 text-orange-600 dark:text-orange-400">
-            <RefreshCw className={`w-4 h-4 ${isCrawling ? 'animate-spin' : ''}`} />
+            <Clock className="w-4 h-4" />
           </span>
-          <div>
-            <div className="text-xs font-bold text-slate-900 dark:text-white flex items-center gap-2">
-              <span>On-Demand Crawl</span>
-              <span className="text-[10px] font-normal px-2 py-0.5 rounded bg-slate-100 dark:bg-slate-800 text-slate-500 font-mono">
-                Debounce 30s
-              </span>
-            </div>
-          </div>
+          <span className="text-sm font-semibold text-slate-800 dark:text-slate-200">
+            Cập nhật lần cuối: {lastUpdated ? formatTimestamp(lastUpdated) : 'Đang tải...'}
+          </span>
         </div>
 
         {/* Trigger Controls */}
         <div className="flex items-center gap-3">
-          <select
-            value={selectedSource}
-            onChange={(e) => setSelectedSource(e.target.value as CrawlSource)}
-            disabled={countdown > 0 || isCrawling}
-            className="text-xs bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg px-3 py-2 text-slate-800 dark:text-slate-200 focus:outline-none focus:ring-1 focus:ring-orange-500 disabled:opacity-50"
-          >
-            <option value="CELLPHONES">Nguồn: CellphoneS</option>
-            <option value="HOANGHA">Nguồn: Hoàng Hà Mobile</option>
-            <option value="FPT">Nguồn: FPT Shop (Baseline)</option>
-          </select>
-
           <button
             onClick={handleTrigger}
             disabled={countdown > 0 || isCrawling}
@@ -118,7 +129,7 @@ export const DebounceTriggerBar: React.FC<DebounceTriggerBarProps> = ({
             ) : (
               <>
                 <Play className="w-3.5 h-3.5 fill-current" />
-                <span>Trigger Crawl</span>
+                <span>Cào dữ liệu ngay</span>
               </>
             )}
           </button>
@@ -145,3 +156,4 @@ export const DebounceTriggerBar: React.FC<DebounceTriggerBarProps> = ({
     </div>
   );
 };
+
