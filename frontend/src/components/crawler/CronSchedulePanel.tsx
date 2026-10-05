@@ -13,22 +13,19 @@ export const CronSchedulePanel: React.FC = () => {
           </span>
           <div>
             <h3 className="text-xs font-bold text-slate-900 dark:text-white flex items-center gap-2">
-              Lịch Cào Giá Tự Động (Scheduled Scraping)
-              <span className="text-[10px] font-normal px-2 py-0.5 rounded bg-emerald-50 dark:bg-emerald-950/40 text-emerald-600 dark:text-emerald-400 font-semibold">
-                PBI-005 Active
+              <span>Scheduled Scraping</span>
+              <span className="text-[10px] font-normal px-2 py-0.5 rounded bg-emerald-50 dark:bg-emerald-950/40 text-emerald-600 dark:text-emerald-400 font-semibold font-mono">
+                Active
               </span>
             </h3>
-            <p className="text-[11px] text-slate-500 mt-0.5">
-              Tự động kích hoạt cào 2 lần mỗi ngày vào lúc <strong>08:00</strong> và <strong>18:00</strong>. Tự động thử lại sau 10 phút nếu thất bại.
-            </p>
           </div>
         </div>
 
         <div className="flex items-center gap-4">
           <div className="flex items-center gap-2 text-xs font-medium">
-            <span className="text-slate-400">Trạng thái:</span>
+            <span className="text-slate-400">Status:</span>
             <span className={isEnabled ? 'text-emerald-600 dark:text-emerald-400 font-bold' : 'text-slate-500'}>
-              {isEnabled ? 'Đang chạy (Enabled)' : 'Tạm dừng (Paused)'}
+              {isEnabled ? 'Running' : 'Paused'}
             </span>
           </div>
 
@@ -40,7 +37,7 @@ export const CronSchedulePanel: React.FC = () => {
                 : 'bg-orange-600 hover:bg-orange-500 text-white'
             }`}
           >
-            {isEnabled ? 'Tạm dừng lịch' : 'Bật lịch cào'}
+            {isEnabled ? 'Pause Schedule' : 'Enable Schedule'}
           </button>
         </div>
       </div>
@@ -48,19 +45,19 @@ export const CronSchedulePanel: React.FC = () => {
       <div className="mt-4 pt-3 border-t border-slate-100 dark:border-slate-800 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 text-xs">
         <div className="flex items-center gap-2 text-slate-600 dark:text-slate-400">
           <Check className="w-4 h-4 text-emerald-500" />
-          <span>Khung giờ 1: <strong>08:00 Sáng</strong> (Đầu ngày)</span>
+          <span>Slot 1: <strong>08:00 AM</strong></span>
         </div>
         <div className="flex items-center gap-2 text-slate-600 dark:text-slate-400">
           <Check className="w-4 h-4 text-emerald-500" />
-          <span>Khung giờ 2: <strong>18:00 Chiều</strong> (Cuối ngày)</span>
+          <span>Slot 2: <strong>06:00 PM</strong></span>
         </div>
         <div className="flex items-center gap-2 text-slate-600 dark:text-slate-400">
           <ShieldAlert className="w-4 h-4 text-amber-500" />
-          <span>Auto Retry: <strong>1 lần sau 10 phút</strong></span>
+          <span>Auto Retry: <strong>10 minutes</strong></span>
         </div>
         <div className="flex items-center gap-2 text-slate-600 dark:text-slate-400">
           <span className="w-2 h-2 rounded-full bg-emerald-500" />
-          <span>Lần cào kế tiếp: <strong>Hôm nay 18:00</strong></span>
+          <span>Next Run: <strong>Today 06:00 PM</strong></span>
         </div>
       </div>
     </div>

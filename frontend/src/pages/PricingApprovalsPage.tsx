@@ -109,13 +109,10 @@ export const PricingApprovalsPage: React.FC<PricingApprovalsPageProps> = ({
   return (
     <div>
       {/* Intro Header */}
-      <div className="mb-6">
-        <h2 className="text-sm font-bold text-slate-900 dark:text-white">
-          Trung Tâm Đề Xuất &amp; Phê Duyệt Giá
+      <div className="mb-4">
+        <h2 className="text-base font-bold text-slate-900 dark:text-white">
+          Pricing Approvals
         </h2>
-        <p className="text-xs text-slate-500 mt-0.5">
-          Quy tắc gợi ý giá theo tồn kho DOH (Ma trận 9 kịch bản) kết hợp bảo vệ giá sàn tuyệt đối.
-        </p>
       </div>
 
       {/* Tabs */}

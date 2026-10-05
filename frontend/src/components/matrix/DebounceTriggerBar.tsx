@@ -74,13 +74,10 @@ export const DebounceTriggerBar: React.FC<DebounceTriggerBarProps> = ({
           </span>
           <div>
             <div className="text-xs font-bold text-slate-900 dark:text-white flex items-center gap-2">
-              Kích hoạt cào giá tức thời (On-Demand Crawl)
-              <span className="text-[10px] font-normal px-2 py-0.5 rounded bg-slate-100 dark:bg-slate-800 text-slate-500">
-                PBI-004 Debounce 30s
+              <span>On-Demand Crawl</span>
+              <span className="text-[10px] font-normal px-2 py-0.5 rounded bg-slate-100 dark:bg-slate-800 text-slate-500 font-mono">
+                Debounce 30s
               </span>
-            </div>
-            <div className="text-[11px] text-slate-500">
-              Cập nhật giá đối thủ theo thời gian thực để so khớp lại với FPT Shop
             </div>
           </div>
         </div>

@@ -28,28 +28,24 @@ export const Sidebar: React.FC<SidebarProps> = ({
     {
       id: 'matrix' as NavTab,
       label: 'Price Matrix',
-      description: 'So sánh giá 3 bên',
       icon: BarChart3,
       badge: 'Live',
     },
     {
       id: 'approvals' as NavTab,
       label: 'Pricing Approvals',
-      description: 'Duyệt giá theo DOH',
       icon: CheckCheck,
-      badge: '5 chờ duyệt',
+      badge: '5',
     },
     {
       id: 'mapping' as NavTab,
       label: 'SKU Mapping Queue',
-      description: 'Đối soát 60-79%',
       icon: GitCompare,
       badge: '3',
     },
     {
       id: 'crawler' as NavTab,
       label: 'Crawl Operations',
-      description: 'Giám sát 3 nguồn',
       icon: RefreshCw,
     },
   ];
@@ -111,12 +107,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
                 />
                 {!isCollapsed && (
                   <div className="flex-1 flex items-center justify-between min-w-0">
-                    <div className="truncate">
-                      <div className="text-xs font-medium leading-none">{item.label}</div>
-                      <div className="text-[10px] text-slate-400 dark:text-slate-500 mt-1 truncate">
-                        {item.description}
-                      </div>
-                    </div>
+                    <span className="text-xs font-semibold leading-none truncate">{item.label}</span>
                     {item.badge && (
                       <span
                         className={`text-[10px] px-2 py-0.5 rounded-full font-semibold ml-2 flex-shrink-0 ${

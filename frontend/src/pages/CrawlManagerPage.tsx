@@ -32,13 +32,10 @@ export const CrawlManagerPage: React.FC = () => {
   return (
     <div>
       {/* Intro Header */}
-      <div className="mb-6">
-        <h2 className="text-sm font-bold text-slate-900 dark:text-white">
-          Trung Tâm Vận Hành Thu Thập Dữ Liệu (Crawl Operations)
+      <div className="mb-4">
+        <h2 className="text-base font-bold text-slate-900 dark:text-white">
+          Crawl Operations
         </h2>
-        <p className="text-xs text-slate-500 mt-0.5">
-          Giám sát trạng thái 3 nguồn dữ liệu thị trường, kiểm soát lịch cào tự động và đối soát dữ liệu thô.
-        </p>
       </div>
 
       {/* 3 Source Health Cards */}

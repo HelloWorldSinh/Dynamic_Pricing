@@ -41,22 +41,19 @@ export const SkuMatchingPage: React.FC = () => {
   return (
     <div>
       {/* Intro Header */}
-      <div className="mb-6 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+      <div className="mb-4 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
-          <h2 className="text-sm font-bold text-slate-900 dark:text-white flex items-center gap-2">
-            Hàng Đợi Đối Soát SKU Thủ Công (Manual Mapping Queue)
-            <span className="text-[11px] px-2 py-0.5 rounded-full bg-amber-100 dark:bg-amber-950/60 text-amber-700 dark:text-amber-400 font-semibold">
-              PBI-008 Confidence 60% – 79%
+          <h2 className="text-base font-bold text-slate-900 dark:text-white flex items-center gap-2">
+            SKU Mapping Queue
+            <span className="text-[11px] px-2 py-0.5 rounded-full bg-amber-100 dark:bg-amber-950/60 text-amber-700 dark:text-amber-400 font-semibold font-mono">
+              Confidence 60% – 79%
             </span>
           </h2>
-          <p className="text-xs text-slate-500 mt-1">
-            Rà soát các cặp sản phẩm nghi ngờ để đảm bảo dữ liệu so sánh chuẩn xác 100%. Xác nhận ghép cặp sẽ tự động lưu lại cho các lần cào sau.
-          </p>
         </div>
 
         <div className="text-xs text-slate-500 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 px-3 py-2 rounded-xl flex items-center gap-2">
           <GitCompare className="w-4 h-4 text-orange-500" />
-          <span>Còn <strong className="font-bold text-slate-900 dark:text-white">{queue.length}</strong> cặp cần duyệt</span>
+          <span><strong className="font-bold text-slate-900 dark:text-white">{queue.length}</strong> items to review</span>
         </div>
       </div>
 

@@ -34,14 +34,8 @@ export const RawDataInspector: React.FC<RawDataInspectorProps> = ({ items }) => 
       <div className="p-4 border-b border-slate-200 dark:border-slate-800 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
         <div>
           <h3 className="text-xs font-bold text-slate-900 dark:text-white flex items-center gap-2">
-            Thanh Tra Dữ Liệu Cào Thô (Raw Data Inspector)
-            <span className="text-[10px] font-normal px-2 py-0.5 rounded bg-slate-100 dark:bg-slate-800 text-slate-500">
-              PBI-015
-            </span>
+            <span>Raw Data Inspector</span>
           </h3>
-          <p className="text-[11px] text-slate-500">
-            Xem dữ liệu thực tế thu thập được trước khi chuyển sang hệ thống đối soát SKU
-          </p>
         </div>
 
         <div className="flex items-center gap-3">

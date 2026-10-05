@@ -16,22 +16,18 @@ export const Navbar: React.FC<NavbarProps> = ({
 }) => {
   const { theme, toggleTheme } = useTheme();
 
-  const titles: Record<NavTab, { title: string; subtitle: string }> = {
+  const titles: Record<NavTab, { title: string }> = {
     matrix: {
       title: 'Price Comparison Matrix',
-      subtitle: 'Ma trận đối soát giá 3 bên: FPT Shop vs CellphoneS vs Hoàng Hà Mobile',
     },
     approvals: {
-      title: 'Pricing Strategy & Approvals',
-      subtitle: 'Gợi ý điều chỉnh giá theo tồn kho DOH & Quy tắc bảo vệ giá sàn',
+      title: 'Pricing Approvals',
     },
     mapping: {
-      title: 'Manual SKU Mapping Queue',
-      subtitle: 'Hàng đợi đối soát thủ công sản phẩm có độ tin cậy 60% – 79%',
+      title: 'SKU Mapping Queue',
     },
     crawler: {
-      title: 'Crawl Operations & Raw Inspector',
-      subtitle: 'Giám sát tiến trình cào dữ liệu, lịch trình tự động & kiểm tra dữ liệu thô',
+      title: 'Crawl Operations',
     },
   };
 
@@ -39,14 +35,11 @@ export const Navbar: React.FC<NavbarProps> = ({
 
   return (
     <header className="h-16 bg-white dark:bg-slate-900 border-b border-slate-200 dark:border-slate-800 px-6 flex items-center justify-between sticky top-0 z-20 transition-colors">
-      {/* Title & Context */}
+      {/* Title */}
       <div>
         <h1 className="text-base font-bold text-slate-900 dark:text-white leading-tight">
           {current.title}
         </h1>
-        <p className="text-xs text-slate-500 dark:text-slate-400 hidden sm:block">
-          {current.subtitle}
-        </p>
       </div>
 
       {/* Action Controls */}
