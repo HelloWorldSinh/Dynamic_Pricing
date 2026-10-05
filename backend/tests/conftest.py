@@ -1,6 +1,7 @@
 import pytest
 from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker
+from sqlalchemy.pool import StaticPool
 from app.core.database import Base, engine
 
 
@@ -14,7 +15,12 @@ def ensure_db_tables():
 @pytest.fixture
 def db_session():
     """Tạo isolated in-memory SQLite database session cho từng unit test."""
-    test_engine = create_engine("sqlite:///:memory:", echo=False)
+    test_engine = create_engine(
+        "sqlite:///:memory:",
+        connect_args={"check_same_thread": False},
+        poolclass=StaticPool,
+        echo=False,
+    )
     Base.metadata.create_all(bind=test_engine)
     TestingSessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=test_engine)
     session = TestingSessionLocal()
