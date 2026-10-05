@@ -410,3 +410,47 @@ def test_competitor_out_of_stock_ignored_for_cheapest_price(db_session):
     # Phải lấy giá của c2 (24_000_000) vì c1 đã hết hàng
     assert rec.competitor_min_price == 24_000_000
 
+
+def test_batch_generation_isolates_product_errors(db_session, caplog):
+    """Khi một sản phẩm trong batch bị lỗi (vd giá <= 0), batch ghi log warning và tiếp tục xử lý các sản phẩm còn lại."""
+    import logging
+
+    p1_valid = Product(
+        sku="SKU-BATCH-ISO-001",
+        name="San pham hop le 1",
+        category="ACCESSORY",
+        base_retail_price=200_000,
+        is_active=True,
+    )
+    p2_invalid = Product(
+        sku="SKU-BATCH-ISO-002",
+        name="San pham loi gia 0",
+        category="ACCESSORY",
+        base_retail_price=0,
+        is_active=True,
+    )
+    p3_valid = Product(
+        sku="SKU-BATCH-ISO-003",
+        name="San pham hop le 2",
+        category="ACCESSORY",
+        base_retail_price=400_000,
+        is_active=True,
+    )
+    db_session.add_all([p1_valid, p2_invalid, p3_valid])
+    db_session.commit()
+
+    engine = PricingEngine()
+    with caplog.at_level(logging.WARNING):
+        recs = engine.generate_batch(db_session)
+
+    # p2_invalid bị lỗi nhưng p1 và p3 vẫn phải được tạo thành công
+    assert len(recs) == 2
+    rec_product_ids = {r.fpt_product_id for r in recs}
+    assert p1_valid.id in rec_product_ids
+    assert p3_valid.id in rec_product_ids
+    assert p2_invalid.id not in rec_product_ids
+
+    # Kiểm tra logger đã ghi nhận warning
+    assert any("Failed to generate price recommendation for product" in record.message for record in caplog.records)
+
+

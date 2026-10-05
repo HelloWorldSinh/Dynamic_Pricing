@@ -223,10 +223,17 @@ class PricingEngine:
         )
         recommendations: List[PriceRecommendation] = []
         for product in active_products:
-            rec = self.generate_for_product(
-                db=db,
-                product_id=product.id,
-                custom_weights=custom_weights,
-            )
-            recommendations.append(rec)
+            try:
+                rec = self.generate_for_product(
+                    db=db,
+                    product_id=product.id,
+                    custom_weights=custom_weights,
+                )
+                recommendations.append(rec)
+            except Exception as exc:
+                logger.warning(
+                    "Failed to generate price recommendation for product %s: %s",
+                    product.id,
+                    exc,
+                )
         return recommendations
