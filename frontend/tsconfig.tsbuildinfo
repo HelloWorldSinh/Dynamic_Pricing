@@ -1,0 +1,1 @@
+{"root":["./src/app.tsx","./src/main.tsx","./src/vite-env.d.ts","./src/api/client.ts","./src/api/crawlerapi.ts","./src/api/matchingapi.ts","./src/components/crawlcontrolpanel.tsx","./src/components/matchingreviewtable.tsx","./src/pages/dashboardpage.tsx","./src/types/index.ts"],"version":"5.9.3"}
