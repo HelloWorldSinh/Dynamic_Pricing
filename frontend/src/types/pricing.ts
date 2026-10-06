@@ -77,3 +77,39 @@ export interface PriceChangeHistoryItem {
   status: 'APPLIED' | 'SYNCED_POS';
 }
 
+export interface MatrixSimulationRequest {
+  demand_score: number;
+  inventory_score: number;
+  competitor_score: number;
+  weights?: {
+    demand?: number;
+    inventory?: number;
+    competitor?: number;
+    D?: number;
+    I?: number;
+    C?: number;
+  };
+  current_price: number;
+  cost_price: number;
+  floor_price: number;
+  competitor_price?: number;
+  max_rate_cap?: number;
+}
+
+export interface MatrixSimulationResponse {
+  demand_score: number;
+  inventory_score: number;
+  competitor_score: number;
+  composite_score: number;
+  scenario_name: string;
+  action_type: string;
+  target_delta_pct: number;
+  current_price: number;
+  recommended_price: number;
+  price_delta_amount: number;
+  price_delta_pct: number;
+  is_floor_capped: boolean;
+  guardrail_notes: string[];
+  rationale: string;
+}
+

@@ -442,3 +442,47 @@ def test_zero_emojis_or_icons_in_pricing_api(client, sample_product_with_invento
     for k, v in rec_item["reasoning_3layers"].items():
         assert not contains_emoji(str(v))
 
+
+def test_get_pricing_matrix_endpoint(client, sample_product_with_inventory):
+    """Kiem tra endpoint GET /api/v1/pricing/matrix tra ve du lieu doi soat 3 ben."""
+    res = client.get("/api/v1/pricing/matrix")
+    assert res.status_code == 200
+    data = res.json()
+    assert isinstance(data, list)
+    assert len(data) >= 1
+    item = data[0]
+    assert item["sku"] == sample_product_with_inventory.sku
+    assert item["name"] == sample_product_with_inventory.name
+    assert item["fpt_price"] == sample_product_with_inventory.base_retail_price
+    assert item["cellphones"] is not None
+    assert item["cellphones"]["source"] == "CELLPHONES"
+    assert item["min_competitor_price"] == item["cellphones"]["price"]
+    assert "status" in item
+    assert item["status"] in ["SAFE", "WARNING", "DANGER", "EQUAL"]
+
+
+def test_get_pricing_history_endpoint(client, sample_product_with_inventory, db_session):
+    """Kiem tra endpoint GET /api/v1/pricing/history tra ve lich su thay doi gia."""
+    # Tao ban ghi mau
+    from app.models.pricing import PriceHistory
+    from datetime import datetime, timezone
+    hist = PriceHistory(
+        fpt_product_id=sample_product_with_inventory.id,
+        source="FPTSHOP",
+        price=31_000_000,
+        is_in_stock=True,
+        recorded_at=datetime.now(timezone.utc),
+    )
+    db_session.add(hist)
+    db_session.commit()
+
+    res = client.get("/api/v1/pricing/history")
+    assert res.status_code == 200
+    data = res.json()
+    assert isinstance(data, list)
+    assert len(data) >= 1
+    item = data[0]
+    assert item["sku"] == sample_product_with_inventory.sku
+    assert item["new_price"] == 31_000_000
+
+

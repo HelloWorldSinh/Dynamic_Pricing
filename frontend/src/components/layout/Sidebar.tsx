@@ -6,10 +6,11 @@ import {
   RefreshCw, 
   ChevronLeft, 
   ChevronRight,
-  ShieldCheck
+  ShieldCheck,
+  Sliders
 } from 'lucide-react';
 
-export type NavTab = 'matrix' | 'approvals' | 'mapping' | 'crawler';
+export type NavTab = 'matrix' | 'approvals' | 'mapping' | 'crawler' | 'simulator';
 
 interface SidebarProps {
   activeTab: NavTab;
@@ -47,6 +48,12 @@ export const Sidebar: React.FC<SidebarProps> = ({
       id: 'crawler' as NavTab,
       label: 'Crawl Operations',
       icon: RefreshCw,
+    },
+    {
+      id: 'simulator' as NavTab,
+      label: 'Matrix Simulator',
+      icon: Sliders,
+      badge: 'Sandbox',
     },
   ];
 

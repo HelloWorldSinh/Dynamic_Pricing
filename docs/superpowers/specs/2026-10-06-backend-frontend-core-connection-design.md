@@ -3,7 +3,8 @@
 - **Ngày ban hành:** 2026-10-06
 - **Tác giả:** AI Pair Programmer & Lead Engineer
 - **Trạng thái:** DRAFT / Đề xuất phê duyệt
-- **Mục tiêu:** Kết nối thực tế và đồng bộ hóa hợp đồng dữ liệu giữa FastAPI Backend và React Frontend cho 5 module cốt lõi, xóa bỏ sự phụ thuộc vào mock data và đảm bảo dữ liệu hiển thị từ cơ sở dữ liệu SQLite thật.
+- **Mục tiêu:** Kết nối thực tế và đồng bộ hóa hợp đồng dữ liệu giữa FastAPI Backend và React Frontend cho các module cốt lõi (Ma trận Giá, Mô phỏng, Đề xuất & Phê duyệt Giá, Hàng đợi Đối soát SKU, Giám sát Cào giá và Nạp CSDL thật).
+- **Ghi chú phạm vi:** Module AI Trợ lý & Giải trình (`/ai`) được tách ra để thực hiện ở Sprint sau theo yêu cầu người dùng (Frontend tiếp tục duy trì mock nội bộ cho AI).
 
 ---
 
