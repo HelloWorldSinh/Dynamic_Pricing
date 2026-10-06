@@ -91,7 +91,6 @@ export const PriceHistoryTable: React.FC<PriceHistoryTableProps> = ({
                   <th className="py-3 px-4 text-center">Lần đổi gần nhất</th>
                   <th className="py-3 px-3 text-right">Mức biến động</th>
                   <th className="py-3 px-3 text-center">Biên LN</th>
-                  <th className="py-3 px-3 text-center">Số lần đổi giá</th>
                   <th className="py-3 px-4">Cập nhật cuối</th>
                   <th className="py-3 px-4 text-center">Thao tác</th>
                 </tr>
@@ -161,18 +160,6 @@ export const PriceHistoryTable: React.FC<PriceHistoryTableProps> = ({
                         <span className="px-2 py-0.5 rounded bg-emerald-50 dark:bg-emerald-950/40 text-emerald-600 dark:text-emerald-400 border border-emerald-200 dark:border-emerald-900">
                           {formatPercent(group.latestItem.margin_percent)}
                         </span>
-                      </td>
-
-                      {/* Total Revisions Badge */}
-                      <td className="py-3 px-3 text-center whitespace-nowrap">
-                        <button
-                          onClick={() => setSelectedSku(group.sku)}
-                          className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-[11px] font-bold bg-orange-50 dark:bg-orange-950/40 text-orange-600 dark:text-orange-400 border border-orange-200 dark:border-orange-800/80 hover:bg-orange-100 dark:hover:bg-orange-900/60 transition shadow-sm"
-                          title="Bấm để xem danh sách các lần sửa giá"
-                        >
-                          <History className="w-3 h-3" />
-                          <span>{group.revisionsCount} lần điều chỉnh</span>
-                        </button>
                       </td>
 
                       {/* Latest Date & Actor */}

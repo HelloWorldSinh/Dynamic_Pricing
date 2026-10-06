@@ -484,6 +484,123 @@ export const mockMappingQueue: SkuMappingPair[] = [
     matched_attributes: ['Chip Dimensity 8300', 'RAM 12GB', 'ROM 512GB'],
     differing_attributes: ['Thiếu mã màu trên web đối thủ'],
     status: 'PENDING'
+  },
+  {
+    id: 'map-003',
+    fpt_sku: 'FPT-IP16PM-256',
+    fpt_name: 'iPhone 16 Pro Max 256GB Titan Sa Mạc',
+    fpt_part_number: 'MYWV3VN/A',
+    fpt_price: 34990000,
+    fpt_specs: {
+      Chip: 'Apple A18 Pro 6 nhân',
+      RAM: '8 GB',
+      'Bộ nhớ/RAM': '256 GB',
+      'Màn hình': '6.9 inch Super Retina XDR OLED 120Hz',
+      'Màu sắc': 'Titan Sa Mạc'
+    },
+    competitor_source: 'CELLPHONES',
+    competitor_name: 'iPhone 16 Pro Max 256GB | Chính Hãng VN/A - Vàng Sa Mạc',
+    competitor_url: 'https://cellphones.com.vn/iphone-16-pro-max.html',
+    competitor_price: 34490000,
+    competitor_part_number: 'MYWV3VN/A',
+    competitor_specs: {
+      Chip: 'Apple A18 Pro',
+      RAM: '8 GB',
+      'Bộ nhớ/RAM': '256 GB',
+      'Màn hình': '6.9 inch Super Retina XDR 120Hz',
+      'Màu sắc': 'Desert Titanium'
+    },
+    confidence_score: 79,
+    matched_attributes: ['Chip A18 Pro', 'RAM 8GB', 'ROM 256GB', 'Màn hình 6.9" 120Hz', 'Part MYWV3VN/A'],
+    differing_attributes: ['Tên màu đối thủ ghi Desert Titanium (tiếng Anh)'],
+    status: 'PENDING'
+  },
+  {
+    id: 'map-004',
+    fpt_sku: 'FPT-ASUS-VIVO15-OLED',
+    fpt_name: 'Laptop ASUS Vivobook 15 OLED A1505VA i5 13500H/16GB/512GB/Bạc',
+    fpt_part_number: 'A1505VA-L1114W',
+    fpt_price: 18990000,
+    fpt_specs: {
+      CPU: 'Intel Core i5-13500H (12C/16T)',
+      RAM: '16 GB DDR4',
+      'Bộ nhớ/RAM': '512 GB PCIe 4.0 SSD',
+      'Màn hình': '15.6 inch OLED 2.8K 120Hz',
+      'Màu sắc': 'Cool Silver (Bạc)'
+    },
+    competitor_source: 'HOANGHA',
+    competitor_name: 'ASUS Vivobook 15 OLED A1505VA-L1114W Chính Hãng',
+    competitor_url: 'https://hoanghamobile.com/laptop/asus-vivobook-15-oled-a1505va-l1114w',
+    competitor_price: 17990000,
+    competitor_part_number: 'A1505VA-L1114W',
+    competitor_specs: {
+      CPU: 'Core i5-13500H',
+      RAM: '16 GB',
+      'Bộ nhớ/RAM': '512 GB SSD',
+      'Màn hình': '15.6 inch OLED 2.8K',
+      'Màu sắc': 'Bạc'
+    },
+    confidence_score: 77,
+    matched_attributes: ['Mã Part A1505VA-L1114W', 'CPU i5-13500H', 'RAM 16GB', 'SSD 512GB', 'Màn hình 15.6" OLED'],
+    differing_attributes: ['Chính sách bảo hành: 2 năm chính hãng vs 24 tháng Hoàng Hà'],
+    status: 'PENDING'
+  },
+  {
+    id: 'map-005',
+    fpt_sku: 'FPT-SS-S24FE-128',
+    fpt_name: 'Samsung Galaxy S24 FE 8GB 128GB Xanh Topaz',
+    fpt_part_number: 'SM-S721B',
+    fpt_price: 15490000,
+    fpt_specs: {
+      Chip: 'Exynos 2400e 10 nhân',
+      RAM: '8 GB',
+      'Bộ nhớ/RAM': '128 GB',
+      'Màn hình': '6.7 inch Dynamic AMOLED 2X 120Hz',
+      Pin: '4700 mAh'
+    },
+    competitor_source: 'CELLPHONES',
+    competitor_name: 'Samsung Galaxy S24 FE (8GB 128GB) - Đã kích hoạt bảo hành điện tử',
+    competitor_url: 'https://cellphones.com.vn/samsung-galaxy-s24-fe.html',
+    competitor_price: 13990000,
+    competitor_specs: {
+      Chip: 'Exynos 2400e',
+      RAM: '8 GB',
+      'Bộ nhớ/RAM': '128 GB',
+      'Màn hình': '6.7 inch Dynamic AMOLED 2X'
+    },
+    confidence_score: 68,
+    matched_attributes: ['Chip Exynos 2400e', 'RAM 8GB', 'ROM 128GB', 'Màn 6.7" AMOLED'],
+    differing_attributes: ['Tình trạng máy: Hàng nguyên seal vs Đã kích hoạt BHĐT', 'Thiếu màu sắc'],
+    status: 'PENDING'
+  },
+  {
+    id: 'map-006',
+    fpt_sku: 'FPT-DELL-INSP-3520',
+    fpt_name: 'Laptop Dell Inspiron 3520 i5 1235U/16GB/512GB/Đen',
+    fpt_part_number: 'N3520-i5U165W11',
+    fpt_price: 15490000,
+    fpt_specs: {
+      CPU: 'Intel Core i5-1235U (10C/12T)',
+      RAM: '16 GB DDR4 3200MHz',
+      'Bộ nhớ/RAM': '512 GB M.2 PCIe NVMe SSD',
+      'Màn hình': '15.6 inch FHD 120Hz',
+      'Màu sắc': 'Carbon Black (Đen)'
+    },
+    competitor_source: 'CELLPHONES',
+    competitor_name: 'Laptop Dell Inspiron 15 3520 25P231 i5 1235U',
+    competitor_url: 'https://cellphones.com.vn/laptop-dell-inspiron-3520.html',
+    competitor_price: 14290000,
+    competitor_part_number: '25P231',
+    competitor_specs: {
+      CPU: 'Core i5-1235U',
+      RAM: '16 GB',
+      'Bộ nhớ/RAM': '512 GB SSD',
+      'Màn hình': '15.6 inch FHD'
+    },
+    confidence_score: 65,
+    matched_attributes: ['CPU i5-1235U', 'RAM 16GB', 'SSD 512GB', 'Kích thước 15.6 inch'],
+    differing_attributes: ['Mã Part FPT N3520-i5U165W11 vs Đối thủ 25P231', 'Tần số quét màn hình: 120Hz vs 60Hz'],
+    status: 'PENDING'
   }
 ];
 
