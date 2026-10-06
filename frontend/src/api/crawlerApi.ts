@@ -61,7 +61,10 @@ export async function getLatestCrawlTimeApi(): Promise<string | null> {
 
 export async function getCrawlResultsApi(source?: CrawlSource): Promise<CrawlResult[]> {
   try {
-    const params = source ? { source: source.toLowerCase() } : {};
+    const params: any = { limit: 200 };
+    if (source) {
+      params.source = source.toLowerCase();
+    }
     const res = await apiClient.get<CrawlResult[]>('/crawl/results', { params });
     return res.data;
   } catch (error) {
