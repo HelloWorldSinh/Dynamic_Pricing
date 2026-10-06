@@ -1,14 +1,18 @@
+from pathlib import Path
 from typing import List, Union
 from pydantic import field_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
 import json
+
+BACKEND_DIR = Path(__file__).resolve().parent.parent.parent
+DEFAULT_DB_PATH = BACKEND_DIR / "dynamic_pricing.db"
 
 
 class Settings(BaseSettings):
     PROJECT_NAME: str = "Dynamic Pricing System API"
     API_V1_STR: str = "/api/v1"
     ENVIRONMENT: str = "development"
-    DATABASE_URL: str = "sqlite:///./dynamic_pricing.db"
+    DATABASE_URL: str = f"sqlite:///{DEFAULT_DB_PATH.as_posix()}"
     DEBOUNCE_SECONDS: int = 30
 
     # CORS
