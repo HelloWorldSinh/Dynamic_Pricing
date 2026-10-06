@@ -40,15 +40,19 @@ def _to_pair_response(mapping: SkuMapping) -> SkuMappingPairResponse:
         elif prod_feat.brand or crawl_feat.brand:
             differing_attrs.append(f"brand: {prod_feat.brand or 'N/A'} vs {crawl_feat.brand or 'N/A'}")
 
-        if prod_feat.ram_gb and crawl_feat.ram_gb and prod_feat.ram_gb == crawl_feat.ram_gb:
-            matched_attrs.append(f"ram: {prod_feat.ram_gb}GB")
-        elif prod_feat.ram_gb or crawl_feat.ram_gb:
-            differing_attrs.append(f"ram: {prod_feat.ram_gb or 'N/A'} vs {crawl_feat.ram_gb or 'N/A'}")
+        prod_ram = prod_feat.ram[0] if prod_feat.ram else None
+        crawl_ram = crawl_feat.ram[0] if crawl_feat.ram else None
+        if prod_ram and crawl_ram and prod_ram.lower() == crawl_ram.lower():
+            matched_attrs.append(f"ram: {prod_ram.upper()}")
+        elif prod_ram or crawl_ram:
+            differing_attrs.append(f"ram: {prod_ram or 'N/A'} vs {crawl_ram or 'N/A'}")
 
-        if prod_feat.storage_gb and crawl_feat.storage_gb and prod_feat.storage_gb == crawl_feat.storage_gb:
-            matched_attrs.append(f"storage: {prod_feat.storage_gb}GB")
-        elif prod_feat.storage_gb or crawl_feat.storage_gb:
-            differing_attrs.append(f"storage: {prod_feat.storage_gb or 'N/A'} vs {crawl_feat.storage_gb or 'N/A'}")
+        prod_rom = prod_feat.rom[0] if prod_feat.rom else None
+        crawl_rom = crawl_feat.rom[0] if crawl_feat.rom else None
+        if prod_rom and crawl_rom and prod_rom.lower() == crawl_rom.lower():
+            matched_attrs.append(f"storage: {prod_rom.upper()}")
+        elif prod_rom or crawl_rom:
+            differing_attrs.append(f"storage: {prod_rom or 'N/A'} vs {crawl_rom or 'N/A'}")
 
         if not matched_attrs:
             matched_attrs.append(f"match_type: {mapping.match_type}")
