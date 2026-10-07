@@ -6,6 +6,7 @@ import { PriceMatrixPage } from './pages/PriceMatrixPage';
 import { PricingApprovalsPage } from './pages/PricingApprovalsPage';
 import { SkuMatchingPage } from './pages/SkuMatchingPage';
 import { CrawlManagerPage } from './pages/CrawlManagerPage';
+import { MatrixSimulatorPage } from './pages/MatrixSimulatorPage';
 import { ProductDetailModal } from './components/common/ProductDetailModal';
 import { AiAssistantManager } from './components/ai/AiAssistantManager';
 import { PriceComparisonItem } from './types/pricing';
@@ -36,6 +37,8 @@ const AppContent: React.FC = () => {
           {activeTab === 'mapping' && <SkuMatchingPage />}
 
           {activeTab === 'crawler' && <CrawlManagerPage />}
+
+          {activeTab === 'simulator' && <MatrixSimulatorPage />}
 
           {/* Product Detail Modal */}
           <ProductDetailModal

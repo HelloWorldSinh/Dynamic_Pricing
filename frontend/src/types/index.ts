@@ -43,6 +43,7 @@ export interface CrawlTriggerPayload {
   source: CompetitorSource;
   category?: string;
   target_url?: string;
+  limit?: number;
 }
 
 export interface CrawlTriggerResponse {
@@ -50,6 +51,21 @@ export interface CrawlTriggerResponse {
   status: string;
   message: string;
   started_at: string;
+}
+
+export interface CrawlProgressResponse {
+  task_id: string;
+  source: string;
+  category: string;
+  status: 'PENDING' | 'RUNNING' | 'COMPLETED' | 'FAILED';
+  current_page?: number | null;
+  total_pages?: number | null;
+  scraped_count: number;
+  limit?: number | null;
+  progress_percent: number;
+  message: string;
+  started_at: string;
+  updated_at: string;
 }
 
 export interface CrawlDebounceStatus {

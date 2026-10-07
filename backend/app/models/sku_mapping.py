@@ -21,8 +21,10 @@ class SkuMapping(Base):
     confidence_score = Column(Float, nullable=False, default=1.0)
 
     # PENDING | APPROVED | REJECTED
-    status = Column(String(50), default="APPROVED", nullable=False)
+    status = Column(String(50), default="APPROVED", nullable=False, index=True)
     matched_at = Column(DateTime, default=datetime.utcnow, nullable=False)
+    reviewed_by = Column(String(100), nullable=True)                    # Chuyên viên duyệt (nếu là manual review PBI-008)
+    reviewed_at = Column(DateTime, nullable=True)                       # Thời điểm duyệt thủ công
 
     # Relationships
     product = relationship("Product", back_populates="mappings")

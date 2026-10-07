@@ -1,5 +1,5 @@
 from abc import ABC, abstractmethod
-from typing import Optional, List
+from typing import Optional, List, Any
 from app.schemas.crawl import ScrapedProductItem
 
 
@@ -20,6 +20,13 @@ class BaseScraper(ABC):
         pass
 
     @abstractmethod
-    def scrape_category(self, category: str, limit: Optional[int] = None) -> List[ScrapedProductItem]:
-        """Cào danh sách sản phẩm theo ngành hàng (phone/laptop). Nếu limit=None hoặc <= 0, cào toàn bộ các trang từ đầu đến cuối."""
+    def scrape_category(
+        self,
+        category: str,
+        limit: Optional[int] = None,
+        on_progress: Optional[Any] = None,
+    ) -> List[ScrapedProductItem]:
+        """Cào danh sách sản phẩm theo ngành hàng (phone/laptop). Nếu limit=None hoặc <= 0, cào toàn bộ các trang từ đầu đến cuối.
+        on_progress(current_page, total_pages, scraped_count, message): callback thông báo tiến độ.
+        """
         pass

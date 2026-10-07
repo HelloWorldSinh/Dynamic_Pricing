@@ -17,6 +17,7 @@ date: 2026-10-01
 ---
 
 ## 1. Kiến trúc và Ma trận Định giá (Core Engine)
+- [[Hoạt động Gợi ý Giá và Dynamic Pricing Engine]] (Đặc tả chi tiết 6 bước luồng dữ liệu, 3 trụ cột tín hiệu D/I/C, công thức Composite, 10 kịch bản, 7 dải hành động, Safety Guardrails & 3-Layer Reasoning)
 - [[Khám phá Dữ liệu & Ma trận Định giá]] (Sơ đồ luồng, ma trận 9 kịch bản, công thức Composite Score)
 - [[Thiết kế Cơ sở Dữ liệu Toàn diện]] (Mô hình dữ liệu PostgreSQL, pgvector, schema tables)
 - [[Giải thích Kiến trúc Backend và Chi tiết Codebase]] (Cấu trúc FastAPI, Services, Repositories)

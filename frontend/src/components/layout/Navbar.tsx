@@ -29,6 +29,9 @@ export const Navbar: React.FC<NavbarProps> = ({
     crawler: {
       title: 'Crawl Operations',
     },
+    simulator: {
+      title: 'Pricing Matrix Simulator',
+    },
   };
 
   const current = titles[activeTab];
