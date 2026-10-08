@@ -1,15 +1,13 @@
 import React, { useState, useEffect, useRef } from 'react';
+import { Play, RefreshCw, CheckCircle2, AlertCircle, Zap, Check } from 'lucide-react';
 import { crawlerApi } from '../api/crawlerApi.js';
-import type { CompetitorSource, CrawlProgressResponse } from '../types/index.js';
+import type { CrawlProgressResponse } from '../types/index.js';
 
 interface CrawlControlPanelProps {
   onTriggerSuccess?: (source: string, taskId: string) => void;
 }
 
 export const CrawlControlPanel: React.FC<CrawlControlPanelProps> = ({ onTriggerSuccess }) => {
-  const [selectedSource, setSelectedSource] = useState<CompetitorSource>('cellphones');
-  const [selectedCategory, setSelectedCategory] = useState<string>('phone');
-  const [selectedLimit, setSelectedLimit] = useState<number>(20);
   const [isSubmitting, setIsSubmitting] = useState<boolean>(false);
   const [activeTaskId, setActiveTaskId] = useState<string | null>(null);
   const [taskProgress, setTaskProgress] = useState<CrawlProgressResponse | null>(null);
@@ -39,7 +37,7 @@ export const CrawlControlPanel: React.FC<CrawlControlPanelProps> = ({ onTriggerS
             clearInterval(pollingRef.current);
             pollingRef.current = null;
           }
-          setErrorMessage(progress.message || 'Tiến trình cào dữ liệu gặp lỗi.');
+          setErrorMessage(progress.message || 'Tiến trình Full Pipeline gặp lỗi.');
         }
       } catch (err: unknown) {
         console.error('Lỗi khi tra cứu tiến độ:', err);
@@ -60,279 +58,160 @@ export const CrawlControlPanel: React.FC<CrawlControlPanelProps> = ({ onTriggerS
     };
   }, [activeTaskId, onTriggerSuccess]);
 
-  const handleTrigger = async () => {
+  const handleTriggerFullPipeline = async () => {
     setIsSubmitting(true);
     setErrorMessage(null);
     setTaskProgress(null);
 
     try {
-      const response = await crawlerApi.trigger({
-        source: selectedSource,
-        category: selectedCategory,
-        limit: selectedLimit > 0 ? selectedLimit : undefined,
-      });
-
+      const response = await crawlerApi.triggerFullPipeline();
       setActiveTaskId(response.task_id);
-    } catch (err: unknown) {
-      const msg = err instanceof Error ? err.message : 'Không thể kích hoạt tiến trình cào.';
-      setErrorMessage(msg);
+    } catch (err: any) {
+      if (err.response?.status === 429) {
+        setErrorMessage(err.response?.data?.detail || 'Hệ thống đang trong thời gian chờ (debounce). Vui lòng thử lại sau giây lát.');
+      } else {
+        const msg = err instanceof Error ? err.message : 'Không thể kích hoạt Full Pipeline.';
+        setErrorMessage(msg);
+      }
     } finally {
       setIsSubmitting(false);
     }
   };
 
   const isJobRunning = taskProgress?.status === 'RUNNING' || taskProgress?.status === 'PENDING';
+  const isCompleted = taskProgress?.status === 'COMPLETED';
 
   return (
-    <div
-      style={{
-        backgroundColor: 'var(--color-bg-surface)',
-        border: '1px solid var(--color-border)',
-        borderRadius: 'var(--radius-lg)',
-        padding: '1.25rem',
-        marginBottom: '1.5rem',
-        boxShadow: 'var(--shadow-sm)',
-      }}
-    >
-      <div style={{ marginBottom: '1rem' }}>
-        <h2 style={{ fontSize: 'var(--font-size-lg)', fontWeight: 600, color: 'var(--color-text-primary)', marginBottom: '0.25rem' }}>
-          Bảng Điều Khiển Cào Dữ Liệu Đối Thủ (Crawler Engine)
-        </h2>
-        <p style={{ fontSize: 'var(--font-size-sm)', color: 'var(--color-text-muted)' }}>
-          Kích hoạt tiến trình thu thập giá theo thời gian thực và theo dõi tiến độ chi tiết từng trang.
-        </p>
+    <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl p-5 mb-6 shadow-sm">
+      {/* Header & Tiêu đề */}
+      <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4 mb-4">
+        <div>
+          <div className="flex items-center gap-2 mb-1">
+            <span className="p-1.5 rounded-lg bg-orange-500/10 text-orange-600 dark:text-orange-400">
+              <Zap className="w-4 h-4" />
+            </span>
+            <h2 className="text-base font-bold text-slate-900 dark:text-white">
+              Bảng Điều Khiển Cào & Đối Soát SKU (Full Pipeline)
+            </h2>
+            <span className="text-[11px] font-semibold px-2 py-0.5 rounded-full bg-emerald-50 dark:bg-emerald-950/40 text-emerald-600 dark:text-emerald-400 border border-emerald-200 dark:border-emerald-800">
+              Chạy tự động giống run_full_pipeline.py
+            </span>
+          </div>
+          <p className="text-xs text-slate-500 dark:text-slate-400">
+            Cào toàn bộ sản phẩm Điện thoại & Laptop từ <strong>CellphoneS</strong> và <strong>Hoàng Hà Mobile</strong>, tự động đối soát với <strong>329 SKU FPT Shop</strong>, cập nhật Cơ sở dữ liệu và xuất file Excel.
+          </p>
+        </div>
+
+        {/* Nút bấm Kích hoạt Full Pipeline */}
+        <div className="flex items-center gap-3">
+          <button
+            type="button"
+            onClick={handleTriggerFullPipeline}
+            disabled={isSubmitting || isJobRunning}
+            className={`inline-flex items-center gap-2 px-5 py-2.5 rounded-xl text-xs font-bold transition shadow-sm ${
+              isSubmitting || isJobRunning
+                ? 'bg-slate-200 dark:bg-slate-800 text-slate-400 cursor-not-allowed'
+                : 'bg-orange-600 hover:bg-orange-500 text-white shadow-orange-600/20 hover:shadow-md cursor-pointer'
+            }`}
+          >
+            {isSubmitting ? (
+              <>
+                <RefreshCw className="w-3.5 h-3.5 animate-spin" />
+                <span>Đang khởi động...</span>
+              </>
+            ) : isJobRunning ? (
+              <>
+                <RefreshCw className="w-3.5 h-3.5 animate-spin" />
+                <span>Đang chạy Full Pipeline ({taskProgress?.progress_percent || 0}%)...</span>
+              </>
+            ) : (
+              <>
+                <Play className="w-3.5 h-3.5 fill-current" />
+                <span>Kích hoạt Full Pipeline ngay</span>
+              </>
+            )}
+          </button>
+        </div>
       </div>
 
-      {/* Bộ điều khiển đầu vào */}
-      <div style={{ display: 'flex', gap: '1rem', alignItems: 'flex-end', flexWrap: 'wrap', marginBottom: '1.25rem' }}>
-        <div>
-          <label style={{ display: 'block', fontSize: 'var(--font-size-xs)', fontWeight: 600, color: 'var(--color-text-secondary)', marginBottom: '0.35rem' }}>
-            Nguồn Đối Thủ
-          </label>
-          <select
-            value={selectedSource}
-            disabled={isJobRunning}
-            onChange={(e) => setSelectedSource(e.target.value as CompetitorSource)}
-            style={{
-              padding: '0.5rem 0.75rem',
-              borderRadius: 'var(--radius-md)',
-              border: '1px solid var(--color-border)',
-              fontSize: 'var(--font-size-sm)',
-              minWidth: '160px',
-              backgroundColor: isJobRunning ? 'var(--color-bg-primary)' : 'var(--color-bg-surface)',
-              color: 'var(--color-text-primary)',
-            }}
-          >
-            <option value="cellphones">CellphoneS</option>
-            <option value="hoangha">Hoàng Hà Mobile</option>
-            <option value="fptshop">FPT Shop (Nội bộ)</option>
-          </select>
+      {/* Thông tin phạm vi pipeline */}
+      <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 pt-3 border-t border-slate-100 dark:border-slate-800 text-xs text-slate-600 dark:text-slate-400">
+        <div className="flex items-center gap-2">
+          <Check className="w-3.5 h-3.5 text-emerald-500" />
+          <span>Đối thủ: <strong>CellphoneS & Hoàng Hà Mobile</strong></span>
         </div>
-
-        <div>
-          <label style={{ display: 'block', fontSize: 'var(--font-size-xs)', fontWeight: 600, color: 'var(--color-text-secondary)', marginBottom: '0.35rem' }}>
-            Ngành Hàng
-          </label>
-          <select
-            value={selectedCategory}
-            disabled={isJobRunning}
-            onChange={(e) => setSelectedCategory(e.target.value)}
-            style={{
-              padding: '0.5rem 0.75rem',
-              borderRadius: 'var(--radius-md)',
-              border: '1px solid var(--color-border)',
-              fontSize: 'var(--font-size-sm)',
-              minWidth: '140px',
-              backgroundColor: isJobRunning ? 'var(--color-bg-primary)' : 'var(--color-bg-surface)',
-              color: 'var(--color-text-primary)',
-            }}
-          >
-            <option value="phone">Điện thoại</option>
-            <option value="laptop">Laptop</option>
-          </select>
+        <div className="flex items-center gap-2">
+          <Check className="w-3.5 h-3.5 text-emerald-500" />
+          <span>Danh mục: <strong>Điện thoại & Laptop (Tất cả các trang)</strong></span>
         </div>
-
-        <div>
-          <label style={{ display: 'block', fontSize: 'var(--font-size-xs)', fontWeight: 600, color: 'var(--color-text-secondary)', marginBottom: '0.35rem' }}>
-            Số Lượng Cào
-          </label>
-          <select
-            value={selectedLimit}
-            disabled={isJobRunning}
-            onChange={(e) => setSelectedLimit(Number(e.target.value))}
-            style={{
-              padding: '0.5rem 0.75rem',
-              borderRadius: 'var(--radius-md)',
-              border: '1px solid var(--color-border)',
-              fontSize: 'var(--font-size-sm)',
-              minWidth: '180px',
-              backgroundColor: isJobRunning ? 'var(--color-bg-primary)' : 'var(--color-bg-surface)',
-              color: 'var(--color-text-primary)',
-            }}
-          >
-            <option value={20}>20 sản phẩm (Nhanh - Khuyến nghị)</option>
-            <option value={50}>50 sản phẩm (Tiêu chuẩn)</option>
-            <option value={100}>100 sản phẩm (Mở rộng)</option>
-            <option value={0}>Toàn bộ (Mất vài phút)</option>
-          </select>
+        <div className="flex items-center gap-2">
+          <Check className="w-3.5 h-3.5 text-emerald-500" />
+          <span>Thuật toán: <strong>2 Tầng SKU Matcher + Đồng bộ CSDL & Excel</strong></span>
         </div>
-
-        <button
-          type="button"
-          onClick={handleTrigger}
-          disabled={isSubmitting || isJobRunning}
-          style={{
-            padding: '0.5rem 1.25rem',
-            borderRadius: 'var(--radius-md)',
-            backgroundColor: (isSubmitting || isJobRunning) ? 'var(--color-text-muted)' : 'var(--color-primary)',
-            color: 'var(--color-text-inverse)',
-            fontSize: 'var(--font-size-sm)',
-            fontWeight: 600,
-            cursor: (isSubmitting || isJobRunning) ? 'not-allowed' : 'pointer',
-            transition: 'background-color 0.15s ease',
-          }}
-        >
-          {isSubmitting ? 'Đang gửi lệnh...' : isJobRunning ? 'Đang tiến hành cào...' : 'Kích hoạt cào ngay'}
-        </button>
       </div>
 
       {/* Thông báo lỗi nếu có */}
       {errorMessage && (
-        <div
-          style={{
-            marginTop: '1rem',
-            padding: '0.75rem 1rem',
-            backgroundColor: 'var(--color-status-danger-bg)',
-            color: 'var(--color-status-danger-text)',
-            border: '1px solid var(--color-status-danger-border)',
-            borderRadius: 'var(--radius-md)',
-            fontSize: 'var(--font-size-sm)',
-          }}
-        >
-          {errorMessage}
+        <div className="mt-4 p-3 rounded-xl bg-rose-50 dark:bg-rose-950/40 text-rose-700 dark:text-rose-300 border border-rose-200 dark:border-rose-900 text-xs flex items-center gap-2">
+          <AlertCircle className="w-4 h-4 shrink-0" />
+          <span>{errorMessage}</span>
         </div>
       )}
 
       {/* Bảng hiển thị tiến độ thời gian thực */}
       {taskProgress && (
-        <div
-          style={{
-            marginTop: '1.25rem',
-            padding: '1rem',
-            backgroundColor: 'var(--color-bg-primary)',
-            border: '1px solid var(--color-border)',
-            borderRadius: 'var(--radius-md)',
-          }}
-        >
-          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.75rem' }}>
-            <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-              <span style={{ fontSize: 'var(--font-size-xs)', fontWeight: 600, color: 'var(--color-text-muted)', textTransform: 'uppercase' }}>
-                Tiến Trình Task:
-              </span>
-              <span style={{ fontSize: 'var(--font-size-xs)', fontFamily: 'monospace', color: 'var(--color-text-primary)' }}>
-                {taskProgress.task_id}
-              </span>
+        <div className="mt-4 p-4 rounded-xl bg-slate-50 dark:bg-slate-950/60 border border-slate-200 dark:border-slate-800">
+          <div className="flex items-center justify-between mb-2">
+            <div className="flex items-center gap-2">
+              <span className="text-xs font-semibold text-slate-500 dark:text-slate-400">Tiến trình:</span>
+              <span className="text-xs font-mono text-slate-800 dark:text-slate-200">{taskProgress.task_id}</span>
             </div>
 
             {/* Status Badge */}
             <span
-              style={{
-                fontSize: 'var(--font-size-xs)',
-                fontWeight: 700,
-                padding: '0.2rem 0.5rem',
-                borderRadius: 'var(--radius-sm)',
-                backgroundColor:
-                  taskProgress.status === 'COMPLETED'
-                    ? 'var(--color-status-success-bg)'
-                    : taskProgress.status === 'FAILED'
-                    ? 'var(--color-status-danger-bg)'
-                    : 'var(--color-primary-light)',
-                color:
-                  taskProgress.status === 'COMPLETED'
-                    ? 'var(--color-status-success-text)'
-                    : taskProgress.status === 'FAILED'
-                    ? 'var(--color-status-danger-text)'
-                    : 'var(--color-primary)',
-                border: `1px solid ${
-                  taskProgress.status === 'COMPLETED'
-                    ? 'var(--color-status-success-border)'
-                    : taskProgress.status === 'FAILED'
-                    ? 'var(--color-status-danger-border)'
-                    : 'var(--color-primary)'
-                }`,
-              }}
+              className={`text-[10px] font-bold px-2 py-0.5 rounded-full border ${
+                isCompleted
+                  ? 'bg-emerald-50 dark:bg-emerald-950/40 text-emerald-600 dark:text-emerald-400 border-emerald-200 dark:border-emerald-800'
+                  : taskProgress.status === 'FAILED'
+                  ? 'bg-rose-50 dark:bg-rose-950/40 text-rose-600 dark:text-rose-400 border-rose-200 dark:border-rose-800'
+                  : 'bg-orange-50 dark:bg-orange-950/40 text-orange-600 dark:text-orange-400 border-orange-200 dark:border-orange-800 animate-pulse'
+              }`}
             >
-              {taskProgress.status === 'COMPLETED'
-                ? 'ĐÃ HOÀN TẤT'
+              {isCompleted
+                ? 'ĐÃ HOÀN TẤT 100%'
                 : taskProgress.status === 'FAILED'
-                ? 'THẤT BẠI'
-                : taskProgress.status === 'RUNNING'
-                ? 'ĐANG THỰC HIỆN'
-                : 'ĐANG CHỜ'}
+                ? 'GẶP LỖI'
+                : 'ĐANG THỰC HIỆN'}
             </span>
           </div>
 
           {/* Thanh Tiến Độ (Progress Bar) */}
-          <div
-            style={{
-              width: '100%',
-              height: '8px',
-              backgroundColor: 'var(--color-border)',
-              borderRadius: 'var(--radius-sm)',
-              overflow: 'hidden',
-              marginBottom: '0.75rem',
-            }}
-          >
+          <div className="w-full h-2 bg-slate-200 dark:bg-slate-800 rounded-full overflow-hidden mb-3">
             <div
-              style={{
-                width: `${taskProgress.progress_percent}%`,
-                height: '100%',
-                backgroundColor:
-                  taskProgress.status === 'COMPLETED'
-                    ? 'var(--color-status-success-text)'
-                    : 'var(--color-primary)',
-                transition: 'width 0.3s ease',
-              }}
+              className={`h-full transition-all duration-300 ${
+                isCompleted
+                  ? 'bg-emerald-500'
+                  : taskProgress.status === 'FAILED'
+                  ? 'bg-rose-500'
+                  : 'bg-orange-500'
+              }`}
+              style={{ width: `${taskProgress.progress_percent}%` }}
             />
           </div>
 
-          {/* Chỉ số chi tiết */}
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(140px, 1fr))', gap: '0.75rem', marginBottom: '0.75rem' }}>
-            <div style={{ backgroundColor: 'var(--color-bg-surface)', padding: '0.5rem 0.75rem', borderRadius: 'var(--radius-sm)', border: '1px solid var(--color-border)' }}>
-              <div style={{ fontSize: 'var(--font-size-xs)', color: 'var(--color-text-muted)' }}>Tiến Độ Tỷ Lệ</div>
-              <div style={{ fontSize: 'var(--font-size-sm)', fontWeight: 700, color: 'var(--color-text-primary)' }}>
-                {taskProgress.progress_percent}%
-              </div>
-            </div>
-
-            <div style={{ backgroundColor: 'var(--color-bg-surface)', padding: '0.5rem 0.75rem', borderRadius: 'var(--radius-sm)', border: '1px solid var(--color-border)' }}>
-              <div style={{ fontSize: 'var(--font-size-xs)', color: 'var(--color-text-muted)' }}>Đã Thu Thập</div>
-              <div style={{ fontSize: 'var(--font-size-sm)', fontWeight: 700, color: 'var(--color-text-primary)' }}>
-                {taskProgress.scraped_count} {taskProgress.limit ? `/ ${taskProgress.limit}` : ''} sản phẩm
-              </div>
-            </div>
-
-            <div style={{ backgroundColor: 'var(--color-bg-surface)', padding: '0.5rem 0.75rem', borderRadius: 'var(--radius-sm)', border: '1px solid var(--color-border)' }}>
-              <div style={{ fontSize: 'var(--font-size-xs)', color: 'var(--color-text-muted)' }}>Trang Hiện Tại</div>
-              <div style={{ fontSize: 'var(--font-size-sm)', fontWeight: 700, color: 'var(--color-text-primary)' }}>
-                Trang {taskProgress.current_page || 1}
-              </div>
-            </div>
+          {/* Thông điệp trạng thái chi tiết */}
+          <div className="text-xs font-medium text-slate-700 dark:text-slate-300 flex items-center justify-between">
+            <span>{taskProgress.message || 'Đang xử lý dữ liệu...'}</span>
+            <span className="font-mono font-bold text-slate-900 dark:text-white">{taskProgress.progress_percent}%</span>
           </div>
 
-          {/* Dòng trạng thái log trực tiếp */}
-          <div
-            style={{
-              padding: '0.5rem 0.75rem',
-              backgroundColor: 'var(--color-bg-surface)',
-              border: '1px solid var(--color-border)',
-              borderRadius: 'var(--radius-sm)',
-              fontSize: 'var(--font-size-xs)',
-              color: 'var(--color-text-secondary)',
-            }}
-          >
-            Trạng thái hiện tại: {taskProgress.message}
-          </div>
+          {/* Khi hoàn tất: Thẻ thông báo kết quả tổng kết */}
+          {isCompleted && (
+            <div className="mt-3 pt-3 border-t border-slate-200 dark:border-slate-800 flex items-center gap-2 text-xs text-emerald-700 dark:text-emerald-300 bg-emerald-50/60 dark:bg-emerald-950/30 p-2.5 rounded-lg border border-emerald-200/60 dark:border-emerald-900/60">
+              <CheckCircle2 className="w-4 h-4 text-emerald-600 dark:text-emerald-400 shrink-0" />
+              <span>Dữ liệu cào đã được UPSERT vào CSDL và bảng đối soát SKU đã được làm mới đồng bộ!</span>
+            </div>
+          )}
         </div>
       )}
     </div>

@@ -5,14 +5,10 @@ import { NavTab } from './Sidebar';
 
 interface NavbarProps {
   activeTab: NavTab;
-  categoryFilter: string;
-  setCategoryFilter: (category: string) => void;
 }
 
 export const Navbar: React.FC<NavbarProps> = ({
   activeTab,
-  categoryFilter,
-  setCategoryFilter,
 }) => {
   const { theme, toggleTheme } = useTheme();
 
@@ -25,6 +21,9 @@ export const Navbar: React.FC<NavbarProps> = ({
     },
     mapping: {
       title: 'SKU Mapping Queue',
+    },
+    feeds: {
+      title: 'Competitor Scraped Feeds',
     },
     crawler: {
       title: 'Crawl Operations',
@@ -47,39 +46,6 @@ export const Navbar: React.FC<NavbarProps> = ({
 
       {/* Action Controls */}
       <div className="flex items-center gap-3">
-        {/* Quick Category Selector */}
-        <div className="flex items-center bg-slate-100 dark:bg-slate-800 p-1 rounded-lg text-xs">
-          <button
-            onClick={() => setCategoryFilter('ALL')}
-            className={`px-3 py-1 rounded-md font-medium transition ${
-              categoryFilter === 'ALL'
-                ? 'bg-white dark:bg-slate-700 text-orange-600 dark:text-orange-400 shadow-sm'
-                : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white'
-            }`}
-          >
-            Tất cả
-          </button>
-          <button
-            onClick={() => setCategoryFilter('PHONE')}
-            className={`px-3 py-1 rounded-md font-medium transition ${
-              categoryFilter === 'PHONE'
-                ? 'bg-white dark:bg-slate-700 text-orange-600 dark:text-orange-400 shadow-sm'
-                : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white'
-            }`}
-          >
-            Điện thoại
-          </button>
-          <button
-            onClick={() => setCategoryFilter('LAPTOP')}
-            className={`px-3 py-1 rounded-md font-medium transition ${
-              categoryFilter === 'LAPTOP'
-                ? 'bg-white dark:bg-slate-700 text-orange-600 dark:text-orange-400 shadow-sm'
-                : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white'
-            }`}
-          >
-            Laptop
-          </button>
-        </div>
 
         {/* Backend Seam Status */}
         <div className="hidden md:flex items-center gap-2 px-2.5 py-1.5 rounded-lg border border-slate-200 dark:border-slate-800 text-xs text-slate-600 dark:text-slate-300">

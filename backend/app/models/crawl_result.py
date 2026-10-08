@@ -13,7 +13,7 @@ class CrawlResult(Base):
     id = Column(GUID(), primary_key=True, default=uuid.uuid4)
     job_id = Column(GUID(), ForeignKey("crawl_jobs.id"), nullable=True, index=True)
     source = Column(String(50), nullable=False, index=True)   # CELLPHONES | HOANGHA | FPTSHOP
-    url = Column(String(1000), nullable=False)
+    url = Column(String(1000), nullable=False, index=True)
     raw_name = Column(String(255), nullable=False, index=True)
     current_price = Column(BigInteger, nullable=True)         # Giá bán thực tế (VND)
     original_price = Column(BigInteger, nullable=True)        # Giá niêm yết (VND)

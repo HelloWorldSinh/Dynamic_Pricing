@@ -6,19 +6,20 @@ from pydantic import BaseModel, Field
 
 class SourceEnum(str, Enum):
     ALL = "all"
-    FPTSHOP = "fptshop"
+    FULL_PIPELINE = "full_pipeline"
     CELLPHONES = "cellphones"
     HOANGHA = "hoangha"
 
 
 class CategoryEnum(str, Enum):
+    ALL = "all"
     PHONE = "phone"
     LAPTOP = "laptop"
 
 
 class CrawlTriggerRequest(BaseModel):
-    source: SourceEnum = Field(default=SourceEnum.CELLPHONES, description="Nguồn cần cào: fptshop | cellphones | hoangha | all")
-    category: CategoryEnum = Field(default=CategoryEnum.PHONE, description="Ngành hàng: phone | laptop")
+    source: SourceEnum = Field(default=SourceEnum.FULL_PIPELINE, description="Nguồn cần cào: full_pipeline | all | cellphones | hoangha")
+    category: CategoryEnum = Field(default=CategoryEnum.ALL, description="Ngành hàng: all | phone | laptop")
     target_url: Optional[str] = Field(default=None, description="URL cụ thể cần cào test (tuỳ chọn)")
     limit: Optional[int] = Field(default=None, description="Số lượng tối đa cần cào (None = không giới hạn, cào hết các trang)")
 

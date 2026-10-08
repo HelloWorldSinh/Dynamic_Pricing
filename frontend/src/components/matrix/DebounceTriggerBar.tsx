@@ -3,7 +3,7 @@ import { RefreshCw, Play, CheckCircle, AlertCircle, Clock } from 'lucide-react';
 import { triggerDualCrawlApi, getLatestCrawlTimeApi } from '../../api/crawlerApi';
 
 interface DebounceTriggerBarProps {
-  category: string;
+  category?: string;
   onCrawlCompleted: () => void;
 }
 

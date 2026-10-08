@@ -9,7 +9,7 @@ interface AppLayoutProps {
 export const AppLayout: React.FC<AppLayoutProps> = ({ children }) => {
   const [activeTab, setActiveTab] = useState<NavTab>('matrix');
   const [isCollapsed, setIsCollapsed] = useState(false);
-  const [categoryFilter, setCategoryFilter] = useState('ALL');
+  const categoryFilter = 'ALL';
 
   return (
     <div className="min-h-screen bg-slate-50 dark:bg-slate-950 text-slate-900 dark:text-slate-100 flex flex-col transition-colors duration-200">
@@ -29,8 +29,6 @@ export const AppLayout: React.FC<AppLayoutProps> = ({ children }) => {
       >
         <Navbar
           activeTab={activeTab}
-          categoryFilter={categoryFilter}
-          setCategoryFilter={setCategoryFilter}
         />
 
         <main className="flex-1 p-6 max-w-[1600px] w-full mx-auto">

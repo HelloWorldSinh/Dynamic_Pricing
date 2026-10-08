@@ -7,10 +7,11 @@ import {
   ChevronLeft, 
   ChevronRight,
   ShieldCheck,
-  Sliders
+  Sliders,
+  Database
 } from 'lucide-react';
 
-export type NavTab = 'matrix' | 'approvals' | 'mapping' | 'crawler' | 'simulator';
+export type NavTab = 'matrix' | 'approvals' | 'mapping' | 'feeds' | 'crawler' | 'simulator';
 
 interface SidebarProps {
   activeTab: NavTab;
@@ -43,6 +44,12 @@ export const Sidebar: React.FC<SidebarProps> = ({
       label: 'SKU Mapping Queue',
       icon: GitCompare,
       badge: '3',
+    },
+    {
+      id: 'feeds' as NavTab,
+      label: 'Competitor Feeds',
+      icon: Database,
+      badge: '12',
     },
     {
       id: 'crawler' as NavTab,

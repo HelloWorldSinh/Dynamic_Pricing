@@ -1,12 +1,15 @@
-export type CrawlSource = 'FPT' | 'CELLPHONES' | 'HOANGHA';
+export type CrawlSource = 'FPT' | 'CELLPHONES' | 'HOANGHA' | 'FULL_PIPELINE' | 'ALL';
 
 export interface CrawlResult {
-  id: number;
+  id: string | number;
   source: CrawlSource;
   product_name: string;
   url: string;
   price: number;
+  original_price?: number;
   is_in_stock: boolean;
+  stock_status_text?: string;
+  category?: string;
   specifications?: Record<string, any>;
   crawled_at: string;
 }

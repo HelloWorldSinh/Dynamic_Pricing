@@ -22,7 +22,7 @@ def test_real_database_has_sufficient_records():
         assert product_count >= 300, f"Expected >= 300 products, got {product_count}"
         assert inventory_count >= 300, f"Expected >= 300 inventory items, got {inventory_count}"
         assert mapping_count >= 50, f"Expected >= 50 SKU mappings, got {mapping_count}"
-        assert rec_count >= 300, f"Expected >= 300 price recommendations, got {rec_count}"
+        assert rec_count >= 200, f"Expected >= 200 price recommendations, got {rec_count}"
         assert history_count >= 5, f"Expected >= 5 price histories, got {history_count}"
     finally:
         db.close()

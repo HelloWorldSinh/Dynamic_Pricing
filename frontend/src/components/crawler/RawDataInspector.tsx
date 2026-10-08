@@ -10,7 +10,7 @@ interface RawDataInspectorProps {
 export const RawDataInspector: React.FC<RawDataInspectorProps> = ({ items }) => {
   const [search, setSearch] = useState('');
   const [selectedSource, setSelectedSource] = useState<string>('ALL');
-  const [expandedRowId, setExpandedRowId] = useState<number | null>(null);
+  const [expandedRowId, setExpandedRowId] = useState<string | number | null>(null);
 
   const filtered = items.filter((item) => {
     if (selectedSource !== 'ALL' && item.source !== selectedSource) return false;
@@ -24,7 +24,7 @@ export const RawDataInspector: React.FC<RawDataInspectorProps> = ({ items }) => 
     return true;
   });
 
-  const toggleExpand = (id: number) => {
+  const toggleExpand = (id: string | number) => {
     setExpandedRowId((prev) => (prev === id ? null : id));
   };
 

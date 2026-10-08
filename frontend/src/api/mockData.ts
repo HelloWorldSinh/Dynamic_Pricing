@@ -606,46 +606,239 @@ export const mockMappingQueue: SkuMappingPair[] = [
 
 export const mockCrawlResults: CrawlResult[] = [
   {
-    id: 1,
+    id: 'cr-001',
     source: 'CELLPHONES',
-    product_name: 'Laptop ASUS Vivobook 15 OLED A1505VA Core i5-13500H',
+    product_name: 'Laptop ASUS Vivobook 15 OLED A1505VA Core i5-13500H/16GB/512GB',
     url: 'https://cellphones.com.vn/laptop-asus-vivobook-15-oled-a1505va.html',
     price: 17890000,
+    original_price: 19990000,
     is_in_stock: true,
+    stock_status_text: 'Còn hàng tại 35 cửa hàng',
+    category: 'LAPTOP',
     specifications: {
-      'CPU/Chip': 'Intel Core i5-13500H',
-      RAM: '16 GB',
-      'Bộ nhớ/RAM': '512 GB SSD',
-      'Màn hình': '15.6 inch OLED FHD'
+      'CPU/Chip': 'Intel Core i5-13500H (12 nhân 16 luồng)',
+      'RAM': '16 GB DDR4 3200MHz',
+      'Bộ nhớ/SSD': '512 GB M.2 NVMe PCIe 3.0',
+      'Màn hình': '15.6 inch OLED 2.8K 120Hz 600 nits',
+      'Đồ họa': 'Intel Iris Xe Graphics',
+      'Trọng lượng': '1.7 kg',
+      'Pin': '50 Whr 3-cell Li-ion'
     },
-    crawled_at: '2026-10-05T08:30:12Z'
+    crawled_at: '2026-10-07T08:30:12Z'
   },
   {
-    id: 2,
+    id: 'cr-002',
     source: 'HOANGHA',
     product_name: 'ASUS Vivobook 15 OLED A1505VA-L1114W Chính Hãng',
     url: 'https://hoanghamobile.com/laptop/asus-vivobook-15-oled-a1505va-l1114w',
     price: 17990000,
+    original_price: 19990000,
     is_in_stock: true,
+    stock_status_text: 'Sẵn hàng giao nhanh',
+    category: 'LAPTOP',
     specifications: {
       'Hãng': 'ASUS',
-      'CPU': 'Core i5-13500H',
-      'RAM': '16 GB'
+      'CPU': 'Intel Core i5-13500H',
+      'RAM': '16 GB',
+      'Ổ cứng': '512 GB SSD PCIe',
+      'Màn hình': '15.6 inch OLED 2.8K',
+      'Bảo hành': '24 tháng chính hãng'
     },
-    crawled_at: '2026-10-05T08:30:45Z'
+    crawled_at: '2026-10-07T08:30:45Z'
   },
   {
-    id: 3,
-    source: 'FPT',
-    product_name: 'Laptop ASUS Vivobook 15 OLED A1505VA-L1114W',
-    url: 'https://fptshop.com.vn/may-tinh-xach-tay/asus-vivobook-15-oled-a1505va-l1114w',
-    price: 18990000,
+    id: 'cr-003',
+    source: 'CELLPHONES',
+    product_name: 'Apple iPhone 16 Pro Max 256GB - Chính Hãng VN/A Titan Sa Mạc',
+    url: 'https://cellphones.com.vn/iphone-16-pro-max.html',
+    price: 34290000,
+    original_price: 34990000,
     is_in_stock: true,
+    stock_status_text: 'Sẵn hàng đủ màu',
+    category: 'PHONE',
     specifications: {
-      CPU: 'Intel Core i5-13500H',
-      RAM: '16 GB DDR4',
-      SSD: '512 GB'
+      'Chipset': 'Apple A18 Pro 6 lõi',
+      'RAM': '8 GB',
+      'Bộ nhớ trong': '256 GB',
+      'Màn hình': '6.9 inch Super Retina XDR OLED 120Hz',
+      'Camera sau': 'Chính 48MP + Góc rộng 48MP + Tele 5x 12MP',
+      'Chất liệu viền': 'Titan cấp 5 hoàn thiện nhám'
     },
-    crawled_at: '2026-10-05T08:00:00Z'
+    crawled_at: '2026-10-07T09:15:20Z'
+  },
+  {
+    id: 'cr-004',
+    source: 'HOANGHA',
+    product_name: 'iPhone 16 Pro Max (256GB) - VN/A Titan Tự Nhiên',
+    url: 'https://hoanghamobile.com/dien-thoai-di-dong/iphone-16-pro-max-256gb',
+    price: 34190000,
+    original_price: 34990000,
+    is_in_stock: false,
+    stock_status_text: 'Tạm hết hàng trực tuyến',
+    category: 'PHONE',
+    specifications: {
+      'Chip': 'Apple A18 Pro',
+      'RAM': '8 GB',
+      'Bộ nhớ trong': '256 GB',
+      'Màn hình': '6.9 inch OLED ProMotion 120Hz',
+      'Pin': 'Hỗ trợ sạc nhanh MagSafe 25W'
+    },
+    crawled_at: '2026-10-07T09:12:10Z'
+  },
+  {
+    id: 'cr-005',
+    source: 'CELLPHONES',
+    product_name: 'Samsung Galaxy S24 Ultra 12GB 256GB Xám Titan',
+    url: 'https://cellphones.com.vn/samsung-galaxy-s24-ultra.html',
+    price: 25990000,
+    original_price: 31990000,
+    is_in_stock: true,
+    stock_status_text: 'Còn hàng',
+    category: 'PHONE',
+    specifications: {
+      'Chipset': 'Snapdragon 8 Gen 3 for Galaxy (4nm)',
+      'RAM': '12 GB',
+      'Bộ nhớ': '256 GB UFS 4.0',
+      'Màn hình': '6.8 inch Dynamic LTPO AMOLED 2X 120Hz 2600 nits',
+      'Bút cảm ứng': 'S-Pen tích hợp có Bluetooth',
+      'Pin': '5000 mAh sạc nhanh 45W'
+    },
+    crawled_at: '2026-10-07T08:50:00Z'
+  },
+  {
+    id: 'cr-006',
+    source: 'HOANGHA',
+    product_name: 'Samsung Galaxy S24 Ultra (12GB/256GB) - Chính hãng',
+    url: 'https://hoanghamobile.com/dien-thoai-di-dong/samsung-galaxy-s24-ultra-12gb-256gb',
+    price: 25790000,
+    original_price: 31990000,
+    is_in_stock: true,
+    stock_status_text: 'Còn hàng tại các chi nhánh',
+    category: 'PHONE',
+    specifications: {
+      'Vi xử lý': 'Qualcomm Snapdragon 8 Gen 3',
+      'RAM': '12 GB',
+      'Bộ nhớ': '256 GB',
+      'Camera': '200MP + 50MP + 12MP + 10MP',
+      'Kháng nước': 'IP68'
+    },
+    crawled_at: '2026-10-07T08:52:15Z'
+  },
+  {
+    id: 'cr-007',
+    source: 'CELLPHONES',
+    product_name: 'Apple MacBook Air 13 inch M3 2024 (8GB RAM / 256GB SSD) Midnight',
+    url: 'https://cellphones.com.vn/macbook-air-m3-13-inch-8gb-256gb.html',
+    price: 25490000,
+    original_price: 27990000,
+    is_in_stock: true,
+    stock_status_text: 'Sẵn hàng',
+    category: 'LAPTOP',
+    specifications: {
+      'Chip': 'Apple M3 8 nhân CPU 8 nhân GPU',
+      'RAM': '8 GB Unified Memory',
+      'SSD': '256 GB',
+      'Màn hình': '13.6 inch Liquid Retina 500 nits',
+      'Trọng lượng': '1.24 kg',
+      'Cổng kết nối': 'MagSafe 3, 2x Thunderbolt / USB 4'
+    },
+    crawled_at: '2026-10-07T07:45:00Z'
+  },
+  {
+    id: 'cr-008',
+    source: 'HOANGHA',
+    product_name: 'MacBook Air 13" M3 (8GB/256GB) - Chính hãng Apple Việt Nam',
+    url: 'https://hoanghamobile.com/laptop/macbook-air-13-m3-8gb-256gb',
+    price: 25290000,
+    original_price: 27990000,
+    is_in_stock: true,
+    stock_status_text: 'Còn hàng',
+    category: 'LAPTOP',
+    specifications: {
+      'CPU': 'Apple M3 8-core',
+      'GPU': '8-core GPU',
+      'RAM': '8 GB',
+      'Ổ cứng': '256 GB SSD',
+      'Màn hình': '13.6 inch Retina True Tone'
+    },
+    crawled_at: '2026-10-07T07:46:12Z'
+  },
+  {
+    id: 'cr-009',
+    source: 'CELLPHONES',
+    product_name: 'Laptop HP Pavilion 14-dv2074TU i5 1235U/16GB/512GB Bạc (7C0V3PA)',
+    url: 'https://cellphones.com.vn/laptop-hp-pavilion-14-dv2074tu.html',
+    price: 16490000,
+    original_price: 17990000,
+    is_in_stock: true,
+    stock_status_text: 'Còn hàng',
+    category: 'LAPTOP',
+    specifications: {
+      'CPU': 'Intel Core i5-1235U 10 nhân 12 luồng',
+      'RAM': '16 GB DDR4 3200',
+      'SSD': '512 GB PCIe NVMe',
+      'Màn hình': '14.0 inch Full HD IPS viền mỏng',
+      'Mã Part': '7C0V3PA'
+    },
+    crawled_at: '2026-10-07T06:10:00Z'
+  },
+  {
+    id: 'cr-010',
+    source: 'CELLPHONES',
+    product_name: 'Xiaomi 14T Pro 5G 12GB 512GB Titan Đen',
+    url: 'https://cellphones.com.vn/xiaomi-14t-pro.html',
+    price: 16490000,
+    original_price: 17990000,
+    is_in_stock: false,
+    stock_status_text: 'Hết hàng tạm thời',
+    category: 'PHONE',
+    specifications: {
+      'Vi xử lý': 'MediaTek Dimensity 9300+ (4nm)',
+      'RAM': '12 GB LPDDR5X',
+      'Bộ nhớ': '512 GB UFS 4.0',
+      'Ống kính': 'Leica Summilux 50MP',
+      'Màn hình': '6.67 inch AMOLED 144Hz 4000 nits',
+      'Sạc nhanh': '120W HyperCharge'
+    },
+    crawled_at: '2026-10-07T08:00:15Z'
+  },
+  {
+    id: 'cr-011',
+    source: 'HOANGHA',
+    product_name: 'Xiaomi 14T Pro (12GB/512GB) - Chính hãng DGW',
+    url: 'https://hoanghamobile.com/dien-thoai-di-dong/xiaomi-14t-pro-12gb-512gb',
+    price: 16290000,
+    original_price: 17990000,
+    is_in_stock: true,
+    stock_status_text: 'Còn hàng',
+    category: 'PHONE',
+    specifications: {
+      'Chip': 'MediaTek Dimensity 9300+',
+      'RAM': '12 GB',
+      'Bộ nhớ': '512 GB',
+      'Màn hình': '6.67 inch 1.5K 144Hz',
+      'Camera': 'Leica 50MP'
+    },
+    crawled_at: '2026-10-07T08:05:00Z'
+  },
+  {
+    id: 'cr-012',
+    source: 'HOANGHA',
+    product_name: 'Laptop Dell Inspiron 15 3520 (25P231) Core i5-1235U / 16GB / 512GB',
+    url: 'https://hoanghamobile.com/laptop/dell-inspiron-3520-25p231',
+    price: 14290000,
+    original_price: 15990000,
+    is_in_stock: true,
+    stock_status_text: 'Còn hàng tại Hà Nội và TP.HCM',
+    category: 'LAPTOP',
+    specifications: {
+      'CPU': 'Intel Core i5-1235U',
+      'RAM': '16 GB DDR4',
+      'Ổ cứng': '512 GB SSD M.2',
+      'Màn hình': '15.6 inch FHD 120Hz',
+      'Part Number': '25P231'
+    },
+    crawled_at: '2026-10-07T07:15:30Z'
   }
 ];
+

@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { SourceStatusCard } from '../components/crawler/SourceStatusCard';
 import { CronSchedulePanel } from '../components/crawler/CronSchedulePanel';
 import { RawDataInspector } from '../components/crawler/RawDataInspector';
+import { CrawlControlPanel } from '../components/CrawlControlPanel';
 import { CrawlResult } from '../types/crawl';
 import { getCrawlResultsApi } from '../api/crawlerApi';
 
@@ -12,8 +13,8 @@ export const CrawlManagerPage: React.FC = () => {
   const fetchResults = async () => {
     setLoading(true);
     try {
-      const data = await getCrawlResultsApi();
-      setCrawlResults(data);
+      const response = await getCrawlResultsApi(undefined, undefined, undefined, undefined, undefined, 0, 500);
+      setCrawlResults(response.items);
     } catch (error) {
       console.error('Lỗi nạp dữ liệu crawler:', error);
     } finally {
@@ -37,6 +38,9 @@ export const CrawlManagerPage: React.FC = () => {
           Crawl Operations
         </h2>
       </div>
+
+      {/* Crawl Control Panel (Full Pipeline) */}
+      <CrawlControlPanel onTriggerSuccess={fetchResults} />
 
       {/* 3 Source Health Cards */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">

@@ -31,9 +31,12 @@ class CellphonesScraper(BaseScraper):
     GRAPHQL_URL = "https://api.cellphones.com.vn/v2/graphql/query"
     BASE_URL = "https://cellphones.com.vn"
 
-    # Regex nhận diện và loại bỏ hàng cũ, hàng trưng bày, đã kích hoạt
+    # Regex nhận diện và loại bỏ hàng cũ, hàng trưng bày, đã kích hoạt, ngừng kinh doanh
     USED_PRODUCT_RE = re.compile(
-        r"da kich hoat|hang cu|doi tra|cu xuoc|cu tray|trung bay|refurbished|cu dep|da qua su dung",
+        r"da kich hoat|đã kích hoạt|hang cu|hàng cũ|doi tra|đổi trả|cu xuoc|cũ xước|cu tray|cũ trầy|"
+        r"trung bay|trưng bày|refurbished|cu dep|cũ đẹp|da qua su dung|đã qua sử dụng|"
+        r"ngung kinh doanh|ngừng kinh doanh|tam het|tạm hết|dung kinh doanh|dừng kinh doanh|"
+        r"khong con kinh doanh|không còn kinh doanh",
         re.IGNORECASE,
     )
 
@@ -141,6 +144,11 @@ class CellphonesScraper(BaseScraper):
 
         current_price = self._clean_price(current_price_str)
         original_price = self._clean_price(old_price_str)
+
+        # Lọc bỏ sản phẩm ngừng kinh doanh (không có giá bán hợp lệ hoặc giá <= 0)
+        if not current_price or current_price <= 0:
+            logger.info(f"[CellphoneS] Bỏ qua sản phẩm ngừng kinh doanh (không có giá hợp lệ): {url}")
+            return None
 
         # 3. Trạng thái còn hàng (Out of stock check)
         is_in_stock = True
@@ -348,6 +356,10 @@ class CellphonesScraper(BaseScraper):
                     else (int(price_val) if price_val and price_val > 0 else None)
                 )
                 original_price = int(price_val) if price_val and price_val > 0 else current_price
+
+                # Lọc bỏ sản phẩm ngừng kinh doanh (không có giá bán hợp lệ hoặc giá <= 0)
+                if not current_price or current_price <= 0:
+                    continue
 
                 # Tình trạng kho
                 stock = filt.get("stock", 0)
