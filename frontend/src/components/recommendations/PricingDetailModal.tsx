@@ -116,6 +116,50 @@ export const PricingDetailModal: React.FC<PricingDetailModalProps> = ({
             <h3 className="text-xs font-bold uppercase tracking-wider text-slate-400 dark:text-slate-500 mb-3 flex items-center gap-1.5">
               <span>1. Thông tin căn cứ &amp; Tín hiệu thị trường</span>
             </h3>
+
+            {/* Thẻ Điểm Composite & Bộ 3 Chỉ Số D-I-C */}
+            <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 mb-3">
+              <div className="p-3 rounded-xl border border-orange-200 dark:border-orange-800/60 bg-orange-50/30 dark:bg-orange-950/20">
+                <div className="text-[10px] text-orange-600 dark:text-orange-400 font-semibold uppercase tracking-wider">
+                  Composite Score
+                </div>
+                <div className="text-base font-black font-mono text-orange-600 dark:text-orange-400 mt-1">
+                  {(recommendation.composite_score ?? 0) > 0 ? `+${(recommendation.composite_score ?? 0).toFixed(2)}` : (recommendation.composite_score ?? 0).toFixed(2)}
+                </div>
+                <div className="text-[10px] text-slate-400 mt-0.5">0.40D + 0.35I + 0.25C</div>
+              </div>
+
+              <div className="p-3 rounded-xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900">
+                <div className="text-[10px] text-slate-500 dark:text-slate-400 font-semibold uppercase tracking-wider">
+                  Demand (Cầu: D)
+                </div>
+                <div className="text-base font-bold font-mono text-slate-800 dark:text-slate-200 mt-1">
+                  {(recommendation.demand_score ?? 0) > 0 ? `+${recommendation.demand_score}` : (recommendation.demand_score ?? 0)}
+                </div>
+                <div className="text-[10px] text-slate-400 mt-0.5">Thang -2 đến +2</div>
+              </div>
+
+              <div className="p-3 rounded-xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900">
+                <div className="text-[10px] text-slate-500 dark:text-slate-400 font-semibold uppercase tracking-wider">
+                  Inventory (Kho: I)
+                </div>
+                <div className="text-base font-bold font-mono text-slate-800 dark:text-slate-200 mt-1">
+                  {(recommendation.inventory_score ?? 0) > 0 ? `+${recommendation.inventory_score}` : (recommendation.inventory_score ?? 0)}
+                </div>
+                <div className="text-[10px] text-slate-400 mt-0.5">Thang -2 đến +2</div>
+              </div>
+
+              <div className="p-3 rounded-xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900">
+                <div className="text-[10px] text-slate-500 dark:text-slate-400 font-semibold uppercase tracking-wider">
+                  Competitor (Đối thủ: C)
+                </div>
+                <div className="text-base font-bold font-mono text-slate-800 dark:text-slate-200 mt-1">
+                  {(recommendation.competitor_score ?? 0) > 0 ? `+${recommendation.competitor_score}` : (recommendation.competitor_score ?? 0)}
+                </div>
+                <div className="text-[10px] text-slate-400 mt-0.5">Thang -2 đến +2</div>
+              </div>
+            </div>
+
             <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
               {/* Kịch bản áp dụng */}
               <div className="p-3.5 rounded-xl border border-blue-200 dark:border-blue-900/60 bg-blue-50/30 dark:bg-blue-950/20 md:col-span-2">
@@ -126,6 +170,24 @@ export const PricingDetailModal: React.FC<PricingDetailModalProps> = ({
                 <div className="text-xs text-slate-800 dark:text-slate-200 font-medium mt-1.5 leading-relaxed">
                   {recommendation.scenario}
                 </div>
+                {recommendation.reasoning_3layers && (
+                  <div className="mt-2.5 pt-2 border-t border-blue-200/60 dark:border-blue-900/40 space-y-1.5 text-[11px] text-slate-600 dark:text-slate-400">
+                    {recommendation.reasoning_3layers.market_demand_factor && (
+                      <div><strong className="text-slate-700 dark:text-slate-300">Nhu cầu:</strong> {recommendation.reasoning_3layers.market_demand_factor}</div>
+                    )}
+                    {recommendation.reasoning_3layers.competitor_factor && (
+                      <div><strong className="text-slate-700 dark:text-slate-300">Đối thủ:</strong> {recommendation.reasoning_3layers.competitor_factor}</div>
+                    )}
+                    {recommendation.reasoning_3layers.floor_protection_factor && (
+                      <div><strong className="text-slate-700 dark:text-slate-300">Bảo vệ giá sàn:</strong> {recommendation.reasoning_3layers.floor_protection_factor}</div>
+                    )}
+                    {recommendation.reasoning_3layers.guardrail_notes && recommendation.reasoning_3layers.guardrail_notes.length > 0 && (
+                      <div className="text-amber-600 dark:text-amber-400 font-medium">
+                        <strong>Cảnh báo Guardrail:</strong> {recommendation.reasoning_3layers.guardrail_notes.join('; ')}
+                      </div>
+                    )}
+                  </div>
+                )}
               </div>
 
               {/* Tồn kho & DOH */}
@@ -143,6 +205,11 @@ export const PricingDetailModal: React.FC<PricingDetailModalProps> = ({
                 <div className="text-[11px] text-slate-500 mt-0.5">
                   Hiện còn: <span className="font-semibold text-slate-700 dark:text-slate-300">{recommendation.inventory_quantity} máy</span>
                 </div>
+                {recommendation.reasoning_3layers?.inventory_factor && (
+                  <div className="mt-2 pt-1.5 border-t border-slate-200 dark:border-slate-700 text-[10px] text-slate-500 leading-normal">
+                    {recommendation.reasoning_3layers.inventory_factor}
+                  </div>
+                )}
               </div>
             </div>
 

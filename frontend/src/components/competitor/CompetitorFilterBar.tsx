@@ -6,6 +6,8 @@ interface CompetitorFilterBarProps {
   setSearchQuery: (query: string) => void;
   sourceFilter: string;
   setSourceFilter: (source: string) => void;
+  categoryFilter?: string;
+  setCategoryFilter?: (category: string) => void;
   stockFilter: string;
   setStockFilter: (status: string) => void;
   sortOrder: string;
@@ -19,6 +21,8 @@ export const CompetitorFilterBar: React.FC<CompetitorFilterBarProps> = ({
   setSearchQuery,
   sourceFilter,
   setSourceFilter,
+  categoryFilter = 'ALL',
+  setCategoryFilter,
   stockFilter,
   setStockFilter,
   sortOrder,
@@ -29,12 +33,14 @@ export const CompetitorFilterBar: React.FC<CompetitorFilterBarProps> = ({
   const isFilteringActive =
     searchQuery.trim() !== '' ||
     sourceFilter !== 'ALL' ||
+    (categoryFilter && categoryFilter !== 'ALL') ||
     stockFilter !== 'ALL' ||
     sortOrder !== 'LATEST';
 
   const handleReset = () => {
     setSearchQuery('');
     setSourceFilter('ALL');
+    if (setCategoryFilter) setCategoryFilter('ALL');
     setStockFilter('ALL');
     setSortOrder('LATEST');
   };
@@ -65,6 +71,22 @@ export const CompetitorFilterBar: React.FC<CompetitorFilterBarProps> = ({
 
         {/* Filter Controls */}
         <div className="flex flex-wrap items-center gap-2.5">
+          {/* Ngành hàng */}
+          {setCategoryFilter && (
+            <div className="flex items-center gap-1.5 bg-slate-50 dark:bg-slate-800 px-2 py-1 rounded-lg border border-slate-200 dark:border-slate-700">
+              <span className="text-[11px] text-slate-400 ml-1">Ngành:</span>
+              <select
+                value={categoryFilter}
+                onChange={(e) => setCategoryFilter(e.target.value)}
+                className="text-xs bg-transparent text-slate-800 dark:text-slate-200 focus:outline-none pr-1 py-1 font-medium cursor-pointer"
+              >
+                <option value="ALL">Mọi danh mục</option>
+                <option value="PHONE">Điện thoại</option>
+                <option value="LAPTOP">Laptop</option>
+              </select>
+            </div>
+          )}
+
           {/* Nguồn đối thủ */}
           <div className="flex items-center gap-1.5 bg-slate-50 dark:bg-slate-800 px-2 py-1 rounded-lg border border-slate-200 dark:border-slate-700">
             <Filter className="w-3.5 h-3.5 text-slate-400 ml-1" />

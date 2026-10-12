@@ -208,3 +208,17 @@ AI BẮT BUỘC phải đọc và áp dụng nghiêm ngặt các quy tắc kỹ 
 4. **Code Review & Security Check:**
    - Rà soát mã nguồn ngay sau khi viết xong, xử lý dứt điểm các lỗi Critical & High.
    - Tuyệt đối không hardcode bí mật (API keys, token, mật khẩu DB) vào code hoặc git commit.
+
+---
+
+## 9. NGUYÊN TẮC THIẾT KẾ GIAO DIỆN (UI DESIGN - NGHIÊM CẤM DÙNG ICON / EMOJI)
+👉 **QUY TẮC BẮT BUỘC: TUYỆT ĐỐI KHÔNG DÙNG ICON, EMOJI TRONG GIAO DIỆN**
+
+Khi thiết kế, xây dựng hoặc chỉnh sửa bất kỳ giao diện nào (HTML, CSS, JavaScript, React/Vue/Svelte, Python Web/Streamlit/Qt):
+1. **Nghiêm cấm tuyệt đối Emoji & Icon trang trí:**
+   - Không chèn emoji hay icon vào nhãn, nút bấm, tiêu đề, menu, badge, thẻ trạng thái, thông báo, modal hay tooltip.
+   - Giữ phong cách thiết kế tối giản, tinh tế, sạch sẽ (clean, minimal, modern typography & color accents) và chuẩn mực doanh nghiệp (enterprise-grade).
+2. **Thể hiện trạng thái và phân cấp thông tin:**
+   - Sử dụng màu sắc tinh tế (color coding: viền/nền/chữ) và phân cấp kiểu chữ (typography: font-weight, size, spacing) để biểu đạt trực quan trạng thái thay vì dùng biểu tượng minh họa.
+   - Sử dụng ngôn ngữ chuẩn xác, súc tích.
+

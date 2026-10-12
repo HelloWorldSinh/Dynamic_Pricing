@@ -52,6 +52,53 @@ def get_crawl_task_status(task_id: str):
     return task
 
 
+def _build_category_filter(category: str):
+    from sqlalchemy import or_, and_
+    from app.models.product import Product
+    from app.models.sku_mapping import SkuMapping
+
+    cat = category.strip().upper()
+    if cat in ("LAPTOP", "NOTEBOOK", "PC"):
+        laptop_keywords = [
+            "%laptop%", "%macbook%", "%vivobook%", "%zenbook%", "%thinkpad%",
+            "%ideapad%", "%legion%", "%tuf%", "%nitro%", "%loq%", "%victus%",
+            "%predator%", "%inspiron%", "%vostro%", "%latitude%", "%yoga%",
+            "%swift%", "%pavilion%", "%envy%", "%spectre%", "%omen%", "%surface%"
+        ]
+        return or_(
+            *[CrawlResult.raw_name.ilike(k) for k in laptop_keywords],
+            *[CrawlResult.url.ilike(k) for k in ["%/laptop%", "%laptop%"]],
+            CrawlResult.mappings.any(SkuMapping.product.has(Product.category == "LAPTOP"))
+        )
+    elif cat in ("PHONE", "SMARTPHONE", "DIEN-THOAI"):
+        phone_keywords = [
+            "%iphone%", "%galaxy%", "%redmi%", "%oppo%", "%realme%",
+            "%dien-thoai%", "%poco%", "%infinix%", "%tecno%"
+        ]
+        return or_(
+            *[CrawlResult.raw_name.ilike(k) for k in phone_keywords],
+            *[CrawlResult.url.ilike(k) for k in ["%/dtdd%", "%/dien-thoai%"]],
+            and_(
+                CrawlResult.raw_name.ilike("%xiaomi%"),
+                ~CrawlResult.raw_name.ilike("%laptop%"),
+                ~CrawlResult.raw_name.ilike("%pad%")
+            ),
+            and_(
+                CrawlResult.raw_name.ilike("%samsung%"),
+                ~CrawlResult.raw_name.ilike("%laptop%"),
+                ~CrawlResult.raw_name.ilike("%tab%")
+            ),
+            CrawlResult.mappings.any(SkuMapping.product.has(Product.category == "PHONE"))
+        )
+    elif cat in ("TABLET", "MAY-TINH-BANG"):
+        tablet_keywords = ["%ipad%", "%tablet%", "%may-tinh-bang%", "%galaxy tab%"]
+        return or_(
+            *[CrawlResult.raw_name.ilike(k) for k in tablet_keywords],
+            CrawlResult.mappings.any(SkuMapping.product.has(Product.category == "TABLET"))
+        )
+    return None
+
+
 @router.get(
     "/results",
     summary="Xem danh sách kết quả cào mới nhất",
@@ -72,6 +119,11 @@ def get_crawl_results(
     
     if source and source.upper() != 'ALL':
         query = query.filter(CrawlResult.source == source.upper())
+
+    if category and category.upper() != 'ALL':
+        cat_filter = _build_category_filter(category)
+        if cat_filter is not None:
+            query = query.filter(cat_filter)
         
     if stock_status and stock_status != 'ALL':
         is_in_stock = (stock_status == 'IN_STOCK')
@@ -116,9 +168,10 @@ def get_crawl_stats(
     from sqlalchemy import func, or_
     
     query = db.query(CrawlResult)
-    # Nếu DB schema có cột category, ta có thể filter. 
-    # Nhưng hiện CrawlResult không có cột category rõ ràng (dựa vào spec hoặc url/raw_name).
-    # Tạm thời để đơn giản, ta tính tổng cục bộ nếu không map được category chuẩn.
+    if category and category.upper() != 'ALL':
+        cat_filter = _build_category_filter(category)
+        if cat_filter is not None:
+            query = query.filter(cat_filter)
     
     total = query.count()
     

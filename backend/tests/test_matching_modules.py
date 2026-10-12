@@ -207,3 +207,47 @@ def test_matching_engine_color_rules():
     assert res_no_color.status == MatchStatus.APPROVED
     assert res_no_color.fpt_sku_id == "SKU_IPHONE_BLACK"
 
+
+def test_different_brand_must_not_match():
+    """Kiểm tra sản phẩm khác thương hiệu (VD: TCL vs Tecno) tuyệt đối không được ghép cặp."""
+    # 1. Kiểm tra nhận diện brand mở rộng
+    assert FeatureExtractor.detect_brand("TCL 40 SE (4GB/128GB)") == "tcl"
+    assert FeatureExtractor.detect_brand("Infinix Note 40 Pro") == "infinix"
+    assert FeatureExtractor.detect_brand("Itel A70 128GB") == "itel"
+
+    skus = [
+        SkuFeatures(
+            sku_id="SKU_TECNO_SPARK_50",
+            sku_name="Tecno Spark 50 4GB 128GB",
+            clean_name="tecno spark 50 4gb 128gb",
+            brand="tecno",
+            parts=[],
+            model_id=None,
+            ram=["4gb"],
+            rom=["128gb"],
+        )
+    ]
+    index = SkuIndex(skus)
+    engine = MatchingEngine(index)
+
+    # 2. Khác thương hiệu rõ ràng (TCL vs Tecno)
+    res1 = engine.match_single_item(
+        scraped_name="TCL 40 SE (4GB/128GB)",
+        competitor_price=2490000,
+        fpt_prices={"SKU_TECNO_SPARK_50": 2690000}
+    )
+    assert res1.status == MatchStatus.UNMATCHED
+    assert res1.fpt_sku_id == "N/A"
+    assert res1.confidence_score < 0.75
+
+    # 3. Thương hiệu đối thủ không có trong từ điển nhưng FPT có brand rõ ràng
+    res2 = engine.match_single_item(
+        scraped_name="BrandX Phone 40 SE (4GB/128GB)",
+        competitor_price=2490000,
+        fpt_prices={"SKU_TECNO_SPARK_50": 2690000}
+    )
+    assert res2.status == MatchStatus.UNMATCHED
+    assert res2.fpt_sku_id == "N/A"
+    assert res2.confidence_score < 0.75
+
+

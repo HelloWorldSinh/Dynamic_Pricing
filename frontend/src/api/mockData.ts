@@ -186,7 +186,11 @@ export const mockRecommendations: PricingRecommendation[] = [
     hoangha_in_stock: true,
     scenario: 'Kịch bản 4: DOH = 54d (>45d) & CellphoneS còn hàng -> Khuyến nghị hạ giá bám sát đối thủ',
     margin_impact_percent: -2.3,
-    status: 'PENDING'
+    status: 'PENDING',
+    composite_score: -0.85,
+    demand_score: 0.0,
+    inventory_score: -2.0,
+    competitor_score: -1.0,
   },
   {
     id: 'rec-002',
@@ -210,7 +214,11 @@ export const mockRecommendations: PricingRecommendation[] = [
     hoangha_in_stock: true,
     scenario: 'Kịch bản 4 (Floor Guard): Đối thủ 14.290.000đ thấp hơn giá sàn -> Tự động cap về giá sàn 14.595.000đ',
     margin_impact_percent: -1.8,
-    status: 'PENDING'
+    status: 'PENDING',
+    composite_score: -1.25,
+    demand_score: -1.0,
+    inventory_score: -2.0,
+    competitor_score: -2.0,
   },
   {
     id: 'rec-003',
@@ -234,7 +242,11 @@ export const mockRecommendations: PricingRecommendation[] = [
     hoangha_in_stock: true,
     scenario: 'Kịch bản 2: DOH thấp (18d), FPT cao hơn 2% -> Đề xuất giảm nhẹ 500k giữ lợi thế thương hiệu',
     margin_impact_percent: -0.8,
-    status: 'PENDING'
+    status: 'PENDING',
+    composite_score: 0.65,
+    demand_score: 1.0,
+    inventory_score: 1.0,
+    competitor_score: -1.0,
   }
 ];
 

@@ -13,7 +13,7 @@ interface CompetitorFeedsPageProps {
 }
 
 export const CompetitorFeedsPage: React.FC<CompetitorFeedsPageProps> = ({
-  categoryFilter = 'ALL',
+  categoryFilter: propCategoryFilter = 'ALL',
 }) => {
   const [items, setItems] = useState<CrawlResult[]>([]);
   const [stats, setStats] = useState<CrawlStats | null>(null);
@@ -21,10 +21,16 @@ export const CompetitorFeedsPage: React.FC<CompetitorFeedsPageProps> = ({
   const [loading, setLoading] = useState(true);
 
   // Bộ lọc
+  const [categoryFilter, setCategoryFilter] = useState(propCategoryFilter);
   const [searchQuery, setSearchQuery] = useState('');
   const [sourceFilter, setSourceFilter] = useState('ALL');
   const [stockFilter, setStockFilter] = useState('ALL');
   const [sortOrder, setSortOrder] = useState('LATEST');
+
+  // Đồng bộ khi prop thay đổi từ Navbar
+  useEffect(() => {
+    setCategoryFilter(propCategoryFilter);
+  }, [propCategoryFilter]);
 
   // Phân trang
   const [currentPage, setCurrentPage] = useState(1);
@@ -107,6 +113,8 @@ export const CompetitorFeedsPage: React.FC<CompetitorFeedsPageProps> = ({
         setSearchQuery={setSearchQuery}
         sourceFilter={sourceFilter}
         setSourceFilter={setSourceFilter}
+        categoryFilter={categoryFilter}
+        setCategoryFilter={setCategoryFilter}
         stockFilter={stockFilter}
         setStockFilter={setStockFilter}
         sortOrder={sortOrder}

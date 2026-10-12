@@ -5,10 +5,14 @@ import { NavTab } from './Sidebar';
 
 interface NavbarProps {
   activeTab: NavTab;
+  categoryFilter?: string;
+  onCategoryChange?: (category: string) => void;
 }
 
 export const Navbar: React.FC<NavbarProps> = ({
   activeTab,
+  categoryFilter = 'ALL',
+  onCategoryChange,
 }) => {
   const { theme, toggleTheme } = useTheme();
 
@@ -46,6 +50,39 @@ export const Navbar: React.FC<NavbarProps> = ({
 
       {/* Action Controls */}
       <div className="flex items-center gap-3">
+        {/* Category Filter Selector */}
+        <div className="flex items-center bg-slate-100 dark:bg-slate-800 p-0.5 rounded-lg border border-slate-200 dark:border-slate-700 text-xs font-medium">
+          <button
+            onClick={() => onCategoryChange?.('ALL')}
+            className={`px-3 py-1 rounded-md transition ${
+              categoryFilter === 'ALL'
+                ? 'bg-white dark:bg-slate-900 text-orange-600 dark:text-orange-400 font-semibold shadow-sm'
+                : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-200'
+            }`}
+          >
+            Tất cả
+          </button>
+          <button
+            onClick={() => onCategoryChange?.('PHONE')}
+            className={`px-3 py-1 rounded-md transition ${
+              categoryFilter === 'PHONE'
+                ? 'bg-white dark:bg-slate-900 text-orange-600 dark:text-orange-400 font-semibold shadow-sm'
+                : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-200'
+            }`}
+          >
+            Điện thoại
+          </button>
+          <button
+            onClick={() => onCategoryChange?.('LAPTOP')}
+            className={`px-3 py-1 rounded-md transition ${
+              categoryFilter === 'LAPTOP'
+                ? 'bg-white dark:bg-slate-900 text-orange-600 dark:text-orange-400 font-semibold shadow-sm'
+                : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-200'
+            }`}
+          >
+            Laptop
+          </button>
+        </div>
 
         {/* Backend Seam Status */}
         <div className="hidden md:flex items-center gap-2 px-2.5 py-1.5 rounded-lg border border-slate-200 dark:border-slate-800 text-xs text-slate-600 dark:text-slate-300">

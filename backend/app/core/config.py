@@ -8,6 +8,9 @@ BACKEND_DIR = Path(__file__).resolve().parent.parent.parent
 DEFAULT_DB_PATH = BACKEND_DIR / "dynamic_pricing.db"
 
 
+ENV_FILE_PATH = BACKEND_DIR / ".env"
+
+
 class Settings(BaseSettings):
     PROJECT_NAME: str = "Dynamic Pricing System API"
     API_V1_STR: str = "/api/v1"
@@ -16,7 +19,13 @@ class Settings(BaseSettings):
     DEBOUNCE_SECONDS: int = 30
 
     # CORS
-    CORS_ORIGINS: Union[List[str], str] = ["http://localhost:3000", "http://localhost:5173", "http://127.0.0.1:5173"]
+    CORS_ORIGINS: Union[List[str], str] = [
+        "http://localhost:3000",
+        "http://localhost:5173",
+        "http://127.0.0.1:5173",
+        "http://localhost:5174",
+        "http://127.0.0.1:5174",
+    ]
 
     @field_validator("CORS_ORIGINS", mode="before")
     @classmethod
@@ -30,7 +39,11 @@ class Settings(BaseSettings):
                 return [v]
         return v
 
-    model_config = SettingsConfigDict(env_file=".env", env_file_encoding="utf-8", extra="ignore")
+    model_config = SettingsConfigDict(
+        env_file=str(ENV_FILE_PATH) if ENV_FILE_PATH.exists() else ".env",
+        env_file_encoding="utf-8",
+        extra="ignore",
+    )
 
 
 settings = Settings()

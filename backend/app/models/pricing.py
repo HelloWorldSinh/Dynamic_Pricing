@@ -36,7 +36,12 @@ class PriceRecommendation(Base):
 
     # Relationships
     product = relationship("Product", back_populates="price_recommendations")
-    audit_logs = relationship("PricingAuditLog", back_populates="price_recommendation", cascade="all, delete-orphan")
+    audit_logs = relationship(
+        "PricingAuditLog",
+        primaryjoin="and_(PricingAuditLog.entity_id == PriceRecommendation.id, PricingAuditLog.entity_type == 'price_recommendations')",
+        foreign_keys="PricingAuditLog.entity_id",
+        cascade="all, delete-orphan",
+    )
 
 
 class PriceHistory(Base):
@@ -62,10 +67,15 @@ class PricingAuditLog(Base):
     actor = Column(String(100), nullable=False)                         # Tên người dùng thao tác
     action = Column(String(50), nullable=False)                         # APPROVE_PRICE | REJECT_PRICE | TRIGGER_CRAWL | APPROVE_MAPPING
     entity_type = Column(String(50), nullable=False)                    # price_recommendations | sku_mappings
-    entity_id = Column(GUID(), ForeignKey("price_recommendations.id"), nullable=True)
+    entity_id = Column(GUID(), nullable=True, index=True)
     old_value = Column(JSON, nullable=True)
     new_value = Column(JSON, nullable=True)
     created_at = Column(DateTime, default=lambda: datetime.now(timezone.utc), nullable=False)
 
     # Relationships
-    price_recommendation = relationship("PriceRecommendation", back_populates="audit_logs")
+    price_recommendation = relationship(
+        "PriceRecommendation",
+        primaryjoin="and_(PricingAuditLog.entity_id == PriceRecommendation.id, PricingAuditLog.entity_type == 'price_recommendations')",
+        foreign_keys=[entity_id],
+        overlaps="audit_logs",
+    )

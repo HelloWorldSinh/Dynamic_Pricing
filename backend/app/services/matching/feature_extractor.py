@@ -20,7 +20,9 @@ class FeatureExtractor:
         "oppo": "oppo", "vivo": "vivo", "realme": "realme", "tecno": "tecno",
         "tcl": "tcl", "zte": "zte",
         "acer": "acer", "asus": "asus", "lenovo": "lenovo", "dell": "dell",
-        "hp": "hp", "msi": "msi", "honor": "honor"
+        "hp": "hp", "msi": "msi", "honor": "honor",
+        "tcl": "tcl", "infinix": "infinix", "itel": "itel",
+        "nokia": "nokia", "masstel": "masstel", "sony": "sony", "huawei": "huawei"
     }
 
     # Bảng chuẩn hóa màu sắc sản phẩm
@@ -200,17 +202,20 @@ class FeatureExtractor:
         # 7. Vivo
         vivo = re.search(r"\bvivo\s*(v\s*\d+[a-z]?|y\s*\d+[a-z]?|x\s*\d+[a-z]?|t\s*\d+[a-z]?)\b", t)
         if vivo:
-            return f"vivo_{re.sub(r'\s+', '', vivo.group(1).lower())}"
+            v_val = re.sub(r"\s+", "", vivo.group(1).lower())
+            return f"vivo_{v_val}"
 
         # 8. Realme
         realme = re.search(r"\brealme\s*(c\s*\d+[a-z]?|note\s*\d+[a-z]?|\d+[a-z]?)\b", t)
         if realme:
-            return f"realme_{re.sub(r'\s+', '', realme.group(1).lower())}"
+            r_val = re.sub(r"\s+", "", realme.group(1).lower())
+            return f"realme_{r_val}"
 
         # 9. Honor
         honor = re.search(r"\bhonor\s*(x\s*\d+[a-z]?|\d+[a-z]?)\b", t)
         if honor:
-            return f"honor_{re.sub(r'\s+', '', honor.group(1).lower())}"
+            h_val = re.sub(r"\s+", "", honor.group(1).lower())
+            return f"honor_{h_val}"
 
         # 10. Laptop Series
         for line in cls.LAPTOP_LINES:

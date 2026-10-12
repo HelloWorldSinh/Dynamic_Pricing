@@ -59,8 +59,19 @@ def ingest_scraped_json(db, data_dir: Path):
             existing_urls.add(url)
             price = item.get("Giá bán đối thủ (VND)") or item.get("current_price")
             orig_price = item.get("Giá niêm yết (VND)") or item.get("original_price")
-            stock_text = item.get("Còn hàng", "Còn hàng")
-            is_stock = True if stock_text == "Còn hàng" or item.get("is_in_stock", True) else False
+            stock_text = item.get("Còn hàng") or item.get("stock_status_text") or ("Còn hàng" if item.get("is_in_stock", True) else "Hết hàng")
+            if "is_in_stock" in item:
+                is_stock = bool(item["is_in_stock"])
+            elif "Còn hàng" in item:
+                val = item["Còn hàng"]
+                if isinstance(val, bool):
+                    is_stock = val
+                elif isinstance(val, str):
+                    is_stock = val.strip().lower() in ("còn hàng", "true", "1", "available", "in_stock")
+                else:
+                    is_stock = bool(val)
+            else:
+                is_stock = True
             name = item.get("Tên sản phẩm cào được") or item.get("product_name") or "Unknown"
 
             c_res = CrawlResult(

@@ -49,6 +49,7 @@ export const RecommendationTable: React.FC<RecommendationTableProps> = ({
               <th className="py-3 px-4">Sản phẩm &amp; Tồn kho</th>
               <th className="py-3 px-3 text-right">Giá hiện tại</th>
               <th className="py-3 px-3 text-center">Đề xuất mới</th>
+              <th className="py-3 px-3 text-center">Composite &amp; D-I-C</th>
               <th className="py-3 px-3 text-right">Giá sàn bảo vệ</th>
               <th className="py-3 px-3 text-center">Biên lợi nhuận</th>
               <th className="py-3 px-4 text-center">Thao tác</th>
@@ -114,6 +115,32 @@ export const RecommendationTable: React.FC<RecommendationTableProps> = ({
                         <span>Floor Cap</span>
                       </div>
                     )}
+                  </td>
+
+                  {/* Composite Score & DIC signals */}
+                  <td className="py-3 px-3 text-center">
+                    <div className="flex flex-col items-center gap-1">
+                      <span
+                        className={`text-[11px] font-mono font-bold px-2 py-0.5 rounded border ${
+                          (item.composite_score ?? 0) >= 0.75
+                            ? 'bg-emerald-50 dark:bg-emerald-950/40 text-emerald-600 dark:text-emerald-400 border-emerald-200 dark:border-emerald-800'
+                            : (item.composite_score ?? 0) <= -0.75
+                            ? 'bg-rose-50 dark:bg-rose-950/40 text-rose-600 dark:text-rose-400 border-rose-200 dark:border-rose-800'
+                            : (item.composite_score ?? 0) !== 0
+                            ? 'bg-amber-50 dark:bg-amber-950/40 text-amber-600 dark:text-amber-400 border-amber-200 dark:border-amber-800'
+                            : 'bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 border-slate-200 dark:border-slate-700'
+                        }`}
+                      >
+                        Score: {(item.composite_score ?? 0) > 0 ? `+${(item.composite_score ?? 0).toFixed(2)}` : (item.composite_score ?? 0).toFixed(2)}
+                      </span>
+                      <div className="flex items-center gap-1 text-[10px] font-mono text-slate-500 dark:text-slate-400">
+                        <span title="Demand Score (Nhu cầu)">D:{(item.demand_score ?? 0) > 0 ? `+${item.demand_score}` : (item.demand_score ?? 0)}</span>
+                        <span>•</span>
+                        <span title="Inventory Score (Tồn kho)">I:{(item.inventory_score ?? 0) > 0 ? `+${item.inventory_score}` : (item.inventory_score ?? 0)}</span>
+                        <span>•</span>
+                        <span title="Competitor Score (Đối thủ)">C:{(item.competitor_score ?? 0) > 0 ? `+${item.competitor_score}` : (item.competitor_score ?? 0)}</span>
+                      </div>
+                    </div>
                   </td>
 
                   {/* Floor Price */}

@@ -49,6 +49,13 @@ SKU and product matching MUST strictly follow two-tiered processing:
 - No hardcoded source labels (e.g., fallback `"CELLPHONES"`) in shared
   matching/pricing modules.
 
+### VI. UI Design Guidelines (Strictly No Icons / No Emojis)
+- Absolute prohibition of icons (Lucide, FontAwesome, etc.) and emojis in any UI
+  components (HTML/CSS/JS/React/Vue/Python Web/Qt).
+- Minimalist, clean, and enterprise-grade visual hierarchy: use elegant color
+  coding, refined typography (font-size, font-weight, line-height), and concise
+  micro-copy instead of decorative symbols or visual icons.
+
 ## Technology Stack & Constraints
 
 - **Runtime:** Python 3.11+
@@ -91,4 +98,5 @@ commits, and AI-generated code changes MUST comply with these principles.
 - All PRs and code reviews MUST verify compliance with this Constitution.
 - Complexity MUST be justified; default to the simplest solution (YAGNI).
 
-**Version**: 1.0.0 | **Ratified**: 2026-10-01 | **Last Amended**: 2026-10-01
+**Version**: 1.1.0 | **Ratified**: 2026-10-01 | **Last Amended**: 2026-10-08
+

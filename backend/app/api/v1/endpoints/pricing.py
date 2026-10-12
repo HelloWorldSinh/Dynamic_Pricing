@@ -127,6 +127,25 @@ def generate_recommendations(
     return PriceRecommendationListResponse(total=len(items), items=items)
 
 
+def _mapping_rank_key(m: SkuMapping) -> tuple:
+    """Xếp hạng độ ưu tiên của bản ghi đối soát để chọn ứng viên đại diện tốt nhất:
+    1. Có giá hợp lệ > 0
+    2. Còn hàng (is_in_stock == True)
+    3. Trạng thái APPROVED > PENDING
+    4. Độ tin cậy (confidence_score) cao hơn
+    5. Giá cạnh tranh hơn (thấp hơn) nếu cùng chất lượng
+    """
+    c = m.crawl_result
+    if not c:
+        return (-1, -1, -1, -1.0, 0)
+    has_price = 1 if (c.current_price and c.current_price > 0) else 0
+    in_stock = 1 if c.is_in_stock else 0
+    is_approved = 1 if m.status == "APPROVED" else 0
+    conf = float(m.confidence_score or 0.0)
+    price_val = int(c.current_price or 0)
+    return (has_price, in_stock, is_approved, conf, -price_val if price_val > 0 else -999999999)
+
+
 def _enrich_recommendation(rec: PriceRecommendation, db: Session) -> PriceRecommendationResponse:
     prod = rec.product or db.query(Product).filter(Product.id == rec.fpt_product_id).first()
     inv = prod.inventory if prod else None
@@ -149,21 +168,18 @@ def _enrich_recommendation(rec: PriceRecommendation, db: Session) -> PriceRecomm
             SkuMapping.fpt_product_id == prod.id,
             SkuMapping.status.in_(["APPROVED", "PENDING"])
         ).all()
-        for m in mappings:
-            c = m.crawl_result
-            if c:
-                if c.source.upper() == "CELLPHONES":
-                    cellphones_price = int(c.current_price) if c.current_price else None
-                    cellphones_in_stock = bool(c.is_in_stock)
-                elif c.source.upper() == "HOANGHA":
-                    hoangha_price = int(c.current_price) if c.current_price else None
-                    hoangha_in_stock = bool(c.is_in_stock)
+        cps_maps = [m for m in mappings if m.crawl_result and m.crawl_result.source.upper() == "CELLPHONES"]
+        hh_maps = [m for m in mappings if m.crawl_result and m.crawl_result.source.upper() == "HOANGHA"]
 
-    if rec.competitor_min_price:
-        if hoangha_price and hoangha_price == rec.competitor_min_price:
-            comp_name = "Hoàng Hà Mobile"
-        else:
-            comp_name = "CellphoneS"
+        if cps_maps:
+            best_cps = max(cps_maps, key=_mapping_rank_key).crawl_result
+            cellphones_price = int(best_cps.current_price) if (best_cps.current_price and best_cps.current_price > 0) else None
+            cellphones_in_stock = bool(best_cps.is_in_stock)
+
+        if hh_maps:
+            best_hh = max(hh_maps, key=_mapping_rank_key).crawl_result
+            hoangha_price = int(best_hh.current_price) if (best_hh.current_price and best_hh.current_price > 0) else None
+            hoangha_in_stock = bool(best_hh.is_in_stock)
 
     margin_impact = round(float(rec.price_delta_pct) * 100, 2)
 
@@ -388,35 +404,53 @@ def get_pricing_matrix(
             SkuMapping.status.in_(["APPROVED", "PENDING"]),
         ).all()
 
+        cps_mappings = [m for m in mappings if m.crawl_result and m.crawl_result.source.upper() == "CELLPHONES"]
+        hh_mappings = [m for m in mappings if m.crawl_result and m.crawl_result.source.upper() == "HOANGHA"]
+
         cellphones_info: Optional[CompetitorPriceInfo] = None
         hoangha_info: Optional[CompetitorPriceInfo] = None
         highest_conf = 0.0
         primary_match_tier = "EXACT_PART_NUMBER"
 
-        comp_prices = []
         for m in mappings:
-            c_res = m.crawl_result
-            if not c_res:
-                continue
             if m.confidence_score > highest_conf:
                 highest_conf = m.confidence_score
                 primary_match_tier = m.match_type
 
-            c_info = CompetitorPriceInfo(
-                source=c_res.source.upper(),
+        if cps_mappings:
+            best_cps_m = max(cps_mappings, key=_mapping_rank_key)
+            c_res = best_cps_m.crawl_result
+            cellphones_info = CompetitorPriceInfo(
+                source="CELLPHONES",
                 price=int(c_res.current_price or 0),
                 url=c_res.url or "",
                 is_in_stock=bool(c_res.is_in_stock),
                 product_name=c_res.raw_name,
-                matched_at=m.matched_at.isoformat() if m.matched_at else None,
+                matched_at=best_cps_m.matched_at.isoformat() if best_cps_m.matched_at else None,
             )
-            if c_res.source.upper() == "CELLPHONES":
-                cellphones_info = c_info
-            elif c_res.source.upper() == "HOANGHA":
-                hoangha_info = c_info
 
-            if c_res.current_price and c_res.current_price > 0:
-                comp_prices.append(int(c_res.current_price))
+        if hh_mappings:
+            best_hh_m = max(hh_mappings, key=_mapping_rank_key)
+            c_res = best_hh_m.crawl_result
+            hoangha_info = CompetitorPriceInfo(
+                source="HOANGHA",
+                price=int(c_res.current_price or 0),
+                url=c_res.url or "",
+                is_in_stock=bool(c_res.is_in_stock),
+                product_name=c_res.raw_name,
+                matched_at=best_hh_m.matched_at.isoformat() if best_hh_m.matched_at else None,
+            )
+
+        # Ưu tiên lấy giá cạnh tranh từ các nguồn CÒN HÀNG
+        comp_prices = []
+        for info in [cellphones_info, hoangha_info]:
+            if info and info.price > 0 and info.is_in_stock:
+                comp_prices.append(info.price)
+        # Nếu không có đối thủ nào còn hàng, fallback lấy giá tham chiếu đối thủ (nếu có giá > 0)
+        if not comp_prices:
+            for info in [cellphones_info, hoangha_info]:
+                if info and info.price > 0:
+                    comp_prices.append(info.price)
 
         fpt_price = int(prod.base_retail_price or 0)
         min_comp_price = min(comp_prices) if comp_prices else fpt_price

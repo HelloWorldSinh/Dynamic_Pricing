@@ -54,6 +54,17 @@ export interface PricingRecommendation {
   scenario: string; // e.g., "Kịch bản 4: DOH > 45 ngày & CellphoneS còn hàng"
   margin_impact_percent: number;
   status: 'PENDING' | 'APPROVED' | 'REJECTED';
+  composite_score?: number;
+  demand_score?: number;
+  inventory_score?: number;
+  competitor_score?: number;
+  reasoning_3layers?: {
+    competitor_factor?: string;
+    inventory_factor?: string;
+    market_demand_factor?: string;
+    floor_protection_factor?: string;
+    guardrail_notes?: string[];
+  };
   reviewed_at?: string;
   reviewed_by?: string;
 }

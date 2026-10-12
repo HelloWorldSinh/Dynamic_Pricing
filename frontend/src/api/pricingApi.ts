@@ -62,6 +62,11 @@ export async function getRecommendationsApi(): Promise<PricingRecommendation[]> 
       scenario: item.scenario || item.scenario_applied || item.scenario_name || 'Kịch bản đề xuất tự động',
       margin_impact_percent: Number(item.margin_impact_percent) || 0,
       status: (item.status?.toUpperCase() || 'PENDING') as 'PENDING' | 'APPROVED' | 'REJECTED',
+      composite_score: item.composite_score !== undefined ? Number(item.composite_score) : 0,
+      demand_score: item.demand_score !== undefined ? Number(item.demand_score) : 0,
+      inventory_score: item.inventory_score !== undefined ? Number(item.inventory_score) : 0,
+      competitor_score: item.competitor_score !== undefined ? Number(item.competitor_score) : 0,
+      reasoning_3layers: item.reasoning_3layers || {},
       reviewed_at: item.reviewed_at ? String(item.reviewed_at) : undefined,
       reviewed_by: item.reviewed_by ? String(item.reviewed_by) : undefined,
     }));

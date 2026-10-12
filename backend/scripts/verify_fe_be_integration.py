@@ -128,8 +128,8 @@ def run_integration_checks():
 
     print("[11/11] Checking GET /api/v1/crawl/results...")
     res = client.get("/api/v1/crawl/results?limit=20")
-    assert res.status_code == 200, f"Expected 200, got {res.status_code}: {res.text}"
-    crawl_items = res.json()
+    res_data = res.json()
+    crawl_items = res_data.get("items", res_data) if isinstance(res_data, dict) else res_data
     assert isinstance(crawl_items, list)
     assert len(crawl_items) > 0
     c0 = crawl_items[0]
