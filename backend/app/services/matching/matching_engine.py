@@ -16,7 +16,7 @@ class MatchingEngine:
     CONFIDENCE_EXACT = 1.0
     CONFIDENCE_APPROVED_THRESHOLD = 0.85
     CONFIDENCE_MIN_THRESHOLD = 0.75
-    CONFIDENCE_PENDING_CEILING = 0.79
+    CONFIDENCE_PENDING_CEILING = 0.84
 
     def __init__(self, sku_index: SkuIndex):
         self.sku_index = sku_index
@@ -62,71 +62,78 @@ class MatchingEngine:
             c_clean = FeatureExtractor.clean_product_name(scraped_name)
             scraped_brand = FeatureExtractor.detect_brand(scraped_name)
             scraped_model_id = FeatureExtractor.extract_model_identifier(scraped_name)
+            scraped_color = FeatureExtractor.extract_color(scraped_name)
 
-            s_ram = FeatureExtractor.extract_ram(c_clean)
-            s_rom = FeatureExtractor.extract_storage(c_clean)
-            s_ram_set = set(s_ram)
-            s_rom_set = set(s_rom)
-            is_series_generic = "series" in c_clean.lower()
+            # Ràng buộc cốt lõi: Bắt buộc nhận diện được Brand và Model ID
+            if scraped_brand and scraped_model_id:
+                s_ram = FeatureExtractor.extract_ram(c_clean)
+                s_rom = FeatureExtractor.extract_storage(c_clean)
+                s_ram_set = set(s_ram)
+                s_rom_set = set(s_rom)
+                is_series_generic = "series" in c_clean.lower()
 
-            # Lấy danh sách ứng viên đã rút gọn theo Brand qua Brand Bucketing
-            candidates = self.sku_index.get_candidates(scraped_brand)
+                # Lấy danh sách ứng viên đã rút gọn theo Brand qua Brand Bucketing
+                candidates = self.sku_index.get_candidates(scraped_brand)
 
-            for item in candidates:
-                dim_sku_id = item.sku_id
-                dim_name = item.sku_name
-                dim_clean = item.clean_name
-                dim_brand = item.brand
-                dim_model_id = item.model_id
+                for item in candidates:
+                    dim_sku_id = item.sku_id
+                    dim_name = item.sku_name
+                    dim_clean = item.clean_name
+                    dim_brand = item.brand
+                    dim_model_id = item.model_id
+                    dim_color = item.color
 
-                # Ràng buộc 1: Khác thương hiệu thì bỏ qua ngay
-                if scraped_brand and dim_brand and scraped_brand != dim_brand:
-                    continue
-
-                # Ràng buộc 2: Bắt buộc cùng Model Identifier nếu cả 2 bên nhận diện được model
-                if scraped_model_id and dim_model_id and scraped_model_id != dim_model_id:
-                    continue
-
-                if scraped_brand in ["apple", "samsung", "oppo", "xiaomi"]:
-                    if (scraped_model_id and not dim_model_id) or (not scraped_model_id and dim_model_id):
+                    # Ràng buộc 1: Bắt buộc cùng thương hiệu
+                    if not dim_brand or scraped_brand != dim_brand:
                         continue
-                elif scraped_model_id and not dim_model_id:
-                    continue
 
-                dim_ram = item.ram
-                dim_rom = item.rom
+                    # Ràng buộc 2: Bắt buộc cùng Model Identifier
+                    if not dim_model_id or scraped_model_id != dim_model_id:
+                        continue
 
-                # Ràng buộc 3: Bắt buộc cùng ROM cho điện thoại nếu cả 2 bên đều có thông số ROM
-                if scraped_brand in ["apple", "samsung", "oppo", "xiaomi"]:
+                    dim_ram = item.ram
+                    dim_rom = item.rom
+
+                    # Ràng buộc 3: Bắt buộc cùng ROM nếu cả 2 bên đều có thông số ROM
                     if s_rom and dim_rom and s_rom_set != set(dim_rom):
                         continue
 
-                # Tính độ tương đồng chuỗi cơ sở
-                ratio = SequenceMatcher(None, c_clean, dim_clean).ratio()
+                    # Ràng buộc 4: Bắt buộc cùng RAM nếu cả 2 bên đều có thông số RAM
+                    if s_ram and dim_ram and s_ram_set != set(dim_ram):
+                        continue
 
-                bonus = 0.0
-                if s_ram and dim_ram and s_ram_set == set(dim_ram):
-                    bonus += 0.1
-                if s_rom and dim_rom and s_rom_set == set(dim_rom):
-                    bonus += 0.1
-                if scraped_model_id and scraped_model_id == dim_model_id:
-                    bonus += 0.15
+                    # Ràng buộc 5: Kiểm tra màu sắc (Nếu cả 2 bên đều có màu mà khác màu -> UNMATCHED)
+                    if scraped_color and dim_color and scraped_color != dim_color:
+                        continue
 
-                score = min(0.95, ratio + bonus)
+                    # Tính độ tương đồng chuỗi cơ sở
+                    ratio = SequenceMatcher(None, c_clean, dim_clean).ratio()
 
-                # Nếu cả 2 bên đều có Part-Number nhưng khác nhau -> Không được Approved
-                dim_parts_set = set(item.parts)
-                if scraped_parts_set and dim_parts_set and not scraped_parts_set.intersection(dim_parts_set):
-                    score = min(self.CONFIDENCE_PENDING_CEILING, score)
+                    bonus = 0.0
+                    if s_ram and dim_ram and s_ram_set == set(dim_ram):
+                        bonus += 0.1
+                    if s_rom and dim_rom and s_rom_set == set(dim_rom):
+                        bonus += 0.1
+                    if scraped_model_id and scraped_model_id == dim_model_id:
+                        bonus += 0.15
+                    if scraped_color and dim_color and scraped_color == dim_color:
+                        bonus += 0.05
 
-                if is_series_generic:
-                    score = min(self.CONFIDENCE_PENDING_CEILING, score)
+                    score = min(0.95, ratio + bonus)
 
-                if score > best_confidence and score >= self.CONFIDENCE_MIN_THRESHOLD:
-                    best_confidence = score
-                    best_sku_id = dim_sku_id
-                    best_sku_name = dim_name
-                    match_type = MatchType.NORMALIZED_ATTRIBUTE
+                    # Nếu cả 2 bên đều có Part-Number nhưng khác nhau -> Không được Approved
+                    dim_parts_set = set(item.parts)
+                    if scraped_parts_set and dim_parts_set and not scraped_parts_set.intersection(dim_parts_set):
+                        score = min(self.CONFIDENCE_PENDING_CEILING, score)
+
+                    if is_series_generic:
+                        score = min(self.CONFIDENCE_PENDING_CEILING, score)
+
+                    if score > best_confidence and score >= self.CONFIDENCE_MIN_THRESHOLD:
+                        best_confidence = score
+                        best_sku_id = dim_sku_id
+                        best_sku_name = dim_name
+                        match_type = MatchType.NORMALIZED_ATTRIBUTE
 
         # Phân loại trạng thái duyệt
         status = MatchStatus.UNMATCHED

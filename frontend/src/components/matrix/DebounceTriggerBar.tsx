@@ -69,7 +69,7 @@ export const DebounceTriggerBar: React.FC<DebounceTriggerBarProps> = ({
       setLastUpdated(nowIso);
       setFeedback({
         type: 'success',
-        message: 'Đã kích hoạt cào dữ liệu song song CellphoneS & Hoàng Hà Mobile thành công.',
+        message: 'Đã kích hoạt Full Pipeline: Cào dữ liệu CellphoneS & Hoàng Hà, tự động đối soát 329 SKU FPT và cập nhật Database.',
       });
       setCountdown(30); // 30s debounce protection
       onCrawlCompleted();
@@ -113,13 +113,13 @@ export const DebounceTriggerBar: React.FC<DebounceTriggerBarProps> = ({
               ${
                 countdown > 0 || isCrawling
                   ? 'bg-slate-200 dark:bg-slate-800 text-slate-400 cursor-not-allowed'
-                  : 'bg-orange-600 hover:bg-orange-700 text-white shadow-orange-600/20 active:scale-95'
+                  : 'bg-orange-600 hover:bg-orange-700 text-white shadow-orange-600/20 active:scale-95 cursor-pointer'
               }`}
           >
             {isCrawling ? (
               <>
                 <RefreshCw className="w-3.5 h-3.5 animate-spin" />
-                <span>Đang cào dữ liệu...</span>
+                <span>Đang cào & đối soát...</span>
               </>
             ) : countdown > 0 ? (
               <>
@@ -129,7 +129,7 @@ export const DebounceTriggerBar: React.FC<DebounceTriggerBarProps> = ({
             ) : (
               <>
                 <Play className="w-3.5 h-3.5 fill-current" />
-                <span>Cào dữ liệu ngay</span>
+                <span>Cào & Đối soát SKU (Full Pipeline)</span>
               </>
             )}
           </button>

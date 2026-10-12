@@ -132,3 +132,78 @@ def test_matching_engine_standalone():
     # Kiểm tra dict-like compatibility
     assert res["status"] == "APPROVED"
     assert res["price_diff_vnd"] == 1000000
+
+
+def test_feature_extractor_tecno_tcl_and_color():
+    """Kiểm tra nhận diện thương hiệu, Model ID và màu sắc cho Tecno, TCL."""
+    assert FeatureExtractor.detect_brand("TCL 408 4GB 128GB") == "tcl"
+    assert FeatureExtractor.detect_brand("Tecno Spark 50 4GB 128GB") == "tecno"
+
+    assert FeatureExtractor.extract_color("iPhone 15 128GB Đen") == "black"
+    assert FeatureExtractor.extract_color("iPhone 15 128GB Titan tự nhiên") == "titanium"
+    assert FeatureExtractor.extract_color("Samsung S24 Ultra Tím 256GB") == "purple"
+    assert FeatureExtractor.extract_color("Laptop Acer Nitro 5 16GB 512GB") is None
+
+    assert FeatureExtractor.extract_model_identifier("Tecno Spark 50 4GB 128GB") == "tecno_spark_50"
+    assert FeatureExtractor.extract_model_identifier("TECNO SPARK 30 5G 6GB 128GB") == "tecno_spark_30"
+    assert FeatureExtractor.extract_model_identifier("TECNO SPARK 30C 4GB 128GB") == "tecno_spark_30c"
+    assert FeatureExtractor.extract_model_identifier("TCL 408 4GB 128GB") == "tcl_408"
+
+
+def test_matching_engine_tecno_spark_isolation():
+    """Kiểm tra ngăn chặn triệt để hiện tượng Spark 10/20/30 và TCL nhận vơ Spark 50."""
+    tecno_50 = SkuFeatures(
+        sku_id="SKU_TECNO_50",
+        sku_name="Tecno Spark 50 4GB 128GB",
+        clean_name="tecno spark 50 4gb 128gb",
+        brand="tecno",
+        parts=[],
+        model_id="tecno_spark_50",
+        ram=["4gb"],
+        rom=["128gb"],
+    )
+    index = SkuIndex([tecno_50])
+    engine = MatchingEngine(index)
+
+    # 1. Spark 30, Spark 40, TCL phải bị UNMATCHED
+    assert engine.match_single_item("TECNO SPARK 30 5G 6GB 128GB").status == MatchStatus.UNMATCHED
+    assert engine.match_single_item("TECNO Spark 40 6GB 128GB").status == MatchStatus.UNMATCHED
+    assert engine.match_single_item("TECNO SPARK 10 8GB 128GB").status == MatchStatus.UNMATCHED
+    assert engine.match_single_item("TCL 408 4GB 128GB").status == MatchStatus.UNMATCHED
+
+    # 2. Đúng Spark 50 cùng cấu hình phải được APPROVED
+    res_exact = engine.match_single_item("TECNO Spark 50 4GB 128GB")
+    assert res_exact.status == MatchStatus.APPROVED
+    assert res_exact.fpt_sku_id == "SKU_TECNO_50"
+
+
+def test_matching_engine_color_rules():
+    """Kiểm tra quy tắc so khớp màu sắc: khác màu -> UNMATCHED, cùng màu hoặc khuyết màu -> APPROVED."""
+    iphone_black = SkuFeatures(
+        sku_id="SKU_IPHONE_BLACK",
+        sku_name="iPhone 15 128GB Đen",
+        clean_name="iphone 15 128gb đen",
+        brand="apple",
+        parts=[],
+        model_id="iphone_15_",
+        ram=[],
+        rom=["128gb"],
+        color="black",
+    )
+    index = SkuIndex([iphone_black])
+    engine = MatchingEngine(index)
+
+    # Cùng màu đen -> APPROVED
+    res_same = engine.match_single_item("iPhone 15 128GB Đen Chính Hãng")
+    assert res_same.status == MatchStatus.APPROVED
+    assert res_same.fpt_sku_id == "SKU_IPHONE_BLACK"
+
+    # Khác màu (trắng) -> UNMATCHED
+    res_diff = engine.match_single_item("iPhone 15 128GB Trắng Chính Hãng")
+    assert res_diff.status == MatchStatus.UNMATCHED
+
+    # Khuyết màu bên đối thủ -> Vẫn cho APPROVED nếu cùng model và ROM
+    res_no_color = engine.match_single_item("iPhone 15 128GB Chính Hãng")
+    assert res_no_color.status == MatchStatus.APPROVED
+    assert res_no_color.fpt_sku_id == "SKU_IPHONE_BLACK"
+

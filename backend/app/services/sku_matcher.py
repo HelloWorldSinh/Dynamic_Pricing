@@ -42,6 +42,7 @@ class SkuMatcher:
     extract_storage = FeatureExtractor.extract_storage
     extract_ram = FeatureExtractor.extract_ram
     extract_model_identifier = FeatureExtractor.extract_model_identifier
+    extract_color = FeatureExtractor.extract_color
 
     def __init__(
         self,

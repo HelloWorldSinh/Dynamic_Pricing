@@ -18,8 +18,30 @@ class FeatureExtractor:
         "samsung": "samsung", "galaxy": "samsung",
         "xiaomi": "xiaomi", "redmi": "xiaomi", "poco": "xiaomi",
         "oppo": "oppo", "vivo": "vivo", "realme": "realme", "tecno": "tecno",
+        "tcl": "tcl", "zte": "zte",
         "acer": "acer", "asus": "asus", "lenovo": "lenovo", "dell": "dell",
         "hp": "hp", "msi": "msi", "honor": "honor"
+    }
+
+    # Bảng chuẩn hóa màu sắc sản phẩm
+    COLOR_MAP = {
+        "titan tự nhiên": "titanium", "natural titanium": "titanium",
+        "space black": "black", "đen không gian": "black",
+        "space gray": "gray", "space grey": "gray", "xám không gian": "gray",
+        "sierra blue": "blue", "sky blue": "blue", "xanh dương": "blue", "xanh lam": "blue",
+        "xanh lá": "green", "xanh lục": "green", "midnight green": "green",
+        "midnight": "black", "starlight": "white",
+        "đen": "black", "black": "black",
+        "trắng": "white", "white": "white",
+        "xanh": "blue", "blue": "blue",
+        "titan": "titanium", "titanium": "titanium",
+        "vàng": "gold", "gold": "gold",
+        "bạc": "silver", "silver": "silver",
+        "tím": "purple", "purple": "purple",
+        "hồng": "pink", "pink": "pink", "rose": "pink",
+        "xám": "gray", "gray": "gray", "grey": "gray",
+        "đỏ": "red", "red": "red",
+        "cam": "orange", "orange": "orange"
     }
 
     LAPTOP_LINES = (
@@ -47,6 +69,17 @@ class FeatureExtractor:
         t = text.lower()
         for kw, canonical in cls.BRAND_MAP.items():
             if re.search(r"\b" + re.escape(kw) + r"\b", t):
+                return canonical
+        return None
+
+    @classmethod
+    def extract_color(cls, text: str) -> Optional[str]:
+        """Trích xuất và chuẩn hóa màu sắc từ tên sản phẩm."""
+        if not text:
+            return None
+        t = text.lower()
+        for kw, canonical in sorted(cls.COLOR_MAP.items(), key=lambda x: len(x[0]), reverse=True):
+            if re.search(r"(?:\b|\s)" + re.escape(kw) + r"(?:\b|\s|$)", t):
                 return canonical
         return None
 
@@ -151,7 +184,35 @@ class FeatureExtractor:
             sub = oppo.group(2) or ""
             return f"oppo_{main}_{sub}".rstrip("_")
 
-        # 5. Laptop Series
+        # 5. Tecno
+        tecno = re.search(r"\btecno\s+(spark|pova|camon)\s*(\d+[a-z]?|\w+)?\b", t)
+        if tecno:
+            series = tecno.group(1).lower()
+            num = (tecno.group(2) or "").lower()
+            return f"tecno_{series}_{num}".rstrip("_")
+
+        # 6. TCL
+        tcl = re.search(r"\btcl\s*(\d+\s*se|\d+\s*e|\d+[a-z]?)\b", t)
+        if tcl:
+            m = re.sub(r"\s+", "_", tcl.group(1).strip())
+            return f"tcl_{m}"
+
+        # 7. Vivo
+        vivo = re.search(r"\bvivo\s*(v\s*\d+[a-z]?|y\s*\d+[a-z]?|x\s*\d+[a-z]?|t\s*\d+[a-z]?)\b", t)
+        if vivo:
+            return f"vivo_{re.sub(r'\s+', '', vivo.group(1).lower())}"
+
+        # 8. Realme
+        realme = re.search(r"\brealme\s*(c\s*\d+[a-z]?|note\s*\d+[a-z]?|\d+[a-z]?)\b", t)
+        if realme:
+            return f"realme_{re.sub(r'\s+', '', realme.group(1).lower())}"
+
+        # 9. Honor
+        honor = re.search(r"\bhonor\s*(x\s*\d+[a-z]?|\d+[a-z]?)\b", t)
+        if honor:
+            return f"honor_{re.sub(r'\s+', '', honor.group(1).lower())}"
+
+        # 10. Laptop Series
         for line in cls.LAPTOP_LINES:
             if line in t:
                 return line.replace(" ", "_")
@@ -171,4 +232,5 @@ class FeatureExtractor:
             model_id=cls.extract_model_identifier(sku_name),
             ram=cls.extract_ram(clean_name),
             rom=cls.extract_storage(clean_name),
+            color=cls.extract_color(sku_name),
         )

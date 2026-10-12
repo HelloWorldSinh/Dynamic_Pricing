@@ -31,6 +31,7 @@ class SkuFeatures:
     model_id: Optional[str] = None
     ram: List[str] = field(default_factory=list)
     rom: List[str] = field(default_factory=list)
+    color: Optional[str] = None
 
     def __getitem__(self, key: str) -> Any:
         return getattr(self, key)

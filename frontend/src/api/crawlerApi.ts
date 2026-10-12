@@ -39,17 +39,10 @@ export async function triggerCrawlApi(
   }
 }
 
-export async function triggerDualCrawlApi(category?: string): Promise<any[]> {
-  const cat = category ? category.toLowerCase() : 'all';
-  if (cat === 'all') {
-    // Nếu chọn Tất cả danh mục, kích hoạt Full Pipeline (cào cả Phone & Laptop từ CellphoneS và Hoàng Hà + đối soát SKU)
-    const res = await crawlerApi.triggerFullPipeline();
-    return [res];
-  }
-  return Promise.all([
-    triggerCrawlApi('CELLPHONES', cat),
-    triggerCrawlApi('HOANGHA', cat),
-  ]);
+export async function triggerDualCrawlApi(_category?: string): Promise<any[]> {
+  // Luôn kích hoạt Full Pipeline (cào cả Phone & Laptop từ CellphoneS và Hoàng Hà + tự động đối soát SKU vào DB)
+  const res = await crawlerApi.triggerFullPipeline();
+  return [res];
 }
 
 export async function getLatestCrawlTimeApi(): Promise<string | null> {
