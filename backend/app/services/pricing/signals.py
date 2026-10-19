@@ -189,20 +189,19 @@ class SignalsExtractor:
         ) if scraped_ids else []
 
         if not c_items:
-            comp_factor = "Chua co du lieu gia doi thu doi soat."
+            comp_factor = "Chưa có dữ liệu giá đối thủ đối soát."
         else:
             in_stock = [item for item in c_items if item.is_in_stock and item.current_price]
             if not in_stock:
-                comp_factor = "Tat ca doi thu chinh (CellphoneS, Hoang Ha) deu dang het hang (Out-of-Stock)."
+                comp_factor = "Tất cả đối thủ chính (CellphoneS, Hoàng Hà) đều đang hết hàng (Out-of-Stock)."
             else:
                 cheapest = min(in_stock, key=lambda x: x.current_price)
                 diff_amount = cheapest.current_price - fpt_price
                 diff_pct = (diff_amount / fpt_price) * 100 if fpt_price else 0
                 if diff_pct < 0:
-                    comp_factor = f"Doi thu {cheapest.source} dang ban re hon {abs(diff_pct):.1f}% ({abs(diff_amount):,} VND)."
+                    comp_factor = f"Đối thủ {cheapest.source} đang bán rẻ hơn {abs(diff_pct):.1f}% ({abs(diff_amount):,} VND)."
                 else:
-                    comp_factor = f"Doi thu {cheapest.source} dang ban cao hon {diff_pct:.1f}% ({diff_amount:,} VND)."
-
+                    comp_factor = f"Đối thủ {cheapest.source} đang bán cao hơn {diff_pct:.1f}% ({diff_amount:,} VND)."
 
         # 2. Inventory factor
         inv = db.query(InventoryMock).filter(InventoryMock.fpt_product_id == product_id).first()
@@ -211,20 +210,20 @@ class SignalsExtractor:
         qty = snap.qty_available if snap else (inv.stock_quantity if inv else 0)
 
         if snap and snap.is_obsolescence_risk:
-            inv_factor = f"Canh bao hang ton kho loi thoi (DOH={doh} ngay, so luong={qty})."
+            inv_factor = f"Cảnh báo hàng tồn kho lỗi thời (DOH={doh} ngày, số lượng={qty})."
         elif doh > 45:
-            inv_factor = f"Hang ton kho u dong cao (DOH={doh} ngay > 45 ngay, luong ton={qty})."
+            inv_factor = f"Hàng tồn kho ứ đọng cao (DOH={doh} ngày > 45 ngày, lượng tồn={qty})."
         elif doh < 7 and doh > 0:
-            inv_factor = f"Hang khan hiem sap het (DOH={doh} ngay < 7 ngay, luong ton={qty})."
+            inv_factor = f"Hàng khan hiếm sắp hết (DOH={doh} ngày < 7 ngày, lượng tồn={qty})."
         else:
-            inv_factor = f"Ton kho on dinh (DOH={doh} ngay, luong ton kha dung={qty})."
+            inv_factor = f"Tồn kho ổn định (DOH={doh} ngày, lượng tồn khả dụng={qty})."
 
         # 3. Market demand factor
         agg = db.query(DemandHourlyAggregate).filter(DemandHourlyAggregate.fpt_product_id == product_id).order_by(desc(DemandHourlyAggregate.aggregate_hour)).first()
         if agg:
-            demand_factor = f"Luu luong quan tam: {agg.total_views} views, {agg.cart_adds} gio hang, CVR={agg.cvr_pct:.1f}%."
+            demand_factor = f"Lưu lượng quan tâm: {agg.total_views} lượt xem, {agg.cart_adds} giỏ hàng, CVR={agg.cvr_pct:.1f}%."
         else:
-            demand_factor = "Nhu cau thi truong o muc tieu chuan (Neutral)."
+            demand_factor = "Nhu cầu thị trường ở mức tiêu chuẩn (Neutral)."
 
         return {
             "competitor_factor": comp_factor,

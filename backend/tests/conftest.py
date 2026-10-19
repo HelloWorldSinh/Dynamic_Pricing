@@ -1,3 +1,13 @@
+import os
+from pathlib import Path
+
+# Ưu tiên sử dụng dynamic_pricing.db có sẵn để test kiểm tra dữ liệu thật, tránh phụ thuộc PostgreSQL server
+DEFAULT_DB_FILE = Path(__file__).resolve().parent.parent / "dynamic_pricing.db"
+if DEFAULT_DB_FILE.exists():
+    os.environ["DATABASE_URL"] = f"sqlite:///{DEFAULT_DB_FILE.as_posix()}"
+else:
+    os.environ["DATABASE_URL"] = "sqlite:///:memory:"
+
 import pytest
 from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker
@@ -7,8 +17,12 @@ from app.core.database import Base, engine
 
 @pytest.fixture(autouse=True)
 def ensure_db_tables():
-    """Đảm bảo các bảng CSDL được tạo đầy đủ trước khi chạy test."""
-    Base.metadata.create_all(bind=engine)
+    """Đảm bảo các bảng CSDL được tạo đầy đủ trước khi chạy test nếu engine kết nối được."""
+    try:
+        Base.metadata.create_all(bind=engine)
+    except Exception:
+        # Khi chạy trong môi trường CI/Sandbox không có PostgreSQL local, bỏ qua để db_session SQLite in-memory tự tạo
+        pass
     yield
 
 

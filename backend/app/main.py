@@ -18,10 +18,12 @@ logger = logging.getLogger("dynamic_pricing")
 
 @asynccontextmanager
 async def lifespan(app_instance: FastAPI):
-    # Khởi tạo bảng CSDL khi khởi động (đảm bảo chạy ngay không cần gõ lệnh thủ công)
     logger.info(" Đang khởi tạo kết nối CSDL và tự động tạo bảng nếu chưa có...")
-    Base.metadata.create_all(bind=engine)
-    logger.info(" Hệ thống sẵn sàng phục vụ!")
+    try:
+        Base.metadata.create_all(bind=engine)
+        logger.info(" Hệ thống sẵn sàng phục vụ!")
+    except Exception as e:
+        logger.warning(f"Bỏ qua khởi tạo DB engine khi startup (chế độ Test hoặc Offline): {e}")
     yield
     logger.info("Đang tắt hệ thống...")
 

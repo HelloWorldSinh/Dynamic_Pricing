@@ -230,7 +230,7 @@ def test_margin_floor_capping_reflected_in_db(db_session):
 
     assert rec.is_floor_capped is True
     assert rec.recommended_price == 19_000_000
-    assert "gia san" in rec.reasoning_3layers["floor_protection_factor"].lower()
+    assert any(term in rec.reasoning_3layers["floor_protection_factor"].lower() for term in ["giá sàn", "gia san"])
 
 
 def test_product_not_found_raises_value_error(db_session):

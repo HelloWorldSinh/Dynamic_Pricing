@@ -139,9 +139,9 @@ class PricingEngine:
 
         # 6. Dong goi 3 lop giai trinh reasoning_3layers JSON (khong dung emoji/icon)
         floor_protection_factor = (
-            "Muc gia de xuat da duoc dieu chinh ve muc gia san de bao toan bien loi nhuan an toan."
+            "Mức giá đề xuất đã được điều chỉnh về mức giá sàn để bảo toàn biên lợi nhuận an toàn."
             if guardrail_res.is_floor_capped
-            else "Muc gia de xuat nam trong nguong an toan tren muc gia san."
+            else "Mức giá đề xuất nằm trong ngưỡng an toàn trên mức giá sàn."
         )
 
         reasoning_3layers: Dict[str, Any] = {
