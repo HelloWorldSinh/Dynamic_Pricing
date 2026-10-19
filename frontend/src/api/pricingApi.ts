@@ -165,6 +165,34 @@ export async function rejectSkuMappingApi(id: string): Promise<void> {
   }
 }
 
+export interface SkuMatchingStats {
+  total_skus: number;
+  matched_skus: number;
+  match_rate: number;
+  pending_queue_count: number;
+  approved_count: number;
+  rejected_count: number;
+}
+
+export async function getSkuMatchingStatsApi(): Promise<SkuMatchingStats> {
+  try {
+    const res = await apiClient.get<SkuMatchingStats>('/matching/stats');
+    if (res.data && typeof res.data.total_skus === 'number') {
+      return res.data;
+    }
+  } catch (error) {
+    console.warn('[Matching API] Could not fetch matching stats, falling back to mock:', error);
+  }
+  return {
+    total_skus: 224,
+    matched_skus: 195,
+    match_rate: 87.1,
+    pending_queue_count: mockMappingQueue.length,
+    approved_count: 195,
+    rejected_count: 0,
+  };
+}
+
 // Matrix Pricing Simulation API
 export async function simulateMatrixPricingApi(
   req: MatrixSimulationRequest

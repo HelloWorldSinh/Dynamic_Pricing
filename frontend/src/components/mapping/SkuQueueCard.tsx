@@ -33,13 +33,17 @@ export const SkuQueueCard: React.FC<SkuQueueCardProps> = ({
     return 'bg-emerald-50 dark:bg-emerald-950/40 text-emerald-600 dark:text-emerald-400 border-emerald-200 dark:border-emerald-900/60';
   };
 
+  const mismatchText = pair.differing_attributes && pair.differing_attributes.length > 0
+    ? `Lệch: ${pair.differing_attributes.join(', ')}`
+    : 'Chờ duyệt đối soát';
+
   return (
     <div
       onClick={() => onSelect(pair.id)}
-      className={`group relative rounded-xl p-3.5 transition-all cursor-pointer border ${
+      className={`group relative rounded-xl p-3 transition-all cursor-pointer border ${
         isSelected
-          ? 'bg-orange-50/70 dark:bg-orange-950/20 border-orange-500 dark:border-orange-500 shadow-sm ring-1 ring-orange-500/30'
-          : 'bg-white dark:bg-slate-900 border-slate-200 dark:border-slate-800 hover:border-slate-300 dark:hover:border-slate-700 hover:shadow-sm'
+          ? 'bg-orange-50/70 dark:bg-orange-950/20 border-orange-500 dark:border-orange-500 shadow-xs ring-1 ring-orange-500/30'
+          : 'bg-white dark:bg-slate-900 border-slate-200 dark:border-slate-800 hover:border-slate-300 dark:hover:border-slate-700 hover:shadow-xs'
       }`}
     >
       {/* Active Indicator Bar */}
@@ -64,14 +68,14 @@ export const SkuQueueCard: React.FC<SkuQueueCardProps> = ({
 
         <div className="flex items-center gap-1.5 shrink-0">
           <span
-            className={`text-[9px] font-bold px-1.5 py-0.5 rounded border uppercase tracking-wider ${getSourceBadgeColor(
+            className={`text-[9px] font-bold px-1.5 py-0.2 rounded border uppercase tracking-wider ${getSourceBadgeColor(
               pair.competitor_source
             )}`}
           >
             {pair.competitor_source}
           </span>
           <span
-            className={`text-[10px] font-mono font-bold px-1.5 py-0.5 rounded border ${getConfidenceBadgeColor(
+            className={`text-[10px] font-mono font-bold px-1.5 py-0.2 rounded border ${getConfidenceBadgeColor(
               pair.confidence_score
             )}`}
           >
@@ -81,7 +85,7 @@ export const SkuQueueCard: React.FC<SkuQueueCardProps> = ({
       </div>
 
       {/* Product Name */}
-      <h4 className="text-xs font-semibold text-slate-900 dark:text-slate-100 line-clamp-2 mb-2 leading-snug">
+      <h4 className="text-xs font-semibold text-slate-900 dark:text-slate-100 line-clamp-2 mb-1.5 leading-snug">
         {pair.fpt_name}
       </h4>
 
@@ -92,24 +96,19 @@ export const SkuQueueCard: React.FC<SkuQueueCardProps> = ({
         </div>
       )}
 
-      {/* Differing Attribute Pills (if any) */}
-      {pair.differing_attributes && pair.differing_attributes.length > 0 && (
-        <div className="flex flex-wrap gap-1 pt-1.5 border-t border-slate-100 dark:border-slate-800/80">
-          {pair.differing_attributes.slice(0, 2).map((diff, idx) => (
-            <span
-              key={idx}
-              className="text-[9px] px-1.5 py-0.5 rounded bg-amber-50 dark:bg-amber-950/40 text-amber-700 dark:text-amber-300 border border-amber-200/60 dark:border-amber-800/60 truncate max-w-[180px]"
-            >
-              ≠ {diff}
-            </span>
-          ))}
-          {pair.differing_attributes.length > 2 && (
-            <span className="text-[9px] px-1 py-0.5 text-slate-400 font-mono">
-              +{pair.differing_attributes.length - 2}
-            </span>
-          )}
-        </div>
-      )}
+      {/* Readable Mismatch Tag Badge */}
+      <div className="pt-2 border-t border-slate-100 dark:border-slate-800/80 flex items-center">
+        <span
+          className={`text-[10px] px-2 py-0.5 rounded-md font-medium truncate max-w-full ${
+            pair.differing_attributes && pair.differing_attributes.length > 0
+              ? 'bg-amber-50 dark:bg-amber-950/40 text-amber-700 dark:text-amber-300 border border-amber-200/80 dark:border-amber-800/80 font-bold'
+              : 'bg-slate-100 dark:bg-slate-800 text-slate-500 dark:text-slate-400'
+          }`}
+          title={mismatchText}
+        >
+          {mismatchText}
+        </span>
+      </div>
     </div>
   );
 };

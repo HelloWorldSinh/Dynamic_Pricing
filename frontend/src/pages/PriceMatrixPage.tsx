@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useMemo } from 'react';
+import React, { useState, useEffect, useMemo, useCallback } from 'react';
 import { DebounceTriggerBar } from '../components/matrix/DebounceTriggerBar';
 import { MatrixFilterToolbar } from '../components/matrix/MatrixFilterToolbar';
 import { PriceMatrixTable } from '../components/matrix/PriceMatrixTable';
@@ -7,15 +7,15 @@ import { PriceComparisonItem } from '../types/pricing';
 import { getPriceMatrixApi } from '../api/pricingApi';
 
 interface PriceMatrixPageProps {
-  categoryFilter: string;
-  onOpenProductDetail: (product: PriceComparisonItem) => void;
+  categoryFilter?: string;
+  onOpenProductDetail?: (product: PriceComparisonItem) => void;
   onOpenAiExplain?: (product: PriceComparisonItem) => void;
 }
 
 export const PriceMatrixPage: React.FC<PriceMatrixPageProps> = ({
-  categoryFilter,
-  onOpenProductDetail,
+  categoryFilter: initialCategoryFilter = 'ALL',
 }) => {
+  const [categoryFilter, setCategoryFilter] = useState(initialCategoryFilter);
   const [items, setItems] = useState<PriceComparisonItem[]>([]);
   const [loading, setLoading] = useState(true);
 
@@ -29,7 +29,7 @@ export const PriceMatrixPage: React.FC<PriceMatrixPageProps> = ({
   const [currentPage, setCurrentPage] = useState(1);
   const [pageSize, setPageSize] = useState(10);
 
-  const fetchData = async () => {
+  const fetchData = useCallback(async () => {
     setLoading(true);
     try {
       const matrixData = await getPriceMatrixApi(categoryFilter);
@@ -39,11 +39,11 @@ export const PriceMatrixPage: React.FC<PriceMatrixPageProps> = ({
     } finally {
       setLoading(false);
     }
-  };
+  }, [categoryFilter]);
 
   useEffect(() => {
     fetchData();
-  }, [categoryFilter]);
+  }, [fetchData]);
 
   // Reset to page 1 when any filter changes
   useEffect(() => {
@@ -53,7 +53,7 @@ export const PriceMatrixPage: React.FC<PriceMatrixPageProps> = ({
   // Filtered Items logic
   const filteredItems = useMemo(() => {
     return items.filter((item) => {
-      // Category Filter (from Navbar)
+      // Category Filter
       if (categoryFilter !== 'ALL' && item.category !== categoryFilter) {
         return false;
       }
@@ -105,11 +105,13 @@ export const PriceMatrixPage: React.FC<PriceMatrixPageProps> = ({
 
   return (
     <div>
-      {/* On-Demand Crawl with 30s Debounce */}
+      {/* On-Demand Crawl with 30s Debounce - Compact single-line bar */}
       <DebounceTriggerBar category={categoryFilter} onCrawlCompleted={fetchData} />
 
-      {/* Multi-criteria Filter Toolbar */}
+      {/* Multi-criteria Filter Toolbar with Integrated Category Selector */}
       <MatrixFilterToolbar
+        categoryFilter={categoryFilter}
+        setCategoryFilter={setCategoryFilter}
         searchQuery={searchQuery}
         setSearchQuery={setSearchQuery}
         priceGapFilter={priceGapFilter}
@@ -118,7 +120,6 @@ export const PriceMatrixPage: React.FC<PriceMatrixPageProps> = ({
         setDohRiskFilter={setDohRiskFilter}
         inStockOnlyFilter={inStockOnlyFilter}
         setInStockOnlyFilter={setInStockOnlyFilter}
-        totalFiltered={filteredItems.length}
       />
 
       {/* Main 3-Way Comparison Table */}
@@ -130,7 +131,6 @@ export const PriceMatrixPage: React.FC<PriceMatrixPageProps> = ({
         <>
           <PriceMatrixTable
             items={paginatedItems}
-            onSelectProduct={onOpenProductDetail}
           />
           <Pagination
             currentPage={currentPage}

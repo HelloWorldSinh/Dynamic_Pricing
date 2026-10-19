@@ -47,9 +47,21 @@ export async function triggerDualCrawlApi(_category?: string): Promise<any[]> {
 
 export async function getLatestCrawlTimeApi(): Promise<string | null> {
   try {
-    const res = await apiClient.get<CrawlResult[]>('/crawl/results', { params: { limit: 1 } });
-    if (res.data && res.data.length > 0 && res.data[0].crawled_at) {
-      return res.data[0].crawled_at;
+    const res = await apiClient.get<any>('/crawl/jobs/latest', {
+      params: { status: 'COMPLETED' },
+    });
+    if (res.data && (res.data.finished_at || res.data.started_at)) {
+      return res.data.finished_at || res.data.started_at;
+    }
+  } catch (error) {
+    console.warn('[Crawler API] Could not fetch latest crawl job, falling back to results:', error);
+  }
+
+  try {
+    const res = await apiClient.get<any>('/crawl/results', { params: { limit: 1 } });
+    const items = res.data?.items || (Array.isArray(res.data) ? res.data : []);
+    if (items.length > 0 && items[0]?.crawled_at) {
+      return items[0].crawled_at;
     }
   } catch (error) {
     console.warn('[Crawler API] Could not fetch latest crawl time:', error);
@@ -209,6 +221,18 @@ export const crawlerApi = {
   },
 
   getResults: (source?: string) => getCrawlResultsApi(source as CrawlSource | undefined),
+
+  getLatestJob: async (status: string = 'COMPLETED', source?: string): Promise<any> => {
+    try {
+      const res = await apiClient.get<any>('/crawl/jobs/latest', {
+        params: { status, source },
+      });
+      return res.data;
+    } catch (error) {
+      console.warn('[Crawler API] Could not fetch latest crawl job:', error);
+      return null;
+    }
+  },
 
   checkHealth: async (): Promise<{ status: string }> => {
     try {

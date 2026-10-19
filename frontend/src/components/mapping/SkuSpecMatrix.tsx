@@ -80,7 +80,7 @@ export const SkuSpecMatrix: React.FC<SkuSpecMatrixProps> = ({ pair }) => {
     <div className="rounded-xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 overflow-hidden shadow-sm">
       <div className="px-4 py-3 bg-slate-50 dark:bg-slate-800/60 border-b border-slate-200 dark:border-slate-800 flex items-center justify-between">
         <h4 className="text-xs font-bold text-slate-800 dark:text-slate-200 uppercase tracking-wider flex items-center gap-2">
-          <span>Bảng Đối Chiếu Thông Số Kỹ Thuật (Spec Matrix)</span>
+          <span>Bảng Đối Chiếu Thông Số Kỹ Thuật</span>
           <span className="text-[10px] px-2 py-0.5 rounded-full bg-slate-200 dark:bg-slate-700 text-slate-600 dark:text-slate-300 font-mono font-medium">
             {specRows.length} thông số
           </span>
@@ -95,8 +95,8 @@ export const SkuSpecMatrix: React.FC<SkuSpecMatrixProps> = ({ pair }) => {
           <thead>
             <tr className="border-b border-slate-100 dark:border-slate-800 text-[11px] font-semibold text-slate-400 dark:text-slate-500 uppercase tracking-wider bg-slate-50/50 dark:bg-slate-800/30">
               <th className="py-2.5 px-4 w-[28%]">Thuộc tính</th>
-              <th className="py-2.5 px-4 w-[33%] text-orange-600 dark:text-orange-400">FPT Shop (Chuẩn)</th>
-              <th className="py-2.5 px-4 w-[33%]">{pair.competitor_source} (Crawled)</th>
+              <th className="py-2.5 px-4 w-[33%] text-orange-600 dark:text-orange-400">FPT Shop</th>
+              <th className="py-2.5 px-4 w-[33%]">{pair.competitor_source}</th>
               <th className="py-2.5 px-3 w-[6%] text-center">Khớp</th>
             </tr>
           </thead>

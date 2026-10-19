@@ -65,7 +65,8 @@ export interface CrawlProgressResponse {
   progress_percent: number;
   message: string;
   started_at: string;
-  updated_at: string;
+  updated_at?: string;
+  error?: string | null;
 }
 
 export interface CrawlDebounceStatus {

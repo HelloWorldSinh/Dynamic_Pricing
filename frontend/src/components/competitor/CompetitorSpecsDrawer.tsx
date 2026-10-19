@@ -25,7 +25,7 @@ export const CompetitorSpecsDrawer: React.FC<CompetitorSpecsDrawerProps> = ({ it
 
   const isCellphoneS = item.source === 'CELLPHONES';
   const specs = item.specifications || {};
-  const specKeys = Object.keys(specs);
+  const specKeys = Object.keys(specs).filter((key) => key.toLowerCase() !== 'summary');
 
   const handleCopyJson = async () => {
     try {

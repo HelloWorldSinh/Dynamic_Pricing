@@ -1,5 +1,5 @@
 import React from 'react';
-import { ExternalLink, Sliders, Inbox } from 'lucide-react';
+import { Inbox } from 'lucide-react';
 import { CrawlResult } from '../../types/crawl';
 import { formatCurrencyVND, formatDate } from '../../utils/formatters';
 
@@ -54,7 +54,6 @@ export const CompetitorDataTable: React.FC<CompetitorDataTableProps> = ({
             {items.map((item) => {
               const isCellphoneS = item.source === 'CELLPHONES';
               const hasDiscount = item.original_price && item.original_price > item.price;
-              const specsCount = Object.keys(item.specifications || {}).length;
 
               return (
                 <tr
@@ -122,26 +121,13 @@ export const CompetitorDataTable: React.FC<CompetitorDataTableProps> = ({
 
                   {/* Cột 6: Thao tác */}
                   <td className="py-3.5 px-4 text-center" onClick={(e) => e.stopPropagation()}>
-                    <div className="flex items-center justify-center gap-1.5">
-                      <button
-                        onClick={() => onSelectProduct(item)}
-                        className="px-2.5 py-1 rounded-lg text-xs font-medium text-slate-600 dark:text-slate-300 hover:text-orange-600 dark:hover:text-orange-400 bg-slate-100 dark:bg-slate-800 hover:bg-orange-50 dark:hover:bg-orange-950/40 flex items-center gap-1 transition"
-                        title="Xem chi tiết thông số kỹ thuật và raw JSON"
-                      >
-                        <Sliders className="w-3 h-3" />
-                        <span>Specs ({specsCount})</span>
-                      </button>
-
-                      <a
-                        href={item.url}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        className="p-1 rounded-lg text-slate-400 hover:text-orange-600 dark:hover:text-orange-400 hover:bg-slate-100 dark:hover:bg-slate-800 transition"
-                        title="Mở bài viết gốc đối thủ"
-                      >
-                        <ExternalLink className="w-3.5 h-3.5" />
-                      </a>
-                    </div>
+                    <button
+                      onClick={() => onSelectProduct(item)}
+                      className="px-2.5 py-1 rounded-lg text-xs font-medium text-slate-600 dark:text-slate-300 hover:text-orange-600 dark:hover:text-orange-400 bg-slate-100 dark:bg-slate-800 hover:bg-orange-50 dark:hover:bg-orange-950/40 transition"
+                      title="Xem chi tiết thông số kỹ thuật và raw JSON"
+                    >
+                      Chi tiết
+                    </button>
                   </td>
                 </tr>
               );

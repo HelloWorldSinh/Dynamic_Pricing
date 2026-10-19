@@ -1,100 +1,107 @@
 import React from 'react';
-import { Sun, Moon, Database } from 'lucide-react';
+import { 
+  BarChart3, 
+  CheckCheck, 
+  GitCompare, 
+  Database, 
+  RefreshCw, 
+  Sun, 
+  Moon 
+} from 'lucide-react';
 import { useTheme } from '../../context/ThemeContext';
-import { NavTab } from './Sidebar';
+
+export type NavTab = 'matrix' | 'approvals' | 'mapping' | 'feeds' | 'crawler';
 
 interface NavbarProps {
   activeTab: NavTab;
-  categoryFilter?: string;
-  onCategoryChange?: (category: string) => void;
+  setActiveTab: (tab: NavTab) => void;
 }
 
 export const Navbar: React.FC<NavbarProps> = ({
   activeTab,
-  categoryFilter = 'ALL',
-  onCategoryChange,
+  setActiveTab,
 }) => {
   const { theme, toggleTheme } = useTheme();
 
-  const titles: Record<NavTab, { title: string }> = {
-    matrix: {
-      title: 'Price Comparison Matrix',
+  const navItems = [
+    {
+      id: 'matrix' as NavTab,
+      label: 'Price Matrix',
+      icon: BarChart3,
     },
-    approvals: {
-      title: 'Pricing Approvals',
+    {
+      id: 'approvals' as NavTab,
+      label: 'Pricing Approvals',
+      icon: CheckCheck,
     },
-    mapping: {
-      title: 'SKU Mapping Queue',
+    {
+      id: 'mapping' as NavTab,
+      label: 'SKU Mapping Queue',
+      icon: GitCompare,
     },
-    feeds: {
-      title: 'Competitor Scraped Feeds',
+    {
+      id: 'feeds' as NavTab,
+      label: 'Competitor Feeds',
+      icon: Database,
     },
-    crawler: {
-      title: 'Crawl Operations',
+    {
+      id: 'crawler' as NavTab,
+      label: 'Crawl Operations',
+      icon: RefreshCw,
     },
-    simulator: {
-      title: 'Pricing Matrix Simulator',
-    },
-  };
-
-  const current = titles[activeTab];
+  ];
 
   return (
-    <header className="h-16 bg-white dark:bg-slate-900 border-b border-slate-200 dark:border-slate-800 px-6 flex items-center justify-between sticky top-0 z-20 transition-colors">
-      {/* Title */}
-      <div>
-        <h1 className="text-base font-bold text-slate-900 dark:text-white leading-tight">
-          {current.title}
-        </h1>
+    <header className="h-16 bg-white dark:bg-slate-900 border-b border-slate-200 dark:border-slate-800 px-6 flex items-center justify-between sticky top-0 z-30 transition-colors shadow-sm">
+      {/* Left: Brand Identity */}
+      <div className="flex items-center gap-3 shrink-0">
+        <div 
+          onClick={() => setActiveTab('matrix')}
+          className="cursor-pointer flex items-center gap-2.5 group"
+        >
+          <div className="w-9 h-9 rounded-lg bg-orange-600 flex items-center justify-center text-white font-black text-sm shadow-md shadow-orange-600/25 group-hover:scale-105 transition-transform">
+            FPT
+          </div>
+          <div className="flex flex-col">
+            <span className="font-bold text-sm tracking-tight text-slate-900 dark:text-white leading-tight">
+              Dynamic Pricing
+            </span>
+            <span className="text-[10px] text-slate-400 leading-tight">
+              Retail Analytics
+            </span>
+          </div>
+        </div>
       </div>
 
-      {/* Action Controls */}
-      <div className="flex items-center gap-3">
-        {/* Category Filter Selector */}
-        <div className="flex items-center bg-slate-100 dark:bg-slate-800 p-0.5 rounded-lg border border-slate-200 dark:border-slate-700 text-xs font-medium">
-          <button
-            onClick={() => onCategoryChange?.('ALL')}
-            className={`px-3 py-1 rounded-md transition ${
-              categoryFilter === 'ALL'
-                ? 'bg-white dark:bg-slate-900 text-orange-600 dark:text-orange-400 font-semibold shadow-sm'
-                : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-200'
-            }`}
-          >
-            Tất cả
-          </button>
-          <button
-            onClick={() => onCategoryChange?.('PHONE')}
-            className={`px-3 py-1 rounded-md transition ${
-              categoryFilter === 'PHONE'
-                ? 'bg-white dark:bg-slate-900 text-orange-600 dark:text-orange-400 font-semibold shadow-sm'
-                : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-200'
-            }`}
-          >
-            Điện thoại
-          </button>
-          <button
-            onClick={() => onCategoryChange?.('LAPTOP')}
-            className={`px-3 py-1 rounded-md transition ${
-              categoryFilter === 'LAPTOP'
-                ? 'bg-white dark:bg-slate-900 text-orange-600 dark:text-orange-400 font-semibold shadow-sm'
-                : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-200'
-            }`}
-          >
-            Laptop
-          </button>
-        </div>
+      {/* Center: Horizontal Navigation with Badges */}
+      <nav className="hidden md:flex items-center gap-1 lg:gap-1.5">
+        {navItems.map((item) => {
+          const Icon = item.icon;
+          const isActive = activeTab === item.id;
+          return (
+            <button
+              key={item.id}
+              onClick={() => setActiveTab(item.id)}
+              className={`flex items-center gap-2 px-3 py-1.5 rounded-lg text-xs font-semibold transition-all duration-150 ${
+                isActive
+                  ? 'bg-orange-500/10 text-orange-600 dark:text-orange-400 border border-orange-500/30 shadow-xs'
+                  : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-100 hover:bg-slate-100 dark:hover:bg-slate-800/60 border border-transparent'
+              }`}
+            >
+              <Icon
+                className={`w-4 h-4 shrink-0 transition-colors ${
+                  isActive ? 'text-orange-600 dark:text-orange-400' : 'text-slate-400 dark:text-slate-500'
+                }`}
+              />
+              <span className="whitespace-nowrap">{item.label}</span>
+            </button>
+          );
+        })}
+      </nav>
 
-        {/* Backend Seam Status */}
-        <div className="hidden md:flex items-center gap-2 px-2.5 py-1.5 rounded-lg border border-slate-200 dark:border-slate-800 text-xs text-slate-600 dark:text-slate-300">
-          <span className="flex h-2 w-2 relative">
-            <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
-            <span className="relative inline-flex rounded-full h-2 w-2 bg-emerald-500"></span>
-          </span>
-          <Database className="w-3.5 h-3.5 text-slate-400" />
-          <span className="font-mono text-[11px]">API :8000</span>
-        </div>
-
-        {/* Theme Toggle Button */}
+      {/* Right: Theme Toggle & User Profile */}
+      <div className="flex items-center gap-3 shrink-0">
+        {/* Dark Mode Toggle */}
         <button
           onClick={toggleTheme}
           className="p-2 rounded-lg bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 hover:bg-slate-200 dark:hover:bg-slate-700 transition"
@@ -106,6 +113,21 @@ export const Navbar: React.FC<NavbarProps> = ({
             <Moon className="w-4 h-4 text-indigo-600" />
           )}
         </button>
+
+        {/* Compact User Profile Pill */}
+        <div className="flex items-center gap-2 pl-2 pr-3 py-1 rounded-full bg-slate-100 dark:bg-slate-800/80 border border-slate-200 dark:border-slate-700/80 text-xs select-none">
+          <div className="w-6 h-6 rounded-full bg-orange-600 text-white flex items-center justify-center font-bold text-[10px] shrink-0">
+            PA
+          </div>
+          <div className="flex flex-col">
+            <span className="text-[11px] font-semibold text-slate-800 dark:text-slate-200 leading-none">
+              Pricing Analyst
+            </span>
+            <span className="text-[9px] text-slate-400 leading-none mt-0.5">
+              FPT Retail
+            </span>
+          </div>
+        </div>
       </div>
     </header>
   );

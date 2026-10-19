@@ -12,13 +12,11 @@ import { formatCurrencyVND, formatPercent } from '../../utils/formatters';
 
 interface PriceMatrixTableProps {
   items: PriceComparisonItem[];
-  onSelectProduct: (item: PriceComparisonItem) => void;
   onExplainProduct?: (item: PriceComparisonItem) => void;
 }
 
 export const PriceMatrixTable: React.FC<PriceMatrixTableProps> = ({
   items,
-  onSelectProduct,
 }) => {
   if (items.length === 0) {
     return (
@@ -40,7 +38,7 @@ export const PriceMatrixTable: React.FC<PriceMatrixTableProps> = ({
         <table className="w-full text-left text-xs border-collapse">
           <thead>
             <tr className="bg-slate-50/80 dark:bg-slate-800/60 border-b border-slate-200 dark:border-slate-800 text-slate-500 dark:text-slate-400 font-semibold uppercase tracking-wider text-[11px]">
-              <th className="py-3 px-4">Sản phẩm &amp; Mã Part</th>
+              <th className="py-3 px-4">Sản phẩm</th>
               <th className="py-3 px-3 text-right">Giá FPT Shop</th>
               <th className="py-3 px-3 text-right">CellphoneS</th>
               <th className="py-3 px-3 text-right">Hoàng Hà</th>
@@ -50,8 +48,6 @@ export const PriceMatrixTable: React.FC<PriceMatrixTableProps> = ({
                 </span>
               </th>
               <th className="py-3 px-3 text-center">Độ tin cậy</th>
-              <th className="py-3 px-3 text-center">Tồn kho / DOH</th>
-              <th className="py-3 px-4 text-center">Thao tác</th>
             </tr>
           </thead>
           <tbody className="divide-y divide-slate-100 dark:divide-slate-800/60">
@@ -64,22 +60,12 @@ export const PriceMatrixTable: React.FC<PriceMatrixTableProps> = ({
               return (
                 <tr
                   key={item.id}
-                  className="hover:bg-slate-50/60 dark:hover:bg-slate-800/40 transition-colors"
+                  className="even:bg-white dark:even:bg-slate-900 odd:bg-slate-100/80 dark:odd:bg-slate-800/60 hover:bg-orange-100/70 dark:hover:bg-orange-900/40 transition-colors duration-150"
                 >
                   {/* Product Info */}
-                  <td className="py-3 px-4 max-w-[280px]">
+                  <td className="py-3 px-4 max-w-[340px]">
                     <div className="font-semibold text-slate-900 dark:text-slate-100 truncate" title={item.name}>
                       {item.name}
-                    </div>
-                    <div className="flex items-center gap-2 mt-1">
-                      <span className="text-[10px] font-mono px-1.5 py-0.5 rounded bg-slate-100 dark:bg-slate-800 text-slate-500">
-                        {item.sku}
-                      </span>
-                      {item.part_number && (
-                        <span className="text-[10px] font-mono px-1.5 py-0.5 rounded bg-orange-50 dark:bg-orange-950/40 text-orange-600 dark:text-orange-400 font-medium">
-                          PN: {item.part_number}
-                        </span>
-                      )}
                     </div>
                   </td>
 
@@ -196,35 +182,6 @@ export const PriceMatrixTable: React.FC<PriceMatrixTableProps> = ({
                     >
                       {item.confidence_score}%
                     </span>
-                  </td>
-
-                  {/* Inventory / DOH */}
-                  <td className="py-3 px-3 text-center">
-                    <div className="font-medium text-slate-800 dark:text-slate-200">
-                      {item.inventory_quantity} máy
-                    </div>
-                    <span
-                      className={`text-[10px] font-semibold ${
-                        item.doh > 45
-                          ? 'text-rose-600 dark:text-rose-400 font-bold'
-                          : item.doh > 30
-                          ? 'text-amber-600 dark:text-amber-400'
-                          : 'text-slate-400'
-                      }`}
-                    >
-                      DOH: {item.doh} ngày
-                    </span>
-                  </td>
-
-                  {/* Action Buttons */}
-                  <td className="py-3 px-4 text-center">
-                    <button
-                      onClick={() => onSelectProduct(item)}
-                      className="px-3 py-1.5 rounded-lg border border-slate-200 dark:border-slate-700 hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-700 dark:text-slate-300 text-xs font-medium transition shadow-sm"
-                      title="Xem thông số kỹ thuật chi tiết"
-                    >
-                      Chi tiết
-                    </button>
                   </td>
                 </tr>
               );

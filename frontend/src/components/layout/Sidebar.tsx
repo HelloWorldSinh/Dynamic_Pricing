@@ -7,11 +7,10 @@ import {
   ChevronLeft, 
   ChevronRight,
   ShieldCheck,
-  Sliders,
   Database
 } from 'lucide-react';
 
-export type NavTab = 'matrix' | 'approvals' | 'mapping' | 'feeds' | 'crawler' | 'simulator';
+export type NavTab = 'matrix' | 'approvals' | 'mapping' | 'feeds' | 'crawler';
 
 interface SidebarProps {
   activeTab: NavTab;
@@ -56,12 +55,6 @@ export const Sidebar: React.FC<SidebarProps> = ({
       label: 'Crawl Operations',
       icon: RefreshCw,
     },
-    {
-      id: 'simulator' as NavTab,
-      label: 'Matrix Simulator',
-      icon: Sliders,
-      badge: 'Sandbox',
-    },
   ];
 
   return (
@@ -70,11 +63,32 @@ export const Sidebar: React.FC<SidebarProps> = ({
         bg-white dark:bg-slate-900 border-slate-200 dark:border-slate-800 text-slate-800 dark:text-slate-200
         ${isCollapsed ? 'w-20' : 'w-64'}`}
     >
+      {/* Rail Expand Button (Hiển thị nổi ở mép viền khi thu gọn) */}
+      {isCollapsed && (
+        <button
+          onClick={() => setIsCollapsed(false)}
+          className="absolute -right-3 top-5 w-6 h-6 rounded-full bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 shadow-md flex items-center justify-center text-slate-500 hover:text-slate-800 dark:hover:text-slate-200 hover:scale-110 transition z-40"
+          title="Mở rộng menu"
+        >
+          <ChevronRight className="w-3.5 h-3.5" />
+        </button>
+      )}
+
       {/* Brand Header */}
       <div>
-        <div className="h-16 flex items-center justify-between px-4 border-b border-slate-200 dark:border-slate-800">
-          <div className="flex items-center gap-3 overflow-hidden">
-            <div className="w-10 h-10 rounded-xl bg-orange-600 flex items-center justify-center text-white font-black text-lg shadow-lg shadow-orange-600/30 flex-shrink-0">
+        <div
+          className={`h-16 flex items-center border-b border-slate-200 dark:border-slate-800 transition-all ${
+            isCollapsed ? 'justify-center px-2' : 'justify-between px-4'
+          }`}
+        >
+          <div className={`flex items-center ${isCollapsed ? 'justify-center' : 'gap-3 min-w-0'}`}>
+            <div
+              className={`w-10 h-10 rounded-xl bg-orange-600 flex items-center justify-center text-white font-black text-lg shadow-lg shadow-orange-600/30 flex-shrink-0 transition-transform ${
+                isCollapsed ? 'cursor-pointer hover:scale-105' : ''
+              }`}
+              onClick={() => isCollapsed && setIsCollapsed(false)}
+              title={isCollapsed ? 'Nhấp để mở rộng menu' : undefined}
+            >
               FPT
             </div>
             {!isCollapsed && (
@@ -88,17 +102,19 @@ export const Sidebar: React.FC<SidebarProps> = ({
               </div>
             )}
           </div>
-          <button
-            onClick={() => setIsCollapsed(!isCollapsed)}
-            className="p-1.5 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-500 hover:text-slate-800 dark:hover:text-slate-200 transition"
-            title={isCollapsed ? 'Mở rộng menu' : 'Thu gọn menu'}
-          >
-            {isCollapsed ? <ChevronRight className="w-4 h-4" /> : <ChevronLeft className="w-4 h-4" />}
-          </button>
+          {!isCollapsed && (
+            <button
+              onClick={() => setIsCollapsed(true)}
+              className="p-1.5 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-500 hover:text-slate-800 dark:hover:text-slate-200 transition"
+              title="Thu gọn menu"
+            >
+              <ChevronLeft className="w-4 h-4" />
+            </button>
+          )}
         </div>
 
         {/* Navigation Items */}
-        <nav className="p-3 space-y-1.5">
+        <nav className={`p-3 space-y-1.5 ${isCollapsed ? 'flex flex-col items-center px-2' : ''}`}>
           {navItems.map((item) => {
             const Icon = item.icon;
             const isActive = activeTab === item.id;
@@ -106,7 +122,8 @@ export const Sidebar: React.FC<SidebarProps> = ({
               <button
                 key={item.id}
                 onClick={() => setActiveTab(item.id)}
-                className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-left transition-all duration-150 group relative
+                className={`flex items-center rounded-xl transition-all duration-150 group relative
+                  ${isCollapsed ? 'w-11 h-11 justify-center p-0' : 'w-full gap-3 px-3 py-2.5 text-left'}
                   ${
                     isActive
                       ? 'bg-orange-500/10 text-orange-600 dark:text-orange-400 font-semibold border border-orange-500/30'
@@ -142,9 +159,9 @@ export const Sidebar: React.FC<SidebarProps> = ({
       </div>
 
       {/* Footer Actor Profile */}
-      <div className="p-3 border-t border-slate-200 dark:border-slate-800">
-        <div className="flex items-center gap-3 p-2 rounded-xl bg-slate-50 dark:bg-slate-800/40">
-          <div className="w-8 h-8 rounded-lg bg-slate-200 dark:bg-slate-700 flex items-center justify-center font-bold text-xs text-slate-700 dark:text-slate-200">
+      <div className={`p-3 border-t border-slate-200 dark:border-slate-800 ${isCollapsed ? 'flex justify-center px-2' : ''}`}>
+        <div className={`flex items-center rounded-xl bg-slate-50 dark:bg-slate-800/40 ${isCollapsed ? 'justify-center p-2 w-11 h-11' : 'gap-3 p-2 w-full'}`}>
+          <div className="w-7 h-7 rounded-lg bg-slate-200 dark:bg-slate-700 flex items-center justify-center font-bold text-xs text-slate-700 dark:text-slate-200 flex-shrink-0">
             PA
           </div>
           {!isCollapsed && (

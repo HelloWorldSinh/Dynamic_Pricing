@@ -7,9 +7,13 @@ interface CrawlControlPanelProps {
   onTriggerSuccess?: (source: string, taskId: string) => void;
 }
 
+const STORAGE_ACTIVE_TASK_ID = 'dynamic_pricing_active_task_id';
+
 export const CrawlControlPanel: React.FC<CrawlControlPanelProps> = ({ onTriggerSuccess }) => {
   const [isSubmitting, setIsSubmitting] = useState<boolean>(false);
-  const [activeTaskId, setActiveTaskId] = useState<string | null>(null);
+  const [activeTaskId, setActiveTaskId] = useState<string | null>(() => {
+    return localStorage.getItem(STORAGE_ACTIVE_TASK_ID);
+  });
   const [taskProgress, setTaskProgress] = useState<CrawlProgressResponse | null>(null);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
 
@@ -29,6 +33,7 @@ export const CrawlControlPanel: React.FC<CrawlControlPanelProps> = ({ onTriggerS
             clearInterval(pollingRef.current);
             pollingRef.current = null;
           }
+          localStorage.removeItem(STORAGE_ACTIVE_TASK_ID);
           if (onTriggerSuccess) {
             onTriggerSuccess(progress.source, activeTaskId);
           }
@@ -37,6 +42,7 @@ export const CrawlControlPanel: React.FC<CrawlControlPanelProps> = ({ onTriggerS
             clearInterval(pollingRef.current);
             pollingRef.current = null;
           }
+          localStorage.removeItem(STORAGE_ACTIVE_TASK_ID);
           setErrorMessage(progress.message || 'Tiến trình Full Pipeline gặp lỗi.');
         }
       } catch (err: unknown) {
@@ -65,6 +71,7 @@ export const CrawlControlPanel: React.FC<CrawlControlPanelProps> = ({ onTriggerS
 
     try {
       const response = await crawlerApi.triggerFullPipeline();
+      localStorage.setItem(STORAGE_ACTIVE_TASK_ID, response.task_id);
       setActiveTaskId(response.task_id);
     } catch (err: any) {
       if (err.response?.status === 429) {
