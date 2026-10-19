@@ -251,11 +251,12 @@ class CrawlerService:
                     f"(Thêm mới: {stats['inserted']}, Cập nhật: {stats['updated']})."
                 )
 
-                # Dọn dẹp định kỳ các bản ghi cào cũ (> 60 ngày) chưa từng được map SKU
+                # Dọn dẹp định kỳ các bản ghi cào cũ (> 7 ngày) chưa từng được map SKU
                 try:
-                    cleaned_count = cls.cleanup_stale_crawl_results(days=60, db=db)
+                    cleanup_days = getattr(settings, "CRAWL_RETENTION_DAYS", 7)
+                    cleaned_count = cls.cleanup_stale_crawl_results(days=cleanup_days, db=db)
                     if cleaned_count > 0:
-                        logger.info(f"Đã dọn dẹp {cleaned_count} bản ghi cào cũ hơn 60 ngày chưa map.")
+                        logger.info(f"Đã dọn dẹp {cleaned_count} bản ghi cào cũ hơn {cleanup_days} ngày chưa map.")
                 except Exception as clean_err:
                     logger.warning(f"Lỗi khi dọn dẹp bản ghi cũ trong task {task_id}: {clean_err}")
 
@@ -463,9 +464,10 @@ class CrawlerService:
                 stats = cls.save_scraped_items_upsert(all_items, db=db, job_id=job_uuid)
                 logger.info(f"[Full Pipeline] Đã lưu DB: {stats['inserted']} mới, {stats['updated']} cập nhật.")
 
-                # Dọn dẹp bản ghi cũ > 60 ngày chưa map
+                # Dọn dẹp bản ghi cũ > 7 ngày chưa map
                 try:
-                    cls.cleanup_stale_crawl_results(days=60, db=db)
+                    cleanup_days = getattr(settings, "CRAWL_RETENTION_DAYS", 7)
+                    cls.cleanup_stale_crawl_results(days=cleanup_days, db=db)
                 except Exception as clean_err:
                     logger.warning(f"Lỗi dọn dẹp stale crawl: {clean_err}")
 
@@ -718,7 +720,6 @@ class CrawlerService:
             current_price = getattr(item, "current_price", None) or (item.get("current_price") if isinstance(item, dict) else None)
             original_price = getattr(item, "original_price", None) or (item.get("original_price") if isinstance(item, dict) else None)
             is_in_stock = getattr(item, "is_in_stock", True) if hasattr(item, "is_in_stock") else item.get("is_in_stock", True)
-            stock_status_text = getattr(item, "stock_status_text", None) or (item.get("stock_status_text") if isinstance(item, dict) else None)
             specs = getattr(item, "specifications", None) or (item.get("specifications") if isinstance(item, dict) else {})
 
             norm_source = (source or "").upper()
@@ -749,8 +750,6 @@ class CrawlerService:
                 record.current_price = current_price
                 record.original_price = original_price
                 record.is_in_stock = is_in_stock
-                if stock_status_text:
-                    record.stock_status_text = stock_status_text
                 record.raw_specs = specs or record.raw_specs
                 record.crawled_at = now_dt
 
@@ -765,7 +764,6 @@ class CrawlerService:
                     current_price=current_price,
                     original_price=original_price,
                     is_in_stock=is_in_stock,
-                    stock_status_text=stock_status_text,
                     raw_specs=specs,
                     crawled_at=now_dt,
                 )
@@ -777,7 +775,7 @@ class CrawlerService:
         return {"inserted": inserted_count, "updated": updated_count}
 
     @classmethod
-    def cleanup_stale_crawl_results(cls, days: int = 60, db: Session = None) -> int:
+    def cleanup_stale_crawl_results(cls, days: int = 7, db: Session = None) -> int:
         """Dọn dẹp các bản ghi CrawlResult cũ (> days ngày) mà CHƯA TỪNG ĐƯỢC MAP vào SKU FPT nào.
         Bảo toàn 100% các bản ghi đã map để phục vụ so khớp và phân tích lịch sử.
         """

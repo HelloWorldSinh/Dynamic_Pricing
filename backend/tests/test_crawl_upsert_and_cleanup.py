@@ -133,14 +133,14 @@ def test_upsert_logs_to_price_history_when_price_changes_and_mapped(db_session):
 
 
 def test_cleanup_stale_crawl_results(db_session):
-    """Kiểm tra: Retention Cleanup xóa các sản phẩm đối thủ cũ (> 60 ngày)
+    """Kiểm tra: Retention Cleanup xóa các sản phẩm đối thủ cũ (> 7 ngày)
     mà CHƯA TỪNG ĐƯỢC MAP vào SKU FPT nào, nhưng BẢO TOÀN các sản phẩm đã map.
     """
     now = datetime.now(timezone.utc)
-    old_time = now - timedelta(days=75)
-    fresh_time = now - timedelta(days=5)
+    old_time = now - timedelta(days=10)
+    fresh_time = now - timedelta(days=2)
 
-    # 1. Record A: Cũ (> 60 ngày) + CHƯA MAP -> PHẢI BỊ XÓA
+    # 1. Record A: Cũ (> 7 ngày) + CHƯA MAP -> PHẢI BỊ XÓA
     rec_a = CrawlResult(
         id=uuid.uuid4(),
         source="CELLPHONES",
@@ -150,7 +150,7 @@ def test_cleanup_stale_crawl_results(db_session):
         crawled_at=old_time,
     )
 
-    # 2. Record B: Cũ (> 60 ngày) + ĐÃ MAP -> KHÔNG ĐƯỢC XÓA (BẢO TOÀN)
+    # 2. Record B: Cũ (> 7 ngày) + ĐÃ MAP -> KHÔNG ĐƯỢC XÓA (BẢO TOÀN)
     fpt_prod = Product(
         id=uuid.uuid4(),
         sku="FPT-PROD-B",
@@ -183,7 +183,7 @@ def test_cleanup_stale_crawl_results(db_session):
     )
     db_session.add(mapping_b)
 
-    # 3. Record C: Mới (5 ngày trước) + CHƯA MAP -> KHÔNG ĐƯỢC XÓA (CÒN TƯƠI)
+    # 3. Record C: Mới (2 ngày trước) + CHƯA MAP -> KHÔNG ĐƯỢC XÓA (CÒN TƯƠI)
     rec_c = CrawlResult(
         id=uuid.uuid4(),
         source="HOANGHA",
@@ -196,8 +196,8 @@ def test_cleanup_stale_crawl_results(db_session):
     db_session.add_all([rec_a, rec_c])
     db_session.commit()
 
-    # Thực hiện dọn dẹp với ngưỡng 60 ngày
-    deleted_count = CrawlerService.cleanup_stale_crawl_results(days=60, db=db_session)
+    # Thực hiện dọn dẹp với ngưỡng mặc định (7 ngày)
+    deleted_count = CrawlerService.cleanup_stale_crawl_results(days=7, db=db_session)
     assert deleted_count == 1
 
     remaining_urls = {r.url for r in db_session.query(CrawlResult).all()}
@@ -210,7 +210,7 @@ def test_cleanup_api_endpoint(db_session):
     """Kiểm tra API endpoint POST /api/v1/crawl/cleanup hoạt động chính xác."""
     app.dependency_overrides[get_db] = lambda: db_session
     try:
-        res = client.post("/api/v1/crawl/cleanup?days=60")
+        res = client.post("/api/v1/crawl/cleanup?days=7")
         assert res.status_code == 200
         data = res.json()
         assert "deleted_count" in data

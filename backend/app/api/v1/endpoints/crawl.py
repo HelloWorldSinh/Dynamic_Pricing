@@ -294,10 +294,10 @@ def get_crawl_stats(
 @router.post(
     "/cleanup",
     summary="Dọn dẹp sản phẩm cào đã cũ chưa từng map SKU",
-    description="Xóa các bản ghi CrawlResult có ngày cào cũ hơn số ngày quy định (mặc định 60 ngày) và chưa từng được map vào SKU FPT."
+    description="Xóa các bản ghi CrawlResult có ngày cào cũ hơn số ngày quy định (mặc định 7 ngày) và chưa từng được map vào SKU FPT."
 )
 def cleanup_crawl_results(
-    days: int = 60,
+    days: int = 7,
     db: Session = Depends(get_db)
 ):
     deleted_count = CrawlerService.cleanup_stale_crawl_results(days=days, db=db)

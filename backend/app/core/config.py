@@ -17,6 +17,7 @@ class Settings(BaseSettings):
     ENVIRONMENT: str = "development"
     DATABASE_URL: str = f"sqlite:///{DEFAULT_DB_PATH.as_posix()}"
     DEBOUNCE_SECONDS: int = 30
+    CRAWL_RETENTION_DAYS: int = 7
 
     # CORS
     CORS_ORIGINS: Union[List[str], str] = [
