@@ -4,6 +4,7 @@ from sqlalchemy import Column, String, BigInteger, Boolean, JSON, DateTime, Fore
 from sqlalchemy.orm import relationship
 from app.core.database import Base
 from app.models.base import GUID
+from app.utils.datetime_utils import get_vietnam_now
 
 
 class CrawlResult(Base):
@@ -20,7 +21,7 @@ class CrawlResult(Base):
     is_in_stock = Column(Boolean, default=True, nullable=False)  # Còn hàng hay ngừng kinh doanh
     stock_status_text = Column(String(100), nullable=True)    # Nhãn trạng thái gốc: "Còn hàng", "Tạm hết"...
     raw_specs = Column(JSON, nullable=True)                   # Bảng thông số kỹ thuật thô bóc tách
-    crawled_at = Column(DateTime, default=datetime.utcnow, nullable=False, index=True)
+    crawled_at = Column(DateTime, default=get_vietnam_now, nullable=False, index=True)
 
     # Relationships
     job = relationship("CrawlJob", back_populates="crawl_results")

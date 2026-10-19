@@ -1,7 +1,8 @@
 from enum import Enum
 from typing import Optional, Dict, Any
 from datetime import datetime
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, ConfigDict, field_serializer
+from app.utils.datetime_utils import get_vietnam_now, to_vietnam_iso
 
 
 class SourceEnum(str, Enum):
@@ -28,7 +29,11 @@ class CrawlJobResponse(BaseModel):
     task_id: str
     status: str = Field(description="PENDING | PROCESSING | COMPLETED | FAILED")
     message: str
-    started_at: datetime = Field(default_factory=datetime.utcnow)
+    started_at: datetime = Field(default_factory=get_vietnam_now)
+
+    @field_serializer("started_at", mode="plain", check_fields=False)
+    def serialize_started_at(self, dt: Optional[datetime], _info):
+        return to_vietnam_iso(dt) if dt is not None else None
 
 
 class CrawlProgressResponse(BaseModel):
@@ -54,3 +59,24 @@ class ScrapedProductItem(BaseModel):
     original_price: Optional[int] = None
     is_in_stock: bool = True
     specifications: Dict[str, Any] = Field(default_factory=dict)
+
+
+class CrawlJobRecordResponse(BaseModel):
+    id: str
+    trigger_type: str
+    source: str
+    category: str
+    status: str
+    total_items: int = 0
+    success_items: int = 0
+    error_items: int = 0
+    error_log: Optional[str] = None
+    started_at: datetime
+    finished_at: Optional[datetime] = None
+
+    model_config = ConfigDict(from_attributes=True)
+
+    @field_serializer("started_at", "finished_at", mode="plain", check_fields=False)
+    def serialize_datetimes(self, dt: Optional[datetime], _info):
+        return to_vietnam_iso(dt) if dt is not None else None
+

@@ -1,9 +1,9 @@
 import uuid
-from datetime import datetime, timezone
 from sqlalchemy import Column, String, Integer, Text, DateTime
 from sqlalchemy.orm import relationship
 from app.core.database import Base
 from app.models.base import GUID
+from app.utils.datetime_utils import get_vietnam_now
 
 
 class CrawlJob(Base):
@@ -19,7 +19,7 @@ class CrawlJob(Base):
     success_items = Column(Integer, default=0, nullable=False)
     error_items = Column(Integer, default=0, nullable=False)
     error_log = Column(Text, nullable=True)
-    started_at = Column(DateTime, default=lambda: datetime.now(timezone.utc), nullable=False)
+    started_at = Column(DateTime, default=get_vietnam_now, nullable=False)
     finished_at = Column(DateTime, nullable=True)
 
     # Relationships

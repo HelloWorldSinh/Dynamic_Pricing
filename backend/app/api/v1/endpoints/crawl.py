@@ -1,9 +1,10 @@
-from typing import Optional
+from typing import Optional, List
 from fastapi import APIRouter, BackgroundTasks, HTTPException, status, Depends
 from sqlalchemy.orm import Session
 from app.core.database import get_db, SessionLocal
+from app.models.crawl_job import CrawlJob
 from app.models.crawl_result import CrawlResult
-from app.schemas.crawl import CrawlTriggerRequest, CrawlJobResponse, CrawlProgressResponse
+from app.schemas.crawl import CrawlTriggerRequest, CrawlJobResponse, CrawlProgressResponse, CrawlJobRecordResponse
 from app.services.crawler_service import CrawlerService
 
 router = APIRouter()
@@ -42,14 +43,85 @@ def trigger_crawl(
     summary="Tra cứu tiến độ tác vụ cào dữ liệu theo task_id",
     description="Lấy trạng thái thực thi, phần trăm hoàn thành, số sản phẩm đã cào của job cào dữ liệu."
 )
-def get_crawl_task_status(task_id: str):
-    task = CrawlerService.get_task_status(task_id)
+def get_crawl_task_status(
+    task_id: str,
+    db: Session = Depends(get_db)
+):
+    task = CrawlerService.get_task_status(task_id, db=db)
     if not task:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
             detail=f"Không tìm thấy tác vụ cào với task_id '{task_id}'."
         )
     return task
+
+
+@router.get(
+    "/jobs",
+    response_model=List[CrawlJobRecordResponse],
+    summary="Lấy danh sách lịch sử các đợt cào dữ liệu",
+    description="Truy vấn danh sách lịch sử các đợt cào dữ liệu từ bảng crawl_jobs, sắp xếp mới nhất lên đầu."
+)
+def list_crawl_jobs(
+    limit: int = 20,
+    skip: int = 0,
+    db: Session = Depends(get_db)
+):
+    jobs = db.query(CrawlJob).order_by(CrawlJob.started_at.desc()).offset(skip).limit(limit).all()
+    return [
+        CrawlJobRecordResponse(
+            id=str(j.id),
+            trigger_type=j.trigger_type,
+            source=j.source,
+            category=j.category,
+            status=j.status,
+            total_items=j.total_items,
+            success_items=j.success_items,
+            error_items=j.error_items,
+            error_log=j.error_log,
+            started_at=j.started_at,
+            finished_at=j.finished_at,
+        )
+        for j in jobs
+    ]
+
+
+@router.get(
+    "/jobs/latest",
+    response_model=Optional[CrawlJobRecordResponse],
+    summary="Lấy đợt cào dữ liệu gần nhất",
+    description="Truy vấn đợt cào dữ liệu mới nhất (ưu tiên trạng thái COMPLETED) từ bảng crawl_jobs."
+)
+def get_latest_crawl_job(
+    status: Optional[str] = None,
+    source: Optional[str] = None,
+    db: Session = Depends(get_db)
+):
+    query = db.query(CrawlJob)
+    if status and status.upper() != "ALL":
+        query = query.filter(CrawlJob.status == status.upper())
+    if source and source.upper() != "ALL":
+        query = query.filter(CrawlJob.source == source.upper())
+
+    job = query.order_by(CrawlJob.started_at.desc()).first()
+    if not job:
+        return None
+
+    return CrawlJobRecordResponse(
+        id=str(job.id),
+        trigger_type=job.trigger_type,
+        source=job.source,
+        category=job.category,
+        status=job.status,
+        total_items=job.total_items,
+        success_items=job.success_items,
+        error_items=job.error_items,
+        error_log=job.error_log,
+        started_at=job.started_at,
+        finished_at=job.finished_at,
+    )
+
+
 
 
 def _build_category_filter(category: str):
@@ -196,7 +268,17 @@ def get_crawl_stats(
     
     in_stock_count = query.filter(CrawlResult.is_in_stock == True).count()
     
-    latest_crawled_at = db.query(func.max(CrawlResult.crawled_at)).scalar()
+    # Ưu tiên lấy mốc thời gian từ đợt cào COMPLETED trong bảng crawl_jobs
+    latest_job = (
+        db.query(CrawlJob)
+        .filter(CrawlJob.status == "COMPLETED")
+        .order_by(CrawlJob.started_at.desc())
+        .first()
+    )
+    if latest_job and (latest_job.finished_at or latest_job.started_at):
+        latest_crawled_at = latest_job.finished_at or latest_job.started_at
+    else:
+        latest_crawled_at = db.query(func.max(CrawlResult.crawled_at)).scalar()
     
     return {
         "total": total,

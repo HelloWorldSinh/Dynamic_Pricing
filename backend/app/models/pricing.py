@@ -1,9 +1,9 @@
 import uuid
-from datetime import datetime, timezone
 from sqlalchemy import Column, String, BigInteger, Float, Boolean, JSON, DateTime, ForeignKey
 from sqlalchemy.orm import relationship
 from app.core.database import Base
 from app.models.base import GUID
+from app.utils.datetime_utils import get_vietnam_now
 
 
 class PriceRecommendation(Base):
@@ -32,7 +32,7 @@ class PriceRecommendation(Base):
     reviewed_by = Column(String(100), nullable=True)
     reviewed_at = Column(DateTime, nullable=True)
     rejection_reason = Column(String(255), nullable=True)
-    created_at = Column(DateTime, default=lambda: datetime.now(timezone.utc), nullable=False, index=True)
+    created_at = Column(DateTime, default=get_vietnam_now, nullable=False, index=True)
 
     # Relationships
     product = relationship("Product", back_populates="price_recommendations")
@@ -53,7 +53,7 @@ class PriceHistory(Base):
     source = Column(String(50), nullable=False, index=True)             # FPTSHOP | CELLPHONES | HOANGHA
     price = Column(BigInteger, nullable=False)                          # Giá ghi nhận (VND)
     is_in_stock = Column(Boolean, default=True, nullable=False)         # Tình trạng còn hàng
-    recorded_at = Column(DateTime, default=lambda: datetime.now(timezone.utc), nullable=False, index=True)
+    recorded_at = Column(DateTime, default=get_vietnam_now, nullable=False, index=True)
 
     # Relationships
     product = relationship("Product", back_populates="price_history")
@@ -70,7 +70,7 @@ class PricingAuditLog(Base):
     entity_id = Column(GUID(), nullable=True, index=True)
     old_value = Column(JSON, nullable=True)
     new_value = Column(JSON, nullable=True)
-    created_at = Column(DateTime, default=lambda: datetime.now(timezone.utc), nullable=False)
+    created_at = Column(DateTime, default=get_vietnam_now, nullable=False)
 
     # Relationships
     price_recommendation = relationship(

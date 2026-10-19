@@ -1,17 +1,19 @@
 import time
 import uuid
 import logging
-from datetime import datetime, timedelta
+from datetime import timedelta
 from typing import Tuple, Optional, Dict, Any, List
 from pathlib import Path
 from sqlalchemy.orm import Session
 from app.core.config import settings
+from app.models.crawl_job import CrawlJob
 from app.models.crawl_result import CrawlResult
 from app.models.sku_mapping import SkuMapping
 from app.models.pricing import PriceHistory
 from app.models.product import Product
 from app.schemas.crawl import CrawlTriggerRequest, CrawlJobResponse, ScrapedProductItem
 from app.services.scrapers.factory import ScraperFactory
+from app.utils.datetime_utils import get_vietnam_now, to_vietnam_iso
 
 logger = logging.getLogger(__name__)
 
@@ -43,9 +45,73 @@ class CrawlerService:
         return False, 0
 
     @classmethod
-    def get_task_status(cls, task_id: str) -> Optional[Dict[str, Any]]:
-        """Lấy thông tin tiến độ của một task theo task_id."""
-        return cls._tasks.get(task_id)
+    def get_task_status(cls, task_id: str, db: Optional[Session] = None) -> Optional[Dict[str, Any]]:
+        """Lấy thông tin tiến độ của một task theo task_id (ưu tiên RAM, fallback CSDL)."""
+        task = cls._tasks.get(task_id)
+        if task:
+            return task
+
+        if db is not None:
+            try:
+                job_uuid = uuid.UUID(task_id) if isinstance(task_id, str) else task_id
+                job = db.query(CrawlJob).filter(CrawlJob.id == job_uuid).first()
+                if job:
+                    pct = 100 if job.status == "COMPLETED" else (0 if job.status in ["PENDING", "FAILED"] else 50)
+                    msg = (
+                        f"Đã hoàn tất cào {job.total_items} sản phẩm."
+                        if job.status == "COMPLETED"
+                        else (f"Gặp lỗi: {job.error_log}" if job.status == "FAILED" else f"Đang thực thi ({job.status})")
+                    )
+                    return {
+                        "task_id": str(job.id),
+                        "source": job.source,
+                        "category": job.category,
+                        "status": job.status,
+                        "current_page": 0,
+                        "total_pages": 1,
+                        "scraped_count": job.total_items,
+                        "progress_percent": pct,
+                        "message": msg,
+                        "started_at": to_vietnam_iso(job.started_at) if job.started_at else None,
+                        "completed_at": to_vietnam_iso(job.finished_at) if job.finished_at else None,
+                        "error": job.error_log,
+                    }
+            except Exception as err:
+                logger.warning(f"Lỗi khi tra cứu CrawlJob fallback từ DB cho task {task_id}: {err}")
+
+        return None
+
+    @classmethod
+    def _update_crawl_job_record(
+        cls,
+        db: Session,
+        task_id: str,
+        status: str,
+        total_items: Optional[int] = None,
+        success_items: Optional[int] = None,
+        error_items: Optional[int] = None,
+        error_log: Optional[str] = None,
+    ):
+        """Cập nhật trạng thái và số liệu của CrawlJob trong CSDL."""
+        try:
+            job_uuid = uuid.UUID(task_id) if isinstance(task_id, str) else task_id
+            job = db.query(CrawlJob).filter(CrawlJob.id == job_uuid).first()
+            if job:
+                job.status = status
+                if total_items is not None:
+                    job.total_items = total_items
+                if success_items is not None:
+                    job.success_items = success_items
+                if error_items is not None:
+                    job.error_items = error_items
+                if error_log is not None:
+                    job.error_log = error_log
+                if status in ["COMPLETED", "FAILED"]:
+                    job.finished_at = get_vietnam_now()
+                db.commit()
+        except Exception as err:
+            logger.warning(f"Lỗi khi cập nhật CrawlJob record {task_id}: {err}")
+            db.rollback()
 
     @classmethod
     def update_task_progress(
@@ -71,7 +137,7 @@ class CrawlerService:
                 "scraped_count": 0,
                 "progress_percent": 0,
                 "message": "Đang khởi tạo...",
-                "started_at": datetime.utcnow().isoformat(),
+                "started_at": to_vietnam_iso(),
                 "completed_at": None,
                 "error": None,
             }
@@ -92,12 +158,23 @@ class CrawlerService:
         if error is not None:
             task["error"] = error
         if status in ["COMPLETED", "FAILED"]:
-            task["completed_at"] = datetime.utcnow().isoformat()
+            task["completed_at"] = to_vietnam_iso()
 
     @classmethod
     def execute_crawl_job(cls, task_id: str, request: CrawlTriggerRequest, db_session_factory):
         """Hàm chạy ngầm (Background Task) để cào dữ liệu và ghi vào CSDL."""
         logger.info(f"Bắt đầu chạy task {task_id} cho source {request.source} - category {request.category}")
+        try:
+            job_uuid = uuid.UUID(task_id) if isinstance(task_id, str) else task_id
+        except (ValueError, TypeError, AttributeError):
+            job_uuid = None
+
+        # Đánh dấu trạng thái RUNNING trong CSDL
+        db_init: Session = db_session_factory()
+        try:
+            cls._update_crawl_job_record(db=db_init, task_id=str(task_id), status="RUNNING")
+        finally:
+            db_init.close()
 
         cls.update_task_progress(
             task_id,
@@ -168,7 +245,7 @@ class CrawlerService:
             # Lưu dữ liệu vào CSDL bằng cơ chế UPSERT theo URL (tránh duplicate & log price history)
             db: Session = db_session_factory()
             try:
-                stats = cls.save_scraped_items_upsert(items_to_save, db=db)
+                stats = cls.save_scraped_items_upsert(items_to_save, db=db, job_id=job_uuid)
                 logger.info(
                     f"Hoàn tất task {task_id}: Đã xử lý {len(items_to_save)} sản phẩm "
                     f"(Thêm mới: {stats['inserted']}, Cập nhật: {stats['updated']})."
@@ -192,6 +269,14 @@ class CrawlerService:
                         f"(Mới: {stats['inserted']}, Cập nhật: {stats['updated']})."
                     ),
                 )
+                cls._update_crawl_job_record(
+                    db=db,
+                    task_id=str(job_uuid),
+                    status="COMPLETED",
+                    total_items=len(items_to_save),
+                    success_items=stats["inserted"] + stats["updated"],
+                    error_items=max(0, len(items_to_save) - (stats["inserted"] + stats["updated"])),
+                )
             except Exception as e:
                 db.rollback()
                 logger.error(f"Lỗi khi lưu kết quả cào vào DB: {e}")
@@ -200,6 +285,12 @@ class CrawlerService:
                     status="FAILED",
                     error=str(e),
                     message=f"Lỗi khi lưu kết quả vào CSDL: {e}",
+                )
+                cls._update_crawl_job_record(
+                    db=db,
+                    task_id=str(job_uuid),
+                    status="FAILED",
+                    error_log=str(e),
                 )
             finally:
                 db.close()
@@ -212,6 +303,16 @@ class CrawlerService:
                 error=str(e),
                 message=f"Lỗi trong quá trình cào: {e}",
             )
+            db_err_session: Session = db_session_factory()
+            try:
+                cls._update_crawl_job_record(
+                    db=db_err_session,
+                    task_id=str(job_uuid),
+                    status="FAILED",
+                    error_log=str(e),
+                )
+            finally:
+                db_err_session.close()
 
     @classmethod
     def execute_full_pipeline_job(cls, task_id: str, request: CrawlTriggerRequest, db_session_factory):
@@ -224,6 +325,18 @@ class CrawlerService:
         6. Cập nhật tiến độ hoàn thành và tổng kết.
         """
         logger.info(f"Bắt đầu chạy FULL PIPELINE cho task {task_id}")
+        try:
+            job_uuid = uuid.UUID(task_id) if isinstance(task_id, str) else task_id
+        except (ValueError, TypeError, AttributeError):
+            job_uuid = None
+
+        # Đánh dấu trạng thái RUNNING trong CSDL
+        db_init: Session = db_session_factory()
+        try:
+            cls._update_crawl_job_record(db=db_init, task_id=str(task_id), status="RUNNING")
+        finally:
+            db_init.close()
+
         cls.update_task_progress(
             task_id,
             status="RUNNING",
@@ -347,7 +460,7 @@ class CrawlerService:
 
             db: Session = db_session_factory()
             try:
-                stats = cls.save_scraped_items_upsert(all_items, db=db)
+                stats = cls.save_scraped_items_upsert(all_items, db=db, job_id=job_uuid)
                 logger.info(f"[Full Pipeline] Đã lưu DB: {stats['inserted']} mới, {stats['updated']} cập nhật.")
 
                 # Dọn dẹp bản ghi cũ > 60 ngày chưa map
@@ -368,7 +481,7 @@ class CrawlerService:
                 # Chuyển đổi dữ liệu sang định dạng dictionary cho SkuMatcher
                 def to_dict_list(items, source_label):
                     res = []
-                    now_str = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+                    now_str = get_vietnam_now().strftime("%Y-%m-%d %H:%M:%S")
                     for it in items:
                         specs = it.specifications or {}
                         res.append({
@@ -415,6 +528,32 @@ class CrawlerService:
                     output_excel_path=output_excel_path
                 )
 
+                cls.update_task_progress(
+                    task_id,
+                    status="RUNNING",
+                    progress_percent=90,
+                    scraped_count=total_all,
+                    message="[4/4] Đã xuất báo cáo Excel. Đang chuẩn bị đồng bộ vào Cơ sở dữ liệu...",
+                )
+
+                # Kiểm tra và tự động nạp danh mục chuẩn nếu bảng products rỗng
+                if db.query(Product).count() == 0:
+                    logger.info("[Full Pipeline] Bảng products rỗng, tiến hành nạp danh mục từ dim_product.xlsx...")
+                    try:
+                        from app.services.seeder import seed_catalog_and_inventory
+                        seed_catalog_and_inventory(db)
+                        db.commit()
+                    except Exception as seed_err:
+                        logger.warning(f"[Full Pipeline] Không thể tự động seed danh mục: {seed_err}")
+
+                cls.update_task_progress(
+                    task_id,
+                    status="RUNNING",
+                    progress_percent=95,
+                    scraped_count=total_all,
+                    message="[4/4] Đang đối soát và ghi kết quả vào CSDL (sku_mappings)...",
+                )
+
                 # Đồng bộ kết quả đối soát vào bảng sku_mappings trong CSDL
                 from app.services.matching_persistence import run_sku_matching_and_persist
                 run_sku_matching_and_persist(db=db, overwrite_existing=True)
@@ -434,6 +573,14 @@ class CrawlerService:
                         f"Ghép cặp thành công {mapped_fpt}/{total_fpt} SKU FPT Shop ({match_pct}%)."
                     ),
                 )
+                cls._update_crawl_job_record(
+                    db=db,
+                    task_id=str(task_id),
+                    status="COMPLETED",
+                    total_items=total_all,
+                    success_items=stats["inserted"] + stats["updated"],
+                    error_items=max(0, total_all - (stats["inserted"] + stats["updated"])),
+                )
             except Exception as e:
                 db.rollback()
                 logger.error(f"[Full Pipeline] Lỗi lưu DB / so khớp: {e}", exc_info=True)
@@ -442,6 +589,12 @@ class CrawlerService:
                     status="FAILED",
                     error=str(e),
                     message=f"Lỗi khi lưu dữ liệu hoặc đối soát: {e}",
+                )
+                cls._update_crawl_job_record(
+                    db=db,
+                    task_id=str(task_id),
+                    status="FAILED",
+                    error_log=str(e),
                 )
             finally:
                 db.close()
@@ -454,17 +607,47 @@ class CrawlerService:
                 error=str(e),
                 message=f"Lỗi trong quá trình cào Full Pipeline: {e}",
             )
+            db_err_session: Session = db_session_factory()
+            try:
+                cls._update_crawl_job_record(
+                    db=db_err_session,
+                    task_id=str(task_id),
+                    status="FAILED",
+                    error_log=str(e),
+                )
+            finally:
+                db_err_session.close()
 
     @classmethod
     def trigger_crawl(cls, request: CrawlTriggerRequest, background_tasks, db_session_factory) -> CrawlJobResponse:
         """Interface gọi cào dữ liệu từ API controller."""
         task_id = str(uuid.uuid4())
+        job_uuid = uuid.UUID(task_id)
 
         is_full = request.source.value in ["full_pipeline", "all"]
         source_label = "FULL_PIPELINE" if is_full else request.source.value.upper()
         category_label = "ALL" if is_full else request.category.value
 
-        # Khởi tạo trạng thái ban đầu của task
+        # Khởi tạo bản ghi CrawlJob trong CSDL để lưu vết lịch sử bền vững
+        db: Session = db_session_factory()
+        try:
+            job_rec = CrawlJob(
+                id=job_uuid,
+                trigger_type="ON_DEMAND",
+                source=source_label,
+                category=category_label.upper(),
+                status="PENDING",
+                started_at=get_vietnam_now(),
+            )
+            db.add(job_rec)
+            db.commit()
+        except Exception as db_err:
+            logger.warning(f"Không thể khởi tạo bản ghi CrawlJob trong DB: {db_err}")
+            db.rollback()
+        finally:
+            db.close()
+
+        # Khởi tạo trạng thái ban đầu của task trên RAM
         cls._tasks[task_id] = {
             "task_id": task_id,
             "source": source_label,
@@ -475,7 +658,7 @@ class CrawlerService:
             "scraped_count": 0,
             "progress_percent": 0,
             "message": f"Đã tiếp nhận yêu cầu {source_label} ({category_label}). Đang chuẩn bị...",
-            "started_at": datetime.utcnow().isoformat(),
+            "started_at": to_vietnam_iso(),
             "completed_at": None,
             "error": None,
         }
@@ -500,13 +683,15 @@ class CrawlerService:
     def save_scraped_items_upsert(
         cls,
         items: List[ScrapedProductItem],
-        db: Session
+        db: Session,
+        job_id: Optional[uuid.UUID] = None
     ) -> Dict[str, int]:
         """Lưu danh sách sản phẩm cào được vào CSDL theo cơ chế UPSERT:
         1. Tìm kiếm theo URL xem đã tồn tại trong CSDL chưa.
         2. Nếu đã có: Cập nhật tại chỗ (giữ nguyên ID để bảo toàn SkuMapping liên kết).
            - Nếu giá thay đổi (old_price != new_price) và sản phẩm đã map SKU, tự động ghi 1 dòng log vào PriceHistory.
-        3. Nếu chưa có: Thêm mới bản ghi CrawlResult.
+           - Cập nhật job_id để liên kết đợt cào mới nhất.
+        3. Nếu chưa có: Thêm mới bản ghi CrawlResult gắn kèm job_id.
         4. Trả về dict thống kê {"inserted": X, "updated": Y}.
         """
         if not items:
@@ -525,7 +710,7 @@ class CrawlerService:
 
         inserted_count = 0
         updated_count = 0
-        now_dt = datetime.utcnow()
+        now_dt = get_vietnam_now()
 
         for url, item in deduped_items.items():
             source = getattr(item, "source", None) or (item.get("source") if isinstance(item, dict) else "")
@@ -558,6 +743,8 @@ class CrawlerService:
                         db.add(hist_log)
 
                 # Cập nhật tại chỗ
+                if job_id is not None:
+                    record.job_id = job_id
                 record.raw_name = product_name or record.raw_name
                 record.current_price = current_price
                 record.original_price = original_price
@@ -571,6 +758,7 @@ class CrawlerService:
             else:
                 new_rec = CrawlResult(
                     id=uuid.uuid4(),
+                    job_id=job_id,
                     source=norm_source,
                     url=url,
                     raw_name=product_name or "Chưa cập nhật tên",
@@ -596,7 +784,7 @@ class CrawlerService:
         if db is None:
             return 0
 
-        cutoff = datetime.utcnow() - timedelta(days=days)
+        cutoff = get_vietnam_now() - timedelta(days=days)
         mapped_crawl_ids = [row[0] for row in db.query(SkuMapping.competitor_crawl_id).all() if row[0]]
 
         query = db.query(CrawlResult).filter(CrawlResult.crawled_at < cutoff)
