@@ -7,10 +7,45 @@ from app.models.sku_mapping import SkuMapping
 from app.models.product import Product
 from app.models.crawl_result import CrawlResult
 from app.models.pricing import PricingAuditLog
-from app.schemas.matching import SkuMappingPairResponse
+from app.schemas.matching import SkuMappingPairResponse, SkuMatchingStatsResponse
 from app.services.matching.feature_extractor import FeatureExtractor
 
 router = APIRouter()
+
+
+@router.get(
+    "/stats",
+    response_model=SkuMatchingStatsResponse,
+    summary="Thống kê tổng quan tỷ lệ ghép cặp SKU",
+    description="Tra cứu tổng số SKU đang kinh doanh, số lượng SKU đã được đối soát duyệt thành công và tỷ lệ ghép cặp.",
+)
+def get_matching_stats(db: Session = Depends(get_db)):
+    """Thống kê tổng quan tỷ lệ ghép cặp SKU FPT với dữ liệu đối thủ."""
+    total_skus = db.query(Product).filter(Product.is_active == True).count()
+
+    matched_skus = (
+        db.query(SkuMapping.fpt_product_id)
+        .join(Product, SkuMapping.fpt_product_id == Product.id)
+        .filter(Product.is_active == True, SkuMapping.status == "APPROVED")
+        .distinct()
+        .count()
+    )
+
+    match_rate = round((matched_skus / total_skus * 100), 1) if total_skus > 0 else 0.0
+
+    pending_count = db.query(SkuMapping).filter(SkuMapping.status == "PENDING").count()
+    approved_count = db.query(SkuMapping).filter(SkuMapping.status == "APPROVED").count()
+    rejected_count = db.query(SkuMapping).filter(SkuMapping.status == "REJECTED").count()
+
+    return SkuMatchingStatsResponse(
+        total_skus=total_skus,
+        matched_skus=matched_skus,
+        match_rate=match_rate,
+        pending_queue_count=pending_count,
+        approved_count=approved_count,
+        rejected_count=rejected_count,
+    )
+
 
 
 def _to_pair_response(mapping: SkuMapping) -> SkuMappingPairResponse:

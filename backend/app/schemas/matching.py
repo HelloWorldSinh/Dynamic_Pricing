@@ -20,3 +20,16 @@ class SkuMappingPairResponse(BaseModel):
     status: str
 
     model_config = ConfigDict(from_attributes=True)
+
+
+class SkuMatchingStatsResponse(BaseModel):
+    """Thong ke tong quan ty le ghep cap SKU va hang doi doi soat."""
+    total_skus: int
+    matched_skus: int
+    match_rate: float
+    pending_queue_count: int
+    approved_count: int
+    rejected_count: int
+
+    model_config = ConfigDict(from_attributes=True)
+
