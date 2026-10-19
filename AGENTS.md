@@ -222,3 +222,16 @@ Khi thiết kế, xây dựng hoặc chỉnh sửa bất kỳ giao diện nào (
    - Sử dụng màu sắc tinh tế (color coding: viền/nền/chữ) và phân cấp kiểu chữ (typography: font-weight, size, spacing) để biểu đạt trực quan trạng thái thay vì dùng biểu tượng minh họa.
    - Sử dụng ngôn ngữ chuẩn xác, súc tích.
 
+---
+
+## 10. QUY TẮC BẮT BUỘC VỀ KIỂM THỬ: TEST QUA API, KHÔNG TEST QUA GIAO DIỆN (API TESTING FIRST & ONLY)
+👉 **QUY TẮC CƯỠNG CHẾ BỘ NHỚ VĨNH VIỄN:**
+1. **Kiểm thử trực tiếp qua API:**
+   - Mọi hoạt động kiểm thử tính năng, luồng xử lý, sửa lỗi hoặc xác minh hệ thống BẮT BUỘC phải thực hiện thông qua **API / Unit Test / Integration Script**:
+     - Sử dụng `pytest` cho unit và integration test (`backend/tests/`).
+     - Sử dụng FastAPI `TestClient` hoặc `httpx`/`requests` gọi trực tiếp vào endpoint REST API.
+     - Sử dụng các script kiểm tra tích hợp có sẵn (như `verify_fe_be_integration.py`).
+2. **NGHIÊM CẤM test qua giao diện trình duyệt:**
+   - Tuyệt đối KHÔNG tự ý kích hoạt công cụ `browser_subagent` để mở trình duyệt, click chuột hay thao tác UI kiểm thử trừ khi người dùng có yêu cầu cụ thể rõ ràng về kiểm tra thị giác (visual inspection).
+   - Đảm bảo kiểm thử nhanh chóng, chính xác, tiết kiệm tài nguyên và không can thiệp vào phiên làm việc trên trình duyệt của người dùng.
+

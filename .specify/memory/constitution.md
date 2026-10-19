@@ -29,6 +29,7 @@ principles.
 - SKU matching engine MUST maintain >90% precision and include regression
   test coverage for edge-case product titles/RAM/ROM specifications.
 - Maintain overall pytest suite pass rate and test coverage >= 80%.
+- **API Testing Only:** All verification and integration tests MUST be executed via API (pytest, FastAPI TestClient, direct HTTP scripts). NEVER use browser subagents for testing unless visual inspection is explicitly requested.
 
 ### IV. Two-Tiered Data Matching Protocol (Regex + Fuzzy)
 SKU and product matching MUST strictly follow two-tiered processing:

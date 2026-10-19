@@ -33,6 +33,11 @@ def test_database_connection():
     ...
 ```
 
+## API Testing Only (No Browser/UI Testing)
+
+- **MANDATORY:** All feature testing, verification, bug checks, and regression tests MUST be executed via API (pytest, FastAPI `TestClient`, direct HTTP requests, integration scripts).
+- **PROHIBITED:** NEVER trigger automated browser tools (`browser_subagent`) to click UI elements or test via browser unless the user explicitly requests visual UI inspection.
+
 ## Reference
 
 See skill: `python-testing` for detailed pytest patterns and fixtures.

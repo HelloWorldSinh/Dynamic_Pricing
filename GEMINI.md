@@ -16,3 +16,7 @@ Xem: [AGENTS.md](./AGENTS.md)
 - **NGHIÊM CẤM:** Không dùng `run_command` chạy các lệnh shell (`Get-ChildItem`, `dir`, `cat`, `type`, `ls`) chỉ để đọc file hoặc liệt kê thư mục, vì sẽ kích hoạt popup yêu cầu người dùng xác nhận cấp quyền.
 - **BẮT BUỘC:** Luôn sử dụng công cụ đọc gốc **`view_file`** hoặc MCP **`codegraph_explore`** để đọc và khám phá codebase. Các công cụ này chạy ngầm tự động 100%, không yêu cầu người dùng bấm Approve.
 
+### 2. Quy Chuẩn Kiểm Thử: Test Qua API, Tuyệt Đối Không Test Qua Giao Diện
+- **BẮT BUỘC:** Mọi kiểm thử chức năng, xác minh lỗi hoặc kiểm tra luồng hệ thống phải thực hiện bằng **API Testing** (Pytest, FastAPI `TestClient`, HTTP requests, test scripts).
+- **NGHIÊM CẤM:** Tuyệt đối không tự ý kích hoạt `browser_subagent` để mở trình duyệt hay click kiểm thử giao diện người dùng.
+
