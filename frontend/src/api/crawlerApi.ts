@@ -113,7 +113,6 @@ export async function getCrawlResultsApi(
       price: item.price ?? item.current_price ?? 0,
       original_price: item.original_price,
       is_in_stock: typeof item.is_in_stock === 'boolean' ? item.is_in_stock : true,
-      stock_status_text: item.stock_status_text,
       category: item.category,
       specifications: item.specifications || item.raw_specs || {},
       crawled_at: item.crawled_at || new Date().toISOString(),

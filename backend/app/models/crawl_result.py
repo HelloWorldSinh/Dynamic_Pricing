@@ -19,7 +19,6 @@ class CrawlResult(Base):
     current_price = Column(BigInteger, nullable=True)         # Giá bán thực tế (VND)
     original_price = Column(BigInteger, nullable=True)        # Giá niêm yết (VND)
     is_in_stock = Column(Boolean, default=True, nullable=False)  # Còn hàng hay ngừng kinh doanh
-    stock_status_text = Column(String(100), nullable=True)    # Nhãn trạng thái gốc: "Còn hàng", "Tạm hết"...
     raw_specs = Column(JSON, nullable=True)                   # Bảng thông số kỹ thuật thô bóc tách
     crawled_at = Column(DateTime, default=get_vietnam_now, nullable=False, index=True)
 

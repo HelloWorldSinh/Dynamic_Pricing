@@ -31,7 +31,6 @@ def migrate():
 
         # Table crawl_results
         add_column_if_not_exists(cur, "crawl_results", "job_id CHAR(36)", "job_id")
-        add_column_if_not_exists(cur, "crawl_results", "stock_status_text VARCHAR(100)", "stock_status_text")
 
         # Table sku_mappings
         add_column_if_not_exists(cur, "sku_mappings", "reviewed_at TIMESTAMP", "reviewed_at")

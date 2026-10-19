@@ -107,11 +107,6 @@ export const CompetitorDataTable: React.FC<CompetitorDataTableProps> = ({
                     >
                       {item.is_in_stock ? 'Còn hàng' : 'Tạm hết'}
                     </span>
-                    {item.stock_status_text && (
-                      <div className="text-[10px] text-slate-400 mt-0.5 truncate max-w-[130px] mx-auto">
-                        {item.stock_status_text}
-                      </div>
-                    )}
                   </td>
 
                   {/* Cột 5: Thời điểm cào */}

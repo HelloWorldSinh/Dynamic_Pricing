@@ -102,7 +102,6 @@ def test_complete_data_flow_persistence(db_session):
         current_price=29490000,
         original_price=34990000,
         is_in_stock=True,
-        stock_status_text="Còn hàng",
     )
     db_session.add(crawl_result)
     db_session.commit()

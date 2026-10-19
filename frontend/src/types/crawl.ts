@@ -8,7 +8,6 @@ export interface CrawlResult {
   price: number;
   original_price?: number;
   is_in_stock: boolean;
-  stock_status_text?: string;
   category?: string;
   specifications?: Record<string, any>;
   crawled_at: string;
