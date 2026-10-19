@@ -18,11 +18,13 @@ class FeatureExtractor:
         "samsung": "samsung", "galaxy": "samsung",
         "xiaomi": "xiaomi", "redmi": "xiaomi", "poco": "xiaomi",
         "oppo": "oppo", "vivo": "vivo", "realme": "realme", "tecno": "tecno",
-        "tcl": "tcl", "zte": "zte",
+        "tcl": "tcl", "zte": "zte", "nubia": "nubia",
         "acer": "acer", "asus": "asus", "lenovo": "lenovo", "dell": "dell",
         "hp": "hp", "msi": "msi", "honor": "honor",
-        "tcl": "tcl", "infinix": "infinix", "itel": "itel",
-        "nokia": "nokia", "masstel": "masstel", "sony": "sony", "huawei": "huawei"
+        "infinix": "infinix", "itel": "itel",
+        "nokia": "nokia", "hmd": "nokia", "masstel": "masstel",
+        "mobell": "mobell", "viettel": "viettel",
+        "sony": "sony", "huawei": "huawei"
     }
 
     # Bảng chuẩn hóa màu sắc sản phẩm
@@ -50,8 +52,10 @@ class FeatureExtractor:
         "macbook air", "macbook pro", "macbook",
         "aspire 7", "aspire go", "aspire lite", "nitro v", "nitro lite", "nitro", "predator", "swift",
         "vivobook go", "vivobook s14", "vivobook 14", "vivobook", "tuf gaming", "rog strix", "zenbook",
-        "ideapad slim", "ideapad gaming", "loq", "legion", "thinkbook",
-        "inspiron", "vostro", "latitude", "pavilion", "victus", "omen", "katana"
+        "ideapad slim", "ideapad gaming", "loq", "legion", "thinkbook", "thinkpad",
+        "inspiron", "vostro", "latitude", "pavilion", "victus", "omen", "katana",
+        "cyborg", "modern", "venture", "hp 245", "hp 250r", "hp 250", "hp 240", "probook", "elitebook",
+        "dell 15", "xps"
     )
 
     # Blacklist loại trừ mã linh kiện chung không được coi là Part-Number sản phẩm
@@ -104,12 +108,14 @@ class FeatureExtractor:
             return []
         p1 = re.findall(r"\b[A-Za-z0-9]{2,}-[A-Za-z0-9]{2,}(?:-[A-Za-z0-9]{2,})*\b", text)
         p2 = re.findall(r"\b8[0-9][A-Za-z0-9]{6,8}\b", text)
-        parts = set(p1 + p2)
+        p3 = re.findall(r"\(([A-Za-z0-9]{6,10})\)", text)
+        p4 = re.findall(r"\b([A-Z0-9]{2,}[0-9][A-Z0-9]*(?:PT|AT|VN|EA|AU|PA|WS|W|CPH\d+))\b", text.upper())
+        parts = set(p1 + p2 + p3 + p4)
 
         valid_parts: Set[str] = set()
         for p in parts:
             p_upper = p.upper()
-            if len(p_upper) >= 6 and any(c.isdigit() for c in p_upper):
+            if len(p_upper) >= 6 and any(c.isdigit() for c in p_upper) and any(c.isalpha() for c in p_upper):
                 if not cls.is_blacklisted_part(p_upper):
                     valid_parts.add(p_upper)
 
@@ -175,9 +181,9 @@ class FeatureExtractor:
             return f"samsung_{series}{num}_{sub}"
 
         # 3. Xiaomi / Redmi / Poco
-        redmi = re.search(r"\b(?:xiaomi\s+)?(redmi\s*note\s*\d+[a-z]?|redmi\s*\d+[a-z]?|poco\s*[a-z0-9]+|xiaomi\s*\d+[a-z]?)\b", t)
-        if redmi:
-            return re.sub(r"\s+", "_", redmi.group(1).strip())
+        xiaomi = re.search(r"\b(?:xiaomi\s+)?(redmi\s*note\s*\d+[a-z]?(?:\s*pro\+?|\s*plus)?|redmi\s*a\s*\d+[a-z]?(?:\s*pro)?|redmi\s*\d+[a-z]?|poco\s*[a-z0-9]+|xiaomi\s*\d+t\s*(?:pro)?|xiaomi\s*\d+[a-z]?)\b", t)
+        if xiaomi:
+            return re.sub(r"\s+", "_", xiaomi.group(1).strip())
 
         # 4. Oppo
         oppo = re.search(r"\boppo\s*(find\s*[a-z0-9]+|reno\s*[a-z0-9]+|a\s*\d+[a-z]?)\s*(ultra|pro|plus|fe|s)?\b", t)
@@ -187,9 +193,9 @@ class FeatureExtractor:
             return f"oppo_{main}_{sub}".rstrip("_")
 
         # 5. Tecno
-        tecno = re.search(r"\btecno\s+(spark|pova|camon)\s*(\d+[a-z]?|\w+)?\b", t)
+        tecno = re.search(r"\btecno\s+(spark\s*go\s*\d+|spark|pova|camon)\s*(\d+[a-z]?|\w+)?\b", t)
         if tecno:
-            series = tecno.group(1).lower()
+            series = re.sub(r"\s+", "_", tecno.group(1).lower().strip())
             num = (tecno.group(2) or "").lower()
             return f"tecno_{series}_{num}".rstrip("_")
 
@@ -212,12 +218,42 @@ class FeatureExtractor:
             return f"realme_{r_val}"
 
         # 9. Honor
-        honor = re.search(r"\bhonor\s*(x\s*\d+[a-z]?|\d+[a-z]?)\b", t)
+        honor = re.search(r"\bhonor\s*(magic\s*v\s*\d+[a-z]?|magic\s*\d+[a-z]?|play\s*\d+[a-z]?|x\s*\d+[a-z]?|\d+[a-z]?)\b", t)
         if honor:
-            h_val = re.sub(r"\s+", "", honor.group(1).lower())
+            h_val = re.sub(r"\s+", "_", honor.group(1).lower().strip())
             return f"honor_{h_val}"
 
-        # 10. Laptop Series
+        # 10. Nubia
+        nubia = re.search(r"\bnubia\s*(neo\s*\d+|v\s*\d+\s*(?:design|max)?|a\s*\d+|focus|music)\b", t)
+        if nubia:
+            nb_val = re.sub(r"\s+", "_", nubia.group(1).lower().strip())
+            return f"nubia_{nb_val}"
+
+        # 11. Masstel
+        masstel = re.search(r"\bmasstel\s*(fami\s*[a-z0-9]+|izi\s*t\d+\s*plus|izi\s*[a-z0-9]+)\b", t)
+        if masstel:
+            m_val = re.sub(r"\s+", "_", masstel.group(1).lower().strip())
+            return f"masstel_{m_val}"
+
+        # 12. Itel
+        itel = re.search(r"\bitel\s*(it\d+|p\d+\s*plus|p\d+|s\d+|a\d+)\b", t)
+        if itel:
+            it_val = re.sub(r"\s+", "_", itel.group(1).lower().strip())
+            return f"itel_{it_val}"
+
+        # 13. Mobell
+        mobell = re.search(r"\bmobell\s*(m\s*\d+|s\s*\d+|\w+)\b", t)
+        if mobell:
+            mb_val = re.sub(r"\s+", "_", mobell.group(1).lower().strip())
+            return f"mobell_{mb_val}"
+
+        # 14. Nokia
+        nokia = re.search(r"\bnokia\s*(hmd\s*\d+|\d+)\b", t)
+        if nokia:
+            nk_val = re.sub(r"\s+", "_", nokia.group(1).lower().strip())
+            return f"nokia_{nk_val}"
+
+        # 15. Laptop Series
         for line in cls.LAPTOP_LINES:
             if line in t:
                 return line.replace(" ", "_")

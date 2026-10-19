@@ -92,9 +92,20 @@ def test_approve_matching_queue_item(client, db_session, setup_pending_mapping):
     data = response.json()
     assert data["status"] == "APPROVED"
 
-    # Verify db status
+    # Verify db status and reviewer
     db_session.refresh(mapping)
     assert mapping.status == "APPROVED"
+    assert mapping.reviewed_by == "Pricing Analyst"
+    assert mapping.reviewed_at is not None
+
+    # Verify audit log
+    audit = db_session.query(PricingAuditLog).filter(
+        PricingAuditLog.entity_id == mapping.id,
+        PricingAuditLog.action == "APPROVE_MAPPING"
+    ).first()
+    assert audit is not None
+    assert audit.entity_type == "sku_mappings"
+    assert audit.new_value == {"status": "APPROVED"}
 
 
 def test_reject_matching_queue_item(client, db_session, setup_pending_mapping):
@@ -104,6 +115,17 @@ def test_reject_matching_queue_item(client, db_session, setup_pending_mapping):
     data = response.json()
     assert data["status"] == "REJECTED"
 
-    # Verify db status
+    # Verify db status and reviewer
     db_session.refresh(mapping)
     assert mapping.status == "REJECTED"
+    assert mapping.reviewed_by == "Pricing Analyst"
+    assert mapping.reviewed_at is not None
+
+    # Verify audit log
+    audit = db_session.query(PricingAuditLog).filter(
+        PricingAuditLog.entity_id == mapping.id,
+        PricingAuditLog.action == "REJECT_MAPPING"
+    ).first()
+    assert audit is not None
+    assert audit.entity_type == "sku_mappings"
+    assert audit.new_value == {"status": "REJECTED"}

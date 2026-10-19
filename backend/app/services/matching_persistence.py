@@ -82,13 +82,19 @@ def run_sku_matching_and_persist(
         logger.info("Không có crawl_results mới nào cần so khớp.")
         return 0
 
-    # 4. Gom nhóm crawl_items theo Brand để tối ưu tốc độ tìm kiếm
+    # 4. Gom nhóm crawl_items theo Brand và tiền tính toán kết quả so khớp O(N)
     brand_to_crawls = defaultdict(list)
+    crawl_matches: Dict[Any, MatchResult] = {}
     for crawl_item in crawl_items:
         if not crawl_item.raw_name:
             continue
         c_brand = FeatureExtractor.detect_brand(crawl_item.raw_name)
         brand_to_crawls[c_brand].append(crawl_item)
+        crawl_matches[crawl_item.id] = engine.match_single_item(
+            scraped_name=crawl_item.raw_name,
+            competitor_price=crawl_item.current_price,
+            fpt_prices=fpt_prices,
+        )
 
     # 5. FPT Master Loop: Duyệt qua từng sản phẩm FPT
     created_count = 0
@@ -111,11 +117,9 @@ def run_sku_matching_and_persist(
             if crawl_item.id in assigned_crawl_ids:
                 continue
 
-            match_res = engine.match_single_item(
-                scraped_name=crawl_item.raw_name,
-                competitor_price=crawl_item.current_price,
-                fpt_prices=fpt_prices,
-            )
+            match_res = crawl_matches.get(crawl_item.id)
+            if not match_res:
+                continue
 
             # Chỉ chấp nhận nếu khớp đúng mã SKU của sản phẩm FPT này
             if (

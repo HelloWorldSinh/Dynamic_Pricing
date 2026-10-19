@@ -251,3 +251,52 @@ def test_different_brand_must_not_match():
     assert res2.confidence_score < 0.75
 
 
+def test_matching_engine_exact_normalized_string_approved():
+    """Kiểm tra: Tiêu chí so sánh chuỗi chuẩn hóa đúng 100% được tự động APPROVED."""
+    skus = [
+        SkuFeatures(
+            sku_id="SKU_HONOR_V5",
+            sku_name="Honor Magic V5 5G 16GB 512GB",
+            clean_name="honor magic v5 16gb 512gb",
+            brand="honor",
+            parts=[],
+            model_id=None,
+            ram=["16gb"],
+            rom=["512gb"],
+        ),
+        SkuFeatures(
+            sku_id="SKU_MASSTEL_IZI",
+            sku_name="Masstel Izi 15 4G",
+            clean_name="masstel izi 15",
+            brand="masstel",
+            parts=[],
+            model_id=None,
+            ram=[],
+            rom=[],
+        ),
+    ]
+    index = SkuIndex(skus)
+    engine = MatchingEngine(index)
+
+    # 1. Khớp chuỗi 100% dù model_id là None -> Vẫn phải APPROVED
+    res_honor = engine.match_single_item(
+        scraped_name="HONOR Magic V5 16GB 512GB",
+        competitor_price=32990000,
+        fpt_prices={"SKU_HONOR_V5": 34990000}
+    )
+    assert res_honor.status == MatchStatus.APPROVED
+    assert res_honor.fpt_sku_id == "SKU_HONOR_V5"
+    assert res_honor.confidence_score >= 0.85
+    assert res_honor.match_type == MatchType.NORMALIZED_ATTRIBUTE
+
+    # 2. Khớp chuỗi 100% sau khi loại bỏ tiền tố/hậu tố marketing -> APPROVED
+    res_masstel = engine.match_single_item(
+        scraped_name="Điện thoại Masstel Izi 15 4G Chính Hãng",
+        competitor_price=450000,
+        fpt_prices={"SKU_MASSTEL_IZI": 490000}
+    )
+    assert res_masstel.status == MatchStatus.APPROVED
+    assert res_masstel.fpt_sku_id == "SKU_MASSTEL_IZI"
+    assert res_masstel.confidence_score >= 0.85
+
+

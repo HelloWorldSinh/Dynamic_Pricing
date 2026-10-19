@@ -57,15 +57,27 @@ class MatchingEngine:
                     best_confidence = self.CONFIDENCE_EXACT
                     match_type = MatchType.EXACT_PART_NUMBER
 
-        # --- TẦNG 2: NORMALIZED ATTRIBUTE VỚI RÀNG BUỘC MODEL CỨNG ---
+        # --- TẦNG 2: NORMALIZED ATTRIBUTE VỚI TIÊU CHÍ SO SÁNH CHUỖI 100% VÀ RÀNG BUỘC MODEL CỨNG ---
         if not best_sku_id:
             c_clean = FeatureExtractor.clean_product_name(scraped_name)
             scraped_brand = FeatureExtractor.detect_brand(scraped_name)
             scraped_model_id = FeatureExtractor.extract_model_identifier(scraped_name)
             scraped_color = FeatureExtractor.extract_color(scraped_name)
 
-            # Ràng buộc cốt lõi: Bắt buộc nhận diện được Brand và Model ID
-            if scraped_brand and scraped_model_id:
+            # 2.1. Tiêu chí so sánh chuỗi đúng 100% (Exact Normalized String Match -> Tự động APPROVED)
+            exact_clean_match = self.sku_index.lookup_exact_normalized(
+                clean_name=c_clean,
+                scraped_name=scraped_name,
+                scraped_parts=scraped_parts,
+                scraped_brand=scraped_brand,
+            )
+            if exact_clean_match:
+                best_sku_id = exact_clean_match.sku_id
+                best_sku_name = exact_clean_match.sku_name
+                best_confidence = 0.95  # >= CONFIDENCE_APPROVED_THRESHOLD (0.85) -> APPROVED
+                match_type = MatchType.NORMALIZED_ATTRIBUTE
+            elif scraped_brand and scraped_model_id:
+                # 2.2. So khớp thuộc tính mờ với ràng buộc Brand & Model ID
                 s_ram = FeatureExtractor.extract_ram(c_clean)
                 s_rom = FeatureExtractor.extract_storage(c_clean)
                 s_ram_set = set(s_ram)
@@ -109,17 +121,21 @@ class MatchingEngine:
                     # Tính độ tương đồng chuỗi cơ sở
                     ratio = SequenceMatcher(None, c_clean, dim_clean).ratio()
 
-                    bonus = 0.0
-                    if s_ram and dim_ram and s_ram_set == set(dim_ram):
-                        bonus += 0.1
-                    if s_rom and dim_rom and s_rom_set == set(dim_rom):
-                        bonus += 0.1
-                    if scraped_model_id and scraped_model_id == dim_model_id:
-                        bonus += 0.15
-                    if scraped_color and dim_color and scraped_color == dim_color:
-                        bonus += 0.05
+                    # Tiêu chí chuỗi đúng 100% -> Đảm bảo mức điểm APPROVED
+                    if ratio == 1.0:
+                        score = 0.95
+                    else:
+                        bonus = 0.0
+                        if s_ram and dim_ram and s_ram_set == set(dim_ram):
+                            bonus += 0.1
+                        if s_rom and dim_rom and s_rom_set == set(dim_rom):
+                            bonus += 0.1
+                        if scraped_model_id and scraped_model_id == dim_model_id:
+                            bonus += 0.15
+                        if scraped_color and dim_color and scraped_color == dim_color:
+                            bonus += 0.05
 
-                    score = min(0.95, ratio + bonus)
+                        score = min(0.95, ratio + bonus)
 
                     # Nếu cả 2 bên đều có Part-Number nhưng khác nhau -> Không được Approved
                     dim_parts_set = set(item.parts)

@@ -1,3 +1,4 @@
+from datetime import datetime
 from typing import List, Optional
 from uuid import UUID
 from fastapi import APIRouter, Depends, HTTPException, Query, status
@@ -9,6 +10,7 @@ from app.models.crawl_result import CrawlResult
 from app.models.pricing import PricingAuditLog
 from app.schemas.matching import SkuMappingPairResponse, SkuMatchingStatsResponse
 from app.services.matching.feature_extractor import FeatureExtractor
+from app.utils.datetime_utils import get_vietnam_now
 
 router = APIRouter()
 
@@ -164,6 +166,8 @@ def approve_mapping_pair(
 
     old_status = mapping.status
     mapping.status = "APPROVED"
+    mapping.reviewed_by = "Pricing Analyst"
+    mapping.reviewed_at = get_vietnam_now()
 
     audit_log = PricingAuditLog(
         actor="Pricing Analyst",
@@ -198,6 +202,8 @@ def reject_mapping_pair(
 
     old_status = mapping.status
     mapping.status = "REJECTED"
+    mapping.reviewed_by = "Pricing Analyst"
+    mapping.reviewed_at = get_vietnam_now()
 
     audit_log = PricingAuditLog(
         actor="Pricing Analyst",
