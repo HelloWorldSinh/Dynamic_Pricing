@@ -235,8 +235,8 @@ export const DebounceTriggerBar: React.FC<DebounceTriggerBarProps> = ({
   const scrapedCount = taskProgress?.scraped_count
     ? taskProgress.scraped_count.toLocaleString()
     : dbScrapedTotal !== null
-    ? dbScrapedTotal.toLocaleString()
-    : '4,261';
+      ? dbScrapedTotal.toLocaleString()
+      : '4,261';
 
   return (
     <div className="py-2.5 px-4 rounded-xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 mb-3.5 shadow-xs flex flex-col md:flex-row md:items-center justify-between gap-3">
@@ -244,11 +244,10 @@ export const DebounceTriggerBar: React.FC<DebounceTriggerBarProps> = ({
       <div className="flex flex-wrap items-center gap-2.5 min-w-0">
         {/* Status Dot */}
         <span
-          className={`w-2 h-2 rounded-full shrink-0 ${
-            isRunning
-              ? 'bg-amber-500 animate-pulse ring-4 ring-amber-500/20'
-              : 'bg-emerald-500'
-          }`}
+          className={`w-2 h-2 rounded-full shrink-0 ${isRunning
+            ? 'bg-amber-500 animate-pulse ring-4 ring-amber-500/20'
+            : 'bg-emerald-500'
+            }`}
         />
 
         {/* Timestamp */}
@@ -283,11 +282,11 @@ export const DebounceTriggerBar: React.FC<DebounceTriggerBarProps> = ({
             <span className="text-xs text-slate-600 dark:text-slate-300 font-medium">
               Ghép cặp{' '}
               <strong className="font-mono text-slate-900 dark:text-white font-bold">
-                {matchingStats ? `${matchingStats.matched_skus}/${matchingStats.total_skus}` : '287/329'}
+                {matchingStats ? `${matchingStats.matched_skus}/${matchingStats.total_skus}` : 'error'}
               </strong>{' '}
               SKU -{' '}
               <strong className="text-emerald-600 dark:text-emerald-400 font-mono font-bold">
-                {matchingStats ? `${matchingStats.match_rate}%` : '87.2%'}
+                {matchingStats ? `${matchingStats.match_rate}%` : 'error'}
               </strong>
             </span>
           </div>
@@ -300,17 +299,16 @@ export const DebounceTriggerBar: React.FC<DebounceTriggerBarProps> = ({
           type="button"
           onClick={handleTrigger}
           disabled={countdown > 0 || isRunning}
-          className={`px-3.5 py-1.5 rounded-lg text-xs font-semibold tracking-tight transition-all duration-150 shadow-xs ${
-            countdown > 0 || isRunning
-              ? 'bg-slate-100 dark:bg-slate-800 text-slate-400 cursor-not-allowed border border-slate-200 dark:border-slate-700'
-              : 'bg-orange-600 hover:bg-orange-700 text-white shadow-orange-600/20 active:scale-95 cursor-pointer'
-          }`}
+          className={`px-3.5 py-1.5 rounded-lg text-xs font-semibold tracking-tight transition-all duration-150 shadow-xs ${countdown > 0 || isRunning
+            ? 'bg-slate-100 dark:bg-slate-800 text-slate-400 cursor-not-allowed border border-slate-200 dark:border-slate-700'
+            : 'bg-orange-600 hover:bg-orange-700 text-white shadow-orange-600/20 active:scale-95 cursor-pointer'
+            }`}
         >
           {isRunning
             ? `Đang cào dữ liệu (${taskProgress?.progress_percent || 0}%)`
             : countdown > 0
-            ? `Chờ ${countdown}s (Debounce)`
-            : 'Cào dữ liệu'}
+              ? `Chờ ${countdown}s (Debounce)`
+              : 'Cào dữ liệu'}
         </button>
       </div>
     </div>

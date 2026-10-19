@@ -140,29 +140,22 @@ export async function applyCustomPriceApi(
 export async function getSkuMappingQueueApi(): Promise<SkuMappingPair[]> {
   try {
     const res = await apiClient.get<SkuMappingPair[]>('/matching/queue');
-    if (Array.isArray(res.data) && res.data.length > 0) {
+    if (Array.isArray(res.data)) {
       return res.data;
     }
     return mockMappingQueue;
   } catch (error) {
+    console.warn('[Matching API] Backend offline, fallback to mock queue:', error);
     return mockMappingQueue;
   }
 }
 
 export async function approveSkuMappingApi(id: string): Promise<void> {
-  try {
-    await apiClient.post(`/matching/queue/${id}/approve`);
-  } catch (error) {
-    console.warn('[Matching API] Local approve simulated for:', id, error);
-  }
+  await apiClient.post(`/matching/queue/${id}/approve`);
 }
 
 export async function rejectSkuMappingApi(id: string): Promise<void> {
-  try {
-    await apiClient.post(`/matching/queue/${id}/reject`);
-  } catch (error) {
-    console.warn('[Matching API] Local reject simulated for:', id, error);
-  }
+  await apiClient.post(`/matching/queue/${id}/reject`);
 }
 
 export interface SkuMatchingStats {

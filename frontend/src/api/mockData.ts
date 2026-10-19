@@ -625,7 +625,6 @@ export const mockCrawlResults: CrawlResult[] = [
     price: 17890000,
     original_price: 19990000,
     is_in_stock: true,
-    stock_status_text: 'Còn hàng tại 35 cửa hàng',
     category: 'LAPTOP',
     specifications: {
       'CPU/Chip': 'Intel Core i5-13500H (12 nhân 16 luồng)',
@@ -646,7 +645,6 @@ export const mockCrawlResults: CrawlResult[] = [
     price: 17990000,
     original_price: 19990000,
     is_in_stock: true,
-    stock_status_text: 'Sẵn hàng giao nhanh',
     category: 'LAPTOP',
     specifications: {
       'Hãng': 'ASUS',
@@ -666,7 +664,6 @@ export const mockCrawlResults: CrawlResult[] = [
     price: 34290000,
     original_price: 34990000,
     is_in_stock: true,
-    stock_status_text: 'Sẵn hàng đủ màu',
     category: 'PHONE',
     specifications: {
       'Chipset': 'Apple A18 Pro 6 lõi',
@@ -686,7 +683,6 @@ export const mockCrawlResults: CrawlResult[] = [
     price: 34190000,
     original_price: 34990000,
     is_in_stock: false,
-    stock_status_text: 'Tạm hết hàng trực tuyến',
     category: 'PHONE',
     specifications: {
       'Chip': 'Apple A18 Pro',
@@ -705,7 +701,6 @@ export const mockCrawlResults: CrawlResult[] = [
     price: 25990000,
     original_price: 31990000,
     is_in_stock: true,
-    stock_status_text: 'Còn hàng',
     category: 'PHONE',
     specifications: {
       'Chipset': 'Snapdragon 8 Gen 3 for Galaxy (4nm)',
@@ -725,7 +720,6 @@ export const mockCrawlResults: CrawlResult[] = [
     price: 25790000,
     original_price: 31990000,
     is_in_stock: true,
-    stock_status_text: 'Còn hàng tại các chi nhánh',
     category: 'PHONE',
     specifications: {
       'Vi xử lý': 'Qualcomm Snapdragon 8 Gen 3',
@@ -744,7 +738,6 @@ export const mockCrawlResults: CrawlResult[] = [
     price: 25490000,
     original_price: 27990000,
     is_in_stock: true,
-    stock_status_text: 'Sẵn hàng',
     category: 'LAPTOP',
     specifications: {
       'Chip': 'Apple M3 8 nhân CPU 8 nhân GPU',
@@ -764,7 +757,6 @@ export const mockCrawlResults: CrawlResult[] = [
     price: 25290000,
     original_price: 27990000,
     is_in_stock: true,
-    stock_status_text: 'Còn hàng',
     category: 'LAPTOP',
     specifications: {
       'CPU': 'Apple M3 8-core',
@@ -783,7 +775,6 @@ export const mockCrawlResults: CrawlResult[] = [
     price: 16490000,
     original_price: 17990000,
     is_in_stock: true,
-    stock_status_text: 'Còn hàng',
     category: 'LAPTOP',
     specifications: {
       'CPU': 'Intel Core i5-1235U 10 nhân 12 luồng',
@@ -802,7 +793,6 @@ export const mockCrawlResults: CrawlResult[] = [
     price: 16490000,
     original_price: 17990000,
     is_in_stock: false,
-    stock_status_text: 'Hết hàng tạm thời',
     category: 'PHONE',
     specifications: {
       'Vi xử lý': 'MediaTek Dimensity 9300+ (4nm)',
@@ -822,7 +812,6 @@ export const mockCrawlResults: CrawlResult[] = [
     price: 16290000,
     original_price: 17990000,
     is_in_stock: true,
-    stock_status_text: 'Còn hàng',
     category: 'PHONE',
     specifications: {
       'Chip': 'MediaTek Dimensity 9300+',
@@ -841,7 +830,6 @@ export const mockCrawlResults: CrawlResult[] = [
     price: 14290000,
     original_price: 15990000,
     is_in_stock: true,
-    stock_status_text: 'Còn hàng tại Hà Nội và TP.HCM',
     category: 'LAPTOP',
     specifications: {
       'CPU': 'Intel Core i5-1235U',

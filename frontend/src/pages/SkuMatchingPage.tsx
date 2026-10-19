@@ -21,9 +21,9 @@ export const SkuMatchingPage: React.FC = () => {
   const [confidenceFilter, setConfidenceFilter] = useState<'ALL' | 'HIGH' | 'MID'>('ALL');
 
   // Toast notification
-  const [toast, setToast] = useState<{ message: string; type: 'success' | 'info' } | null>(null);
+  const [toast, setToast] = useState<{ message: string; type: 'success' | 'info' | 'error' } | null>(null);
 
-  const showToast = useCallback((message: string, type: 'success' | 'info' = 'success') => {
+  const showToast = useCallback((message: string, type: 'success' | 'info' | 'error' = 'success') => {
     setToast({ message, type });
     const timer = setTimeout(() => setToast(null), 3000);
     return () => clearTimeout(timer);
@@ -101,21 +101,26 @@ export const SkuMatchingPage: React.FC = () => {
     const currIdx = filteredQueue.findIndex((i) => i.id === id);
     const nextItem = filteredQueue[currIdx + 1] || filteredQueue[currIdx - 1] || null;
 
-    await approveSkuMappingApi(id);
+    try {
+      await approveSkuMappingApi(id);
 
-    setQueue((prev) => prev.filter((item) => item.id !== id));
-    setSelectedBatchIds((prev) => {
-      const next = new Set(prev);
-      next.delete(id);
-      return next;
-    });
+      setQueue((prev) => prev.filter((item) => item.id !== id));
+      setSelectedBatchIds((prev) => {
+        const next = new Set(prev);
+        next.delete(id);
+        return next;
+      });
 
-    if (nextItem) {
-      setSelectedId(nextItem.id);
-    }
+      if (nextItem) {
+        setSelectedId(nextItem.id);
+      }
 
-    if (itemToApprove) {
-      showToast(`Đã duyệt khớp 100%: ${itemToApprove.fpt_sku}`, 'success');
+      if (itemToApprove) {
+        showToast(`Đã duyệt khớp 100%: ${itemToApprove.fpt_sku}`, 'success');
+      }
+    } catch (error) {
+      console.error('Lỗi khi duyệt SKU mapping:', error);
+      showToast('Lỗi máy chủ khi duyệt SKU, vui lòng thử lại', 'error');
     }
   }, [queue, filteredQueue, showToast]);
 
@@ -125,21 +130,26 @@ export const SkuMatchingPage: React.FC = () => {
     const currIdx = filteredQueue.findIndex((i) => i.id === id);
     const nextItem = filteredQueue[currIdx + 1] || filteredQueue[currIdx - 1] || null;
 
-    await rejectSkuMappingApi(id);
+    try {
+      await rejectSkuMappingApi(id);
 
-    setQueue((prev) => prev.filter((item) => item.id !== id));
-    setSelectedBatchIds((prev) => {
-      const next = new Set(prev);
-      next.delete(id);
-      return next;
-    });
+      setQueue((prev) => prev.filter((item) => item.id !== id));
+      setSelectedBatchIds((prev) => {
+        const next = new Set(prev);
+        next.delete(id);
+        return next;
+      });
 
-    if (nextItem) {
-      setSelectedId(nextItem.id);
-    }
+      if (nextItem) {
+        setSelectedId(nextItem.id);
+      }
 
-    if (itemToReject) {
-      showToast(`Đã từ chối khớp SKU: ${itemToReject.fpt_sku}`, 'info');
+      if (itemToReject) {
+        showToast(`Đã từ chối khớp SKU: ${itemToReject.fpt_sku}`, 'info');
+      }
+    } catch (error) {
+      console.error('Lỗi khi từ chối SKU mapping:', error);
+      showToast('Lỗi máy chủ khi từ chối SKU, vui lòng thử lại', 'error');
     }
   }, [queue, filteredQueue, showToast]);
 
@@ -169,26 +179,60 @@ export const SkuMatchingPage: React.FC = () => {
     const ids = Array.from(selectedBatchIds);
     if (ids.length === 0) return;
 
+    const successfulIds: string[] = [];
     for (const id of ids) {
-      await approveSkuMappingApi(id);
+      try {
+        await approveSkuMappingApi(id);
+        successfulIds.push(id);
+      } catch (error) {
+        console.error(`Lỗi duyệt SKU ${id}:`, error);
+      }
     }
 
-    setQueue((prev) => prev.filter((item) => !selectedBatchIds.has(item.id)));
-    setSelectedBatchIds(new Set());
-    showToast(`Đã duyệt hàng loạt ${ids.length} cặp SKU`, 'success');
+    if (successfulIds.length > 0) {
+      const successSet = new Set(successfulIds);
+      setQueue((prev) => prev.filter((item) => !successSet.has(item.id)));
+      setSelectedBatchIds((prev) => {
+        const next = new Set(prev);
+        successfulIds.forEach((id) => next.delete(id));
+        return next;
+      });
+      showToast(`Đã duyệt hàng loạt ${successfulIds.length} cặp SKU`, 'success');
+    }
+
+    if (successfulIds.length < ids.length) {
+      showToast(`Có ${ids.length - successfulIds.length} cặp SKU duyệt thất bại`, 'error');
+    }
   };
 
   const handleBatchReject = async () => {
     const ids = Array.from(selectedBatchIds);
     if (ids.length === 0) return;
 
+    const successfulIds: string[] = [];
     for (const id of ids) {
-      await rejectSkuMappingApi(id);
+      try {
+        await rejectSkuMappingApi(id);
+        successfulIds.push(id);
+      } catch (error) {
+        console.error(`Lỗi từ chối SKU ${id}:`, error);
+      }
     }
 
-    setQueue((prev) => prev.filter((item) => !selectedBatchIds.has(item.id)));
-    setSelectedBatchIds(new Set());
-    showToast(`Đã từ chối hàng loạt ${ids.length} cặp SKU`, 'info');
+    if (successfulIds.length > 0) {
+      const successSet = new Set(successfulIds);
+      setQueue((prev) => prev.filter((item) => !successSet.has(item.id)));
+      setSelectedBatchIds((prev) => {
+        const next = new Set(prev);
+        successfulIds.forEach((id) => next.delete(id));
+        return next;
+      });
+      showToast(`Đã từ chối hàng loạt ${successfulIds.length} cặp SKU`, 'info');
+    }
+
+    if (successfulIds.length < ids.length) {
+      showToast(`Có ${ids.length - successfulIds.length} cặp SKU từ chối thất bại`, 'error');
+    }
   };
 
   return (
@@ -352,9 +396,15 @@ export const SkuMatchingPage: React.FC = () => {
 
       {/* Floating Notification Toast */}
       {toast && (
-        <div className="fixed bottom-6 right-6 z-50 flex items-center gap-2 px-4 py-2.5 rounded-xl bg-slate-900 text-white dark:bg-white dark:text-slate-900 text-xs font-medium shadow-2xl animate-in fade-in slide-in-from-bottom-4">
+        <div className={`fixed bottom-6 right-6 z-50 flex items-center gap-2 px-4 py-2.5 rounded-xl text-xs font-medium shadow-2xl animate-in fade-in slide-in-from-bottom-4 ${
+          toast.type === 'error'
+            ? 'bg-rose-900 text-white dark:bg-rose-950 dark:text-rose-100 border border-rose-700'
+            : 'bg-slate-900 text-white dark:bg-white dark:text-slate-900'
+        }`}>
           {toast.type === 'success' ? (
             <Check className="w-4 h-4 text-emerald-400 dark:text-emerald-600" />
+          ) : toast.type === 'error' ? (
+            <Info className="w-4 h-4 text-rose-300 dark:text-rose-400" />
           ) : (
             <Info className="w-4 h-4 text-amber-400 dark:text-amber-600" />
           )}
