@@ -32,7 +32,15 @@ date: 2026-10-01
 
 ---
 
-## 3. Quản lý Dự án và Tiến độ (Scrum / Agile)
+## 3. Trợ lý AI Chatbot & Giải trình Đề xuất Giá (PBI-017 & PBI-018)
+- [[Đặc tả Kiến trúc Trợ lý AI Chatbot (Tool-Augmented RAG)]] (Kiến trúc RAG, Function Calling, Dual-Mode và Semantic Tools)
+- [[Phân tích Đánh giá Kiến trúc Chatbot AI]] (So sánh Text-to-SQL vs Function Calling vs Rule-based)
+- [[Kế hoạch Chi tiết Triển khai Chatbot AI (PBI-017 & PBI-018)]] (Phân rã WBS 7 giai đoạn triển khai)
+- [[Huong dan Van hanh va Nghiem thu Chatbot AI]] (Runbook hướng dẫn cấu hình, kịch bản demo và biên bản nghiệm thu)
+
+---
+
+## 4. Quản lý Dự án và Tiến độ (Scrum / Agile)
 - [[Project Overview]] (Tổng quan dự án và mục tiêu chiến lược)
 - [[Product Backlog – Dynamic Pricing]] (Chi tiết danh sách PBI và tiêu chuẩn nghiệm thu)
 - [[Sprint Plan – Dynamic Pricing System]] (Kế hoạch phân bổ Sprint và Milestone)
