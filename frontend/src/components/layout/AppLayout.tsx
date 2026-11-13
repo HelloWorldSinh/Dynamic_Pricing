@@ -1,27 +1,42 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { Navbar, NavTab } from './Navbar';
+import { ToastProvider } from '../../context/ToastContext';
+import { ToastContainer } from '../common/ToastContainer';
 
 const STORAGE_ACTIVE_TAB = 'dynamic_pricing_active_nav_tab';
-const VALID_TABS: NavTab[] = ['matrix', 'approvals', 'mapping', 'feeds', 'crawler'];
+const VALID_TABS: NavTab[] = ['matrix', 'approvals', 'mapping', 'crawler'];
 
 const getInitialTab = (): NavTab => {
   if (typeof window !== 'undefined') {
-    // 1. Ưu tiên URL hash (ví dụ: #mapping, #approvals)
-    const hash = window.location.hash.replace(/^#\/?/, '').trim() as NavTab;
-    if (VALID_TABS.includes(hash)) {
-      return hash;
+    // 1. Ưu tiên URL hash (ví dụ: #matrix, #approvals, #mapping)
+    const hash = window.location.hash.replace(/^#\/?/, '').trim();
+    if (hash === 'dashboard' || hash === 'feeds') {
+      window.location.hash = 'matrix';
+      localStorage.setItem(STORAGE_ACTIVE_TAB, 'matrix');
+      return 'matrix';
+    }
+    if (VALID_TABS.includes(hash as NavTab)) {
+      return hash as NavTab;
     }
     // 2. Fallback tới localStorage
-    const saved = localStorage.getItem(STORAGE_ACTIVE_TAB) as NavTab;
-    if (VALID_TABS.includes(saved)) {
-      return saved;
+    const saved = localStorage.getItem(STORAGE_ACTIVE_TAB);
+    if (saved === 'dashboard' || saved === 'feeds') {
+      localStorage.setItem(STORAGE_ACTIVE_TAB, 'matrix');
+      return 'matrix';
+    }
+    if (VALID_TABS.includes(saved as NavTab)) {
+      return saved as NavTab;
     }
   }
   return 'matrix';
 };
 
 interface AppLayoutProps {
-  children: (props: { activeTab: NavTab; categoryFilter: string }) => React.ReactNode;
+  children: (props: { 
+    activeTab: NavTab; 
+    categoryFilter: string;
+    setActiveTab: (tab: NavTab) => void;
+  }) => React.ReactNode;
 }
 
 export const AppLayout: React.FC<AppLayoutProps> = ({ children }) => {
@@ -51,9 +66,15 @@ export const AppLayout: React.FC<AppLayoutProps> = ({ children }) => {
   // Lắng nghe sự kiện hashchange khi người dùng bấm nút Back/Forward trên trình duyệt
   useEffect(() => {
     const handleHashChange = () => {
-      const hash = window.location.hash.replace(/^#\/?/, '').trim() as NavTab;
-      if (VALID_TABS.includes(hash)) {
-        setActiveTabState(hash);
+      const hash = window.location.hash.replace(/^#\/?/, '').trim();
+      if (hash === 'dashboard') {
+        window.location.hash = 'matrix';
+        setActiveTabState('matrix');
+        localStorage.setItem(STORAGE_ACTIVE_TAB, 'matrix');
+        return;
+      }
+      if (VALID_TABS.includes(hash as NavTab)) {
+        setActiveTabState(hash as NavTab);
         localStorage.setItem(STORAGE_ACTIVE_TAB, hash);
       }
     };
@@ -63,18 +84,22 @@ export const AppLayout: React.FC<AppLayoutProps> = ({ children }) => {
   }, []);
 
   return (
-    <div className="min-h-screen bg-slate-50 dark:bg-slate-950 text-slate-900 dark:text-slate-100 flex flex-col transition-colors duration-200">
-      {/* Top Navigation Bar */}
-      <Navbar
-        activeTab={activeTab}
-        setActiveTab={setActiveTab}
-      />
+    <ToastProvider>
+      <div className="min-h-screen bg-slate-50 dark:bg-slate-950 text-slate-900 dark:text-slate-100 flex flex-col transition-colors duration-200">
+        {/* Top Navigation Bar */}
+        <Navbar
+          activeTab={activeTab}
+          setActiveTab={setActiveTab}
+        />
 
-      {/* Main Content Area - 100% Viewport Width */}
-      <main className="flex-1 w-full px-6 py-6 transition-all duration-200">
-        {children({ activeTab, categoryFilter })}
-      </main>
-    </div>
+        {/* Main Content Area - Responsive padding and container */}
+        <main className="flex-1 w-full max-w-[1720px] mx-auto px-4 sm:px-6 py-5 transition-all duration-200">
+          {children({ activeTab, categoryFilter, setActiveTab })}
+        </main>
+
+        {/* Global Toast Container */}
+        <ToastContainer />
+      </div>
+    </ToastProvider>
   );
 };
-

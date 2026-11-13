@@ -1,7 +1,8 @@
 import React, { useState } from 'react';
-import { Search, ExternalLink, Code2, ChevronDown, ChevronRight } from 'lucide-react';
+import { ExternalLink, X } from 'lucide-react';
 import { CrawlResult } from '../../types/crawl';
 import { formatCurrencyVND, formatDate } from '../../utils/formatters';
+import { Badge } from '../common/Badge';
 
 interface RawDataInspectorProps {
   items: CrawlResult[];
@@ -29,31 +30,39 @@ export const RawDataInspector: React.FC<RawDataInspectorProps> = ({ items }) => 
   };
 
   return (
-    <div className="rounded-xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 shadow-sm overflow-hidden">
+    <div className="rounded-xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 shadow-xs overflow-hidden">
       {/* Top Filter Header */}
-      <div className="p-4 border-b border-slate-200 dark:border-slate-800 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+      <div className="p-3.5 border-b border-slate-200 dark:border-slate-800 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
         <div>
-          <h3 className="text-xs font-bold text-slate-900 dark:text-white flex items-center gap-2">
-            <span>Raw Data Inspector</span>
+          <h3 className="text-xs font-bold text-slate-900 dark:text-white tracking-tight">
+            Dữ liệu cào thô (Raw Data Inspector)
           </h3>
         </div>
 
-        <div className="flex items-center gap-3">
+        <div className="flex items-center gap-2.5">
           <div className="relative">
-            <Search className="w-3.5 h-3.5 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2" />
             <input
               type="text"
               value={search}
               onChange={(e) => setSearch(e.target.value)}
               placeholder="Tìm theo tên hoặc URL..."
-              className="text-xs pl-8 pr-3 py-1.5 rounded-lg border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 text-slate-800 dark:text-slate-200 focus:outline-none focus:ring-1 focus:ring-orange-500"
+              className="text-xs px-3 py-1.5 rounded-md border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 text-slate-800 dark:text-slate-200 focus:outline-none focus:ring-1 focus:ring-orange-500"
             />
+            {search && (
+              <button
+                type="button"
+                onClick={() => setSearch('')}
+                className="absolute right-2 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 p-0.5"
+              >
+                <X className="w-3.5 h-3.5" />
+              </button>
+            )}
           </div>
 
           <select
             value={selectedSource}
             onChange={(e) => setSelectedSource(e.target.value)}
-            className="text-xs bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg px-2.5 py-1.5 text-slate-800 dark:text-slate-200 focus:outline-none focus:ring-1 focus:ring-orange-500"
+            className="text-xs bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-md px-2.5 py-1.5 text-slate-800 dark:text-slate-200 focus:outline-none font-medium cursor-pointer"
           >
             <option value="ALL">Mọi nguồn cào</option>
             <option value="CELLPHONES">CellphoneS</option>
@@ -67,8 +76,8 @@ export const RawDataInspector: React.FC<RawDataInspectorProps> = ({ items }) => 
       <div className="overflow-x-auto">
         <table className="w-full text-left text-xs border-collapse">
           <thead>
-            <tr className="bg-slate-50/80 dark:bg-slate-800/60 border-b border-slate-200 dark:border-slate-800 text-slate-500 dark:text-slate-400 font-semibold uppercase tracking-wider text-[11px]">
-              <th className="py-2.5 px-3 w-8"></th>
+            <tr className="bg-slate-50 dark:bg-slate-800/80 border-b border-slate-200 dark:border-slate-800 text-slate-600 dark:text-slate-300 font-semibold text-xs sticky top-0 z-10">
+              <th className="py-2.5 px-3 w-10 text-center">Chi tiết</th>
               <th className="py-2.5 px-3">Nguồn</th>
               <th className="py-2.5 px-4">Tên sản phẩm cào được</th>
               <th className="py-2.5 px-3 text-right">Giá hiển thị</th>
@@ -77,49 +86,50 @@ export const RawDataInspector: React.FC<RawDataInspectorProps> = ({ items }) => 
               <th className="py-2.5 px-3 text-center">Trang gốc</th>
             </tr>
           </thead>
-          <tbody className="divide-y divide-slate-100 dark:divide-slate-800/60">
+          <tbody className="divide-y divide-slate-100 dark:divide-slate-800/60 font-sans">
             {filtered.map((item) => {
               const isExpanded = expandedRowId === item.id;
               return (
                 <React.Fragment key={item.id}>
-                  <tr className="hover:bg-slate-50/60 dark:hover:bg-slate-800/40 transition">
+                  <tr className="even:bg-white dark:even:bg-slate-900 odd:bg-slate-50/50 dark:odd:bg-slate-800/30 hover:bg-orange-50/40 dark:hover:bg-slate-800/60 transition">
                     <td className="py-2.5 px-3 text-center">
                       <button
+                        type="button"
                         onClick={() => toggleExpand(item.id)}
-                        className="text-slate-400 hover:text-slate-600 dark:hover:text-slate-200"
+                        className="text-xs font-mono font-bold text-slate-500 hover:text-orange-600 dark:hover:text-orange-400 w-5 h-5 inline-flex items-center justify-center rounded hover:bg-slate-100 dark:hover:bg-slate-800"
+                        title={isExpanded ? 'Thu gọn' : 'Mở rộng chi tiết'}
                       >
-                        {isExpanded ? (
-                          <ChevronDown className="w-3.5 h-3.5" />
-                        ) : (
-                          <ChevronRight className="w-3.5 h-3.5" />
-                        )}
+                        {isExpanded ? '−' : '+'}
                       </button>
                     </td>
-                    <td className="py-2.5 px-3 font-semibold text-slate-700 dark:text-slate-300">
-                      <span className="px-1.5 py-0.5 rounded bg-slate-100 dark:bg-slate-800 text-[10px] font-mono">
+                    <td className="py-2.5 px-3">
+                      <Badge
+                        size="sm"
+                        variant={item.source === 'CELLPHONES' ? 'danger' : item.source === 'HOANGHA' ? 'warning' : 'info'}
+                      >
                         {item.source}
+                      </Badge>
+                    </td>
+                    <td className="py-2.5 px-4 max-w-sm">
+                      <span className="font-semibold text-slate-900 dark:text-slate-100 block truncate" title={item.product_name}>
+                        {item.product_name}
+                      </span>
+                      <span className="text-2xs font-mono text-slate-400 truncate block">
+                        {item.url}
                       </span>
                     </td>
-                    <td className="py-2.5 px-4 max-w-[320px]">
-                      <div className="font-medium text-slate-900 dark:text-slate-100 truncate" title={item.product_name}>
-                        {item.product_name}
-                      </div>
-                    </td>
-                    <td className="py-2.5 px-3 text-right font-mono font-bold text-slate-800 dark:text-slate-200">
+                    <td className="py-2.5 px-3 text-right font-mono font-bold text-slate-900 dark:text-white">
                       {formatCurrencyVND(item.price)}
                     </td>
                     <td className="py-2.5 px-3 text-center">
-                      <span
-                        className={`text-[10px] font-semibold px-2 py-0.5 rounded-full ${
-                          item.is_in_stock
-                            ? 'bg-emerald-50 dark:bg-emerald-950/40 text-emerald-600 dark:text-emerald-400'
-                            : 'bg-slate-100 dark:bg-slate-800 text-slate-400'
-                        }`}
+                      <Badge
+                        size="sm"
+                        variant={item.is_in_stock ? 'success' : 'neutral'}
                       >
-                        {item.is_in_stock ? 'Còn hàng' : 'Hết hàng'}
-                      </span>
+                        {item.is_in_stock ? 'CÒN HÀNG' : 'HẾT HÀNG'}
+                      </Badge>
                     </td>
-                    <td className="py-2.5 px-3 text-center font-mono text-[10px] text-slate-500">
+                    <td className="py-2.5 px-3 text-center font-mono text-2xs text-slate-500">
                       {formatDate(item.crawled_at)}
                     </td>
                     <td className="py-2.5 px-3 text-center">
@@ -127,8 +137,8 @@ export const RawDataInspector: React.FC<RawDataInspectorProps> = ({ items }) => 
                         href={item.url}
                         target="_blank"
                         rel="noopener noreferrer"
-                        className="p-1 inline-flex items-center text-slate-400 hover:text-orange-600 dark:hover:text-orange-400 transition"
-                        title="Mở tab mới kiểm tra web đối thủ"
+                        className="inline-flex items-center text-slate-400 hover:text-orange-600 dark:hover:text-orange-400 p-0.5 rounded transition"
+                        title="Mở liên kết gốc"
                       >
                         <ExternalLink className="w-3.5 h-3.5" />
                       </a>
@@ -137,14 +147,13 @@ export const RawDataInspector: React.FC<RawDataInspectorProps> = ({ items }) => 
 
                   {/* Expanded JSON Inspector */}
                   {isExpanded && (
-                    <tr className="bg-slate-50 dark:bg-slate-950/60">
-                      <td colSpan={7} className="p-4 pl-10 border-b border-slate-200 dark:border-slate-800">
-                        <div className="flex items-center gap-1.5 text-xs font-semibold text-slate-600 dark:text-slate-400 mb-2">
-                          <Code2 className="w-3.5 h-3.5 text-orange-500" />
-                          <span>Chi tiết thông số JSON trích xuất được:</span>
+                    <tr>
+                      <td colSpan={7} className="p-4 bg-slate-950 text-slate-200">
+                        <div className="text-2xs font-mono font-bold uppercase text-slate-400 mb-2">
+                          THÔNG SỐ BÓC TÁCH (PARSED SPECIFICATIONS) &amp; RAW JSON
                         </div>
-                        <pre className="text-[11px] font-mono p-3 rounded-lg bg-slate-900 text-slate-200 overflow-x-auto max-h-48">
-                          {JSON.stringify(item.specifications || {}, null, 2)}
+                        <pre className="text-2xs font-mono text-slate-300 overflow-x-auto max-h-72 p-3 rounded bg-slate-900 border border-slate-800">
+                          {JSON.stringify(item, null, 2)}
                         </pre>
                       </td>
                     </tr>

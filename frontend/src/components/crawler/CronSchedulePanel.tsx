@@ -1,63 +1,58 @@
 import React, { useState } from 'react';
-import { CalendarClock, ShieldAlert, Check } from 'lucide-react';
+import { Badge } from '../common/Badge';
+import { Button } from '../common/Button';
 
 export const CronSchedulePanel: React.FC = () => {
   const [isEnabled, setIsEnabled] = useState(true);
 
   return (
-    <div className="p-5 rounded-xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 shadow-sm mb-6">
+    <div className="p-4 rounded-xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 shadow-xs mb-5">
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-        <div className="flex items-center gap-3">
-          <span className="p-2 rounded-lg bg-orange-500/10 text-orange-600 dark:text-orange-400">
-            <CalendarClock className="w-5 h-5" />
-          </span>
-          <div>
-            <h3 className="text-xs font-bold text-slate-900 dark:text-white flex items-center gap-2">
-              <span>Scheduled Scraping</span>
-              <span className="text-[10px] font-normal px-2 py-0.5 rounded bg-emerald-50 dark:bg-emerald-950/40 text-emerald-600 dark:text-emerald-400 font-semibold font-mono">
-                Active
-              </span>
-            </h3>
+        <div>
+          <div className="flex items-center gap-2">
+            <span className="text-xs font-bold text-slate-800 dark:text-slate-200">
+              Lịch cào định kỳ tự động (Cron Jobs)
+            </span>
+            <Badge size="sm" variant={isEnabled ? 'success' : 'neutral'}>
+              {isEnabled ? 'Đang kích hoạt' : 'Tạm dừng'}
+            </Badge>
           </div>
+          <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">
+            Tự động kích hoạt cào đối thủ vào các khung giờ vàng biến động giá thị trường.
+          </p>
         </div>
 
-        <div className="flex items-center gap-4">
-          <div className="flex items-center gap-2 text-xs font-medium">
-            <span className="text-slate-400">Status:</span>
-            <span className={isEnabled ? 'text-emerald-600 dark:text-emerald-400 font-bold' : 'text-slate-500'}>
-              {isEnabled ? 'Running' : 'Paused'}
-            </span>
-          </div>
-
-          <button
+        <div className="flex items-center gap-3">
+          <Button
+            size="sm"
+            variant={isEnabled ? 'secondary' : 'primary'}
             onClick={() => setIsEnabled(!isEnabled)}
-            className={`px-3 py-1.5 rounded-lg text-xs font-semibold transition ${
-              isEnabled
-                ? 'bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-300'
-                : 'bg-orange-600 hover:bg-orange-500 text-white'
-            }`}
           >
-            {isEnabled ? 'Pause Schedule' : 'Enable Schedule'}
-          </button>
+            {isEnabled ? 'Tạm dừng lịch cào' : 'Kích hoạt lại'}
+          </Button>
         </div>
       </div>
 
       <div className="mt-4 pt-3 border-t border-slate-100 dark:border-slate-800 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 text-xs">
-        <div className="flex items-center gap-2 text-slate-600 dark:text-slate-400">
-          <Check className="w-4 h-4 text-emerald-500" />
-          <span>Slot 1: <strong>08:00 AM</strong></span>
+        <div className="p-2.5 rounded-lg bg-slate-50 dark:bg-slate-800/40 text-slate-700 dark:text-slate-300">
+          <span className="text-2xs text-slate-400 block font-medium">Khung giờ 1</span>
+          <strong className="text-slate-900 dark:text-white font-semibold text-xs font-mono">08:00 sáng</strong>
+          <span className="text-2xs text-slate-400 block mt-0.5">Hàng ngày</span>
         </div>
-        <div className="flex items-center gap-2 text-slate-600 dark:text-slate-400">
-          <Check className="w-4 h-4 text-emerald-500" />
-          <span>Slot 2: <strong>06:00 PM</strong></span>
+        <div className="p-2.5 rounded-lg bg-slate-50 dark:bg-slate-800/40 text-slate-700 dark:text-slate-300">
+          <span className="text-2xs text-slate-400 block font-medium">Khung giờ 2</span>
+          <strong className="text-slate-900 dark:text-white font-semibold text-xs font-mono">18:00 chiều</strong>
+          <span className="text-2xs text-slate-400 block mt-0.5">Hàng ngày</span>
         </div>
-        <div className="flex items-center gap-2 text-slate-600 dark:text-slate-400">
-          <ShieldAlert className="w-4 h-4 text-amber-500" />
-          <span>Auto Retry: <strong>10 minutes</strong></span>
+        <div className="p-2.5 rounded-lg bg-slate-50 dark:bg-slate-800/40 text-slate-700 dark:text-slate-300">
+          <span className="text-2xs text-slate-400 block font-medium">Tự động thử lại</span>
+          <strong className="text-amber-600 dark:text-amber-400 font-semibold text-xs">Cách 10 phút</strong>
+          <span className="text-2xs text-slate-400 block mt-0.5">Nếu phát sinh lỗi</span>
         </div>
-        <div className="flex items-center gap-2 text-slate-600 dark:text-slate-400">
-          <span className="w-2 h-2 rounded-full bg-emerald-500" />
-          <span>Next Run: <strong>Today 06:00 PM</strong></span>
+        <div className="p-2.5 rounded-lg bg-slate-50 dark:bg-slate-800/40 text-slate-700 dark:text-slate-300">
+          <span className="text-2xs text-slate-400 block font-medium">Lần chạy kế tiếp</span>
+          <strong className="text-emerald-600 dark:text-emerald-400 font-semibold text-xs font-mono">18:00 hôm nay</strong>
+          <span className="text-2xs text-slate-400 block mt-0.5">Đã lên lịch</span>
         </div>
       </div>
     </div>

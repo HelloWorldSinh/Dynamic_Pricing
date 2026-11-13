@@ -1,7 +1,7 @@
 import React from 'react';
-import { CheckCheck, Trash2 } from 'lucide-react';
 import { SkuMappingPair } from '../../types/matching';
 import { SkuQueueCard } from './SkuQueueCard';
+import { Button } from '../common/Button';
 
 interface SkuQueueListProps {
   queue: SkuMappingPair[];
@@ -38,14 +38,15 @@ export const SkuQueueList: React.FC<SkuQueueListProps> = ({
             type="checkbox"
             checked={isAllSelected}
             onChange={(e) => onSelectAllBatch(e.target.checked)}
+            aria-label="Chọn toàn bộ SKU trong hàng đợi"
             className="w-3.5 h-3.5 rounded border-slate-300 text-orange-600 focus:ring-orange-500 cursor-pointer"
           />
-          <span className="font-semibold text-slate-700 dark:text-slate-300">
-            Chọn tất cả ({queue.length})
+          <span className="font-semibold text-slate-700 dark:text-slate-300 text-2xs uppercase tracking-wider font-mono">
+            CHỌN TẤT CẢ ({queue.length})
           </span>
         </label>
 
-        <span className="text-[11px] font-mono text-slate-400">
+        <span className="text-2xs font-mono text-slate-400">
           {queue.length}/{totalCount} SKU
         </span>
       </div>
@@ -75,28 +76,26 @@ export const SkuQueueList: React.FC<SkuQueueListProps> = ({
 
       {/* Pinned Batch Action Bar if any items selected */}
       {someSelected && (
-        <div className="p-3 border-t border-orange-200 dark:border-orange-900/60 bg-orange-50/95 dark:bg-orange-950/90 backdrop-blur-xs flex items-center justify-between gap-2 shadow-lg animate-in fade-in">
+        <div className="p-3 border-t border-orange-200 dark:border-orange-900/60 bg-orange-50/95 dark:bg-orange-950/90 flex flex-wrap items-center justify-between gap-2 shadow-md">
           <span className="text-xs font-semibold text-orange-900 dark:text-orange-200">
             Đã chọn {selectedBatchIds.size} SKU
           </span>
 
           <div className="flex items-center gap-1.5">
-            <button
+            <Button
+              size="sm"
+              variant="destructive"
               onClick={onBatchReject}
-              className="flex items-center gap-1 px-2.5 py-1 rounded-lg bg-rose-600 hover:bg-rose-500 text-white text-xs font-medium transition shadow-xs"
-              title="Từ chối tất cả các mục đã chọn"
             >
-              <Trash2 className="w-3 h-3" />
-              <span>Từ chối</span>
-            </button>
-            <button
+              Từ chối
+            </Button>
+            <Button
+              size="sm"
+              variant="primary"
               onClick={onBatchApprove}
-              className="flex items-center gap-1 px-3 py-1 rounded-lg bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-bold transition shadow-xs"
-              title="Xác nhận khớp 100% tất cả các mục đã chọn"
             >
-              <CheckCheck className="w-3.5 h-3.5" />
-              <span>Duyệt ({selectedBatchIds.size})</span>
-            </button>
+              Duyệt ({selectedBatchIds.size})
+            </Button>
           </div>
         </div>
       )}

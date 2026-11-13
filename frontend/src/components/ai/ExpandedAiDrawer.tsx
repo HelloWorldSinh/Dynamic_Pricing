@@ -1,26 +1,22 @@
 import React, { useState, useRef, useEffect } from 'react';
-import { 
-  Bot, 
-  Minimize2, 
-  X, 
-  Send, 
-  Sparkles, 
-  RotateCcw,
-  Loader2, 
-  Table 
-} from 'lucide-react';
 import { useAiChat } from '../../context/AiChatContext';
 import { ExplainableCard } from './ExplainableCard';
+import { MarkdownRenderer } from './MarkdownRenderer';
+import { AiDataTable } from './AiDataTable';
+import { InteractivePromptChips } from './InteractivePromptChips';
 
 export const ExpandedAiDrawer: React.FC = () => {
-  const { 
-    state, 
-    openCompact, 
-    minimize, 
-    messages, 
-    sendMessage, 
-    isThinking, 
-    clearMessages 
+  const {
+    state,
+    minimize,
+    messages,
+    sendMessage,
+    isThinking,
+    newChat,
+    sessions,
+    sessionId,
+    switchSession,
+    deleteSession,
   } = useAiChat();
 
   const [input, setInput] = useState('');
@@ -47,164 +43,222 @@ export const ExpandedAiDrawer: React.FC = () => {
   };
 
   const promptChips = [
-    'Liệt kê 5 laptop ASUS FPT đắt hơn CellphoneS',
-    'Mã iPhone nào đang có nguy cơ tồn kho DOH > 45 ngày?',
+    'Top laptop ASUS FPT đắt hơn CellphoneS',
+    'Mã nào đang có nguy cơ tồn kho DOH > 45 ngày?',
     'So sánh giá Samsung Galaxy S25 giữa 3 bên',
     'Phân tích mã FPT-ASUS-VIVO15',
   ];
 
   return (
-    <div className="fixed inset-0 z-50 flex justify-end bg-slate-950/40 backdrop-blur-sm animate-in fade-in duration-200">
-      <div className="w-full max-w-3xl h-full bg-white dark:bg-slate-900 border-l border-slate-200 dark:border-slate-800 shadow-2xl flex flex-col overflow-hidden animate-in slide-in-from-right duration-300">
-        {/* Header */}
-        <div className="p-4 px-6 bg-slate-900 text-white flex items-center justify-between border-b border-slate-800">
+    <div className="fixed inset-0 z-50 flex bg-slate-950/70 backdrop-blur-sm animate-in fade-in duration-200">
+      <div className="w-full h-full bg-white dark:bg-slate-900 flex flex-col overflow-hidden">
+        {/* Top Header Bar */}
+        <div className="p-3.5 px-6 bg-slate-900 text-white flex items-center justify-between border-b border-slate-800 shrink-0">
           <div className="flex items-center gap-3">
-            <div className="w-9 h-9 rounded-xl bg-orange-600 flex items-center justify-center text-white shadow-md shadow-orange-600/30">
-              <Bot className="w-5 h-5" />
+            <div className="w-8 h-8 rounded-lg bg-orange-600 flex items-center justify-center text-white font-mono font-bold text-xs tracking-wider shadow-sm">
+              AI
             </div>
             <div>
               <div className="text-sm font-bold flex items-center gap-2">
-                <span>AI Pricing Studio &amp; Explainable Engine</span>
+                <span>AI Pricing Studio</span>
                 <span className="text-[10px] px-2 py-0.5 rounded bg-orange-500/20 text-orange-400 font-mono font-semibold">
                   PBI-017 &amp; PBI-018
                 </span>
               </div>
               <div className="text-xs text-slate-400">
-                Không gian phân tích định giá chuyên sâu cho Pricing Analyst
+                FPT Shop Market Copilot - Không gian phân tích định giá chuyên sâu
               </div>
             </div>
           </div>
 
           <div className="flex items-center gap-2">
             <button
-              onClick={clearMessages}
-              className="p-2 rounded-lg hover:bg-slate-800 text-slate-400 hover:text-white transition"
-              title="Làm mới lịch sử chat"
+              type="button"
+              onClick={newChat}
+              className="px-3 py-1.5 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-200 text-xs font-semibold transition cursor-pointer border border-slate-700"
+              title="Khởi tạo phiên hội thoại mới"
             >
-              <RotateCcw className="w-4 h-4" />
+              + Hội thoại mới
             </button>
             <button
-              onClick={openCompact}
-              className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-200 text-xs font-semibold transition"
-              title="Thu nhỏ về khung chat góc phải"
-            >
-              <Minimize2 className="w-3.5 h-3.5 text-orange-400" />
-              <span>Thu nhỏ (Popup)</span>
-            </button>
-            <button
+              type="button"
               onClick={minimize}
-              className="p-2 rounded-lg hover:bg-slate-800 text-slate-400 hover:text-white transition"
-              title="Đóng"
+              className="px-3 py-1.5 rounded-lg bg-slate-800 hover:bg-rose-900/60 text-slate-300 hover:text-white text-xs font-semibold transition cursor-pointer border border-slate-700 hover:border-rose-700"
+              title="Đóng studio (hoặc nhấn ESC)"
             >
-              <X className="w-4 h-4" />
+              Đóng (ESC)
             </button>
           </div>
         </div>
 
-        {/* Quick Suggestion Chips */}
-        <div className="p-3 px-6 bg-slate-50 dark:bg-slate-950/60 border-b border-slate-100 dark:border-slate-800 flex items-center gap-2 overflow-x-auto">
-          <Sparkles className="w-4 h-4 text-orange-500 flex-shrink-0" />
-          {promptChips.map((chip, idx) => (
-            <button
-              key={idx}
-              onClick={() => sendMessage(chip)}
-              className="text-xs whitespace-nowrap px-3 py-1.5 rounded-lg bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 hover:border-orange-500 text-slate-700 dark:text-slate-300 transition"
-            >
-              {chip}
-            </button>
-          ))}
-        </div>
+        {/* 2-Column Studio Body */}
+        <div className="flex-1 flex overflow-hidden">
+          {/* CỘT TRÁI: Sidebar danh sách phiên hội thoại (280px) */}
+          <div className="w-72 shrink-0 bg-slate-50 dark:bg-slate-950/70 border-r border-slate-200 dark:border-slate-800 flex flex-col h-full">
+            <div className="p-3 px-4 border-b border-slate-200 dark:border-slate-800 flex items-center justify-between shrink-0">
+              <span className="text-[11px] font-bold text-slate-600 dark:text-slate-400 uppercase tracking-wider">
+                Lịch sử phiên hội thoại
+              </span>
+              <span className="text-[10px] px-1.5 py-0.5 rounded-full bg-slate-200 dark:bg-slate-800 text-slate-600 dark:text-slate-400 font-mono">
+                {sessions.length}
+              </span>
+            </div>
 
-        {/* Message History */}
-        <div className="flex-1 p-6 overflow-y-auto space-y-4 text-xs">
-          {messages.map((msg) => {
-            const isUser = msg.sender === 'user';
-            return (
-              <div
-                key={msg.id}
-                className={`flex flex-col ${isUser ? 'items-end' : 'items-start'}`}
-              >
-                <div
-                  className={`max-w-[90%] rounded-2xl p-4 leading-relaxed shadow-sm ${
-                    isUser
-                      ? 'bg-orange-600 text-white rounded-br-none'
-                      : 'bg-slate-100 dark:bg-slate-800 text-slate-900 dark:text-slate-100 rounded-bl-none border border-slate-200/60 dark:border-slate-700/60'
-                  }`}
-                >
-                  <div className="text-sm font-normal">{msg.content}</div>
-
-                  {/* Render Table Data if available */}
-                  {msg.tableData && msg.tableData.length > 0 && (
-                    <div className="mt-3 overflow-hidden rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 shadow-sm">
-                      <div className="p-2 px-3 bg-slate-50 dark:bg-slate-800/80 border-b border-slate-200 dark:border-slate-700 text-[11px] font-bold text-slate-700 dark:text-slate-300 flex items-center gap-1.5">
-                        <Table className="w-3.5 h-3.5 text-orange-500" />
-                        <span>Bảng Dữ Liệu Chi Tiết</span>
+            <div className="flex-1 overflow-y-auto p-2 space-y-1.5">
+              {sessions.length === 0 ? (
+                <div className="p-6 text-center text-xs text-slate-400">
+                  Chưa có phiên hội thoại nào được lưu.
+                </div>
+              ) : (
+                sessions.map((s) => {
+                  const isActive = s.id === sessionId;
+                  return (
+                    <div
+                      key={s.id}
+                      onClick={() => switchSession(s.id)}
+                      className={`group p-2.5 rounded-xl border text-xs cursor-pointer transition flex flex-col gap-1 ${
+                        isActive
+                          ? 'bg-orange-50 dark:bg-orange-950/40 border-orange-300 dark:border-orange-800 text-orange-950 dark:text-orange-200 font-medium shadow-xs'
+                          : 'bg-white dark:bg-slate-900/80 border-slate-200 dark:border-slate-800/80 hover:border-slate-300 dark:hover:border-slate-700 text-slate-700 dark:text-slate-300'
+                      }`}
+                    >
+                      <div className="flex items-start justify-between gap-1">
+                        <span className="truncate flex-1 font-semibold text-xs" title={s.title}>
+                          {s.title || 'Cuộc hội thoại'}
+                        </span>
+                        <button
+                          type="button"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            deleteSession(s.id);
+                          }}
+                          className="opacity-0 group-hover:opacity-100 text-[10px] text-rose-500 hover:text-rose-700 dark:hover:text-rose-400 font-semibold px-1 rounded transition"
+                          title="Xóa phiên này"
+                        >
+                          Xóa
+                        </button>
                       </div>
-                      <div className="overflow-x-auto">
-                        <table className="w-full text-left text-xs">
-                          <thead>
-                            <tr className="bg-slate-50/50 dark:bg-slate-800/40 text-[11px] font-semibold text-slate-500 border-b border-slate-200 dark:border-slate-700">
-                              {Object.keys(msg.tableData[0]).map((header) => (
-                                <th key={header} className="p-2.5 px-3">
-                                  {header}
-                                </th>
-                              ))}
-                            </tr>
-                          </thead>
-                          <tbody className="divide-y divide-slate-100 dark:divide-slate-800">
-                            {msg.tableData.map((row, rIdx) => (
-                              <tr key={rIdx} className="hover:bg-slate-50/50 dark:hover:bg-slate-800/30">
-                                {Object.values(row).map((val: any, cIdx) => (
-                                  <td key={cIdx} className="p-2.5 px-3 font-medium">
-                                    {val}
-                                  </td>
-                                ))}
-                              </tr>
-                            ))}
-                          </tbody>
-                        </table>
+                      <div className="flex items-center justify-between text-[10px] text-slate-400">
+                        <span>
+                          {s.created_at ? new Date(s.created_at).toLocaleDateString('vi-VN') : ''}
+                        </span>
+                        <span className="font-mono">{s.message_count} tin nhắn</span>
                       </div>
                     </div>
-                  )}
-
-                  {/* Render Explainable AI Card if available */}
-                  {msg.explainFactors && (
-                    <ExplainableCard factors={msg.explainFactors} />
-                  )}
-                </div>
-                <span className="text-[10px] text-slate-400 mt-1 px-1">{msg.timestamp}</span>
-              </div>
-            );
-          })}
-
-          {isThinking && (
-            <div className="flex items-center gap-2.5 p-4 rounded-2xl bg-slate-100 dark:bg-slate-800/60 text-slate-500 text-xs w-fit">
-              <Loader2 className="w-4 h-4 animate-spin text-orange-500" />
-              <span>AI đang phân tích ma trận giá, kho hàng và quy tắc giá sàn...</span>
+                  );
+                })
+              )}
             </div>
-          )}
+          </div>
 
-          <div ref={messagesEndRef} />
-        </div>
+          {/* CỘT PHẢI: Không gian trò chuyện & phân tích dữ liệu lớn */}
+          <div className="flex-1 flex flex-col h-full overflow-hidden bg-white dark:bg-slate-900">
+            {/* Quick Suggestion Chips Header */}
+            <div className="p-3 px-6 bg-slate-50 dark:bg-slate-950/40 border-b border-slate-200 dark:border-slate-800 flex items-center gap-2 overflow-x-auto shrink-0">
+              <span className="text-[11px] font-semibold text-slate-500 dark:text-slate-400 shrink-0">
+                Chủ đề gợi ý:
+              </span>
+              {promptChips.map((chip, idx) => (
+                <button
+                  key={idx}
+                  type="button"
+                  onClick={() => sendMessage(chip)}
+                  className="text-xs whitespace-nowrap px-3 py-1.5 rounded-lg bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 hover:border-orange-500 dark:hover:border-orange-500 text-slate-700 dark:text-slate-300 transition cursor-pointer font-medium"
+                >
+                  {chip}
+                </button>
+              ))}
+            </div>
 
-        {/* Footer Input Bar */}
-        <div className="p-4 px-6 bg-white dark:bg-slate-900 border-t border-slate-200 dark:border-slate-800 flex items-center gap-3">
-          <input
-            type="text"
-            value={input}
-            onChange={(e) => setInput(e.target.value)}
-            onKeyDown={handleKeyDown}
-            placeholder="Hỏi bất kỳ câu hỏi nào về thị trường giá, đối thủ, hoặc lý do đề xuất..."
-            className="flex-1 text-xs px-4 py-2.5 rounded-xl bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-900 dark:text-slate-100 placeholder-slate-400 focus:outline-none focus:ring-1 focus:ring-orange-500"
-          />
-          <button
-            onClick={handleSend}
-            disabled={!input.trim() || isThinking}
-            className="flex items-center gap-2 px-5 py-2.5 rounded-xl bg-orange-600 hover:bg-orange-500 disabled:opacity-40 text-white font-semibold text-xs transition shadow-sm"
-          >
-            <span>Gửi câu hỏi</span>
-            <Send className="w-3.5 h-3.5" />
-          </button>
+            {/* Message History */}
+            <div className="flex-1 p-6 overflow-y-auto space-y-4 text-xs">
+              <div className="max-w-5xl mx-auto w-full space-y-4">
+                {messages.map((msg) => {
+                  const isUser = msg.sender === 'user';
+                  return (
+                    <div
+                      key={msg.id}
+                      className={`flex flex-col ${isUser ? 'items-end' : 'items-start'}`}
+                    >
+                      <div
+                        className={`max-w-[85%] rounded-2xl p-4 leading-relaxed shadow-sm ${
+                          isUser
+                            ? 'bg-orange-600 text-white rounded-br-none'
+                            : 'bg-slate-100 dark:bg-slate-800 text-slate-900 dark:text-slate-100 rounded-bl-none border border-slate-200/60 dark:border-slate-700/60'
+                        }`}
+                      >
+                        {isUser ? (
+                          <div className="text-sm font-normal">{msg.content}</div>
+                        ) : (
+                          <MarkdownRenderer content={msg.content} />
+                        )}
+
+                        {/* Render Table Data with intelligent formatting and 1-click action */}
+                        {msg.tableData && msg.tableData.length > 0 && (
+                          <AiDataTable
+                            data={msg.tableData}
+                            onAnalyze={(sku) => sendMessage(`Phân tích mã ${sku}`)}
+                          />
+                        )}
+
+                        {/* Render Explainable AI Card if available */}
+                        {msg.explainFactors && (
+                          <ExplainableCard factors={msg.explainFactors} />
+                        )}
+
+                        {/* Interactive Clarification & Quick Prompt Chips */}
+                        {!isUser && (
+                          <InteractivePromptChips
+                            suggestions={msg.suggestions}
+                            tableData={msg.tableData}
+                            onSelectPrompt={(prompt) => sendMessage(prompt)}
+                          />
+                        )}
+                      </div>
+                      <span className="text-[10px] text-slate-400 mt-1 px-1">{msg.timestamp}</span>
+                    </div>
+                  );
+                })}
+
+                {isThinking && (
+                  <div className="flex items-center gap-3 p-4 rounded-2xl bg-slate-100 dark:bg-slate-800/60 text-slate-600 dark:text-slate-400 text-xs w-fit">
+                    <span className="w-2.5 h-2.5 rounded-full bg-orange-500 animate-ping"></span>
+                    <span>AI đang phân tích ma trận giá, kho hàng và quy tắc giá sàn...</span>
+                  </div>
+                )}
+
+                <div ref={messagesEndRef} />
+              </div>
+            </div>
+
+            {/* Footer Input Bar */}
+            <div className="p-4 px-6 bg-white dark:bg-slate-900 border-t border-slate-200 dark:border-slate-800 shrink-0">
+              <div className="max-w-5xl mx-auto w-full flex flex-col gap-1.5">
+                <div className="flex items-center gap-3">
+                  <input
+                    type="text"
+                    value={input}
+                    onChange={(e) => setInput(e.target.value)}
+                    onKeyDown={handleKeyDown}
+                    placeholder="Hỏi bất kỳ câu hỏi nào về thị trường giá, đối thủ, hoặc lý do đề xuất..."
+                    className="flex-1 text-xs px-4 py-3 rounded-xl bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-900 dark:text-slate-100 placeholder-slate-400 focus:outline-none focus:ring-1 focus:ring-orange-500 font-normal"
+                  />
+                  <button
+                    type="button"
+                    onClick={handleSend}
+                    disabled={!input.trim() || isThinking}
+                    className="px-6 py-3 rounded-xl bg-orange-600 hover:bg-orange-500 disabled:opacity-40 text-white font-semibold text-xs transition shadow-sm cursor-pointer shrink-0"
+                  >
+                    Gửi câu hỏi
+                  </button>
+                </div>
+                <div className="text-[10px] text-slate-400 px-1 flex items-center justify-between">
+                  <span>Nhấn Enter để gửi câu hỏi</span>
+                  <span>Nhấn ESC để thu nhỏ về nút nổi</span>
+                </div>
+              </div>
+            </div>
+          </div>
         </div>
       </div>
     </div>

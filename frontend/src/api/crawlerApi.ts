@@ -39,6 +39,32 @@ export async function triggerCrawlApi(
   }
 }
 
+export async function syncFptPricesApi(): Promise<CrawlJobResponse & { task_id?: string }> {
+  try {
+    const res = await apiClient.post<any>('/crawl/sync-fpt-prices');
+    return {
+      ...res.data,
+      job_id: res.data.task_id || res.data.job_id,
+      task_id: res.data.task_id || res.data.job_id,
+    };
+  } catch (error: any) {
+    if (error.response?.status === 429) {
+      throw error;
+    }
+    console.warn('[Crawler API] Fallback to simulated FPT price sync');
+    const fallbackId = 'task-fpt-' + Date.now();
+    return {
+      message: 'Đã kích hoạt đồng bộ giá thời gian thực từ FPT Shop',
+      source: 'FPTSHOP',
+      category: 'ALL',
+      status: 'RUNNING',
+      job_id: fallbackId,
+      task_id: fallbackId,
+      started_at: new Date().toISOString(),
+    };
+  }
+}
+
 export async function triggerDualCrawlApi(_category?: string): Promise<any[]> {
   // Luôn kích hoạt Full Pipeline (cào cả Phone & Laptop từ CellphoneS và Hoàng Hà + tự động đối soát SKU vào DB)
   const res = await crawlerApi.triggerFullPipeline();
@@ -158,6 +184,7 @@ export interface CrawlStats {
   total: number;
   cellphones_count: number;
   hoangha_count: number;
+  fpt_count: number;
   phone_count: number;
   laptop_count: number;
   in_stock_count: number;
@@ -178,6 +205,7 @@ export async function getCrawlStatsApi(category?: string): Promise<CrawlStats> {
       total: mockCrawlResults.length,
       cellphones_count: mockCrawlResults.filter((r) => r.source === 'CELLPHONES').length,
       hoangha_count: mockCrawlResults.filter((r) => r.source === 'HOANGHA').length,
+      fpt_count: mockCrawlResults.filter((r) => r.source === 'FPT' || r.source === 'FPTSHOP').length,
       phone_count: 50,
       laptop_count: 30,
       in_stock_count: mockCrawlResults.filter((r) => r.is_in_stock).length,
@@ -213,6 +241,10 @@ export const crawlerApi = {
       category: 'all',
       limit: undefined,
     });
+  },
+
+  syncFptPrices: async (): Promise<any> => {
+    return syncFptPricesApi();
   },
 
   getStatus: async (taskId: string): Promise<CrawlProgressResponse> => {

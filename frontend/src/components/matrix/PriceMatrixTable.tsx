@@ -1,56 +1,46 @@
 import React from 'react';
-import { 
-  ExternalLink, 
-  Info, 
-  ArrowUpDown, 
-  TrendingUp, 
-  TrendingDown, 
-  Equal 
-} from 'lucide-react';
+import { ExternalLink } from 'lucide-react';
 import { PriceComparisonItem } from '../../types/pricing';
 import { formatCurrencyVND, formatPercent } from '../../utils/formatters';
+import { Badge } from '../common/Badge';
+import { EmptyState } from '../common/EmptyState';
 
 interface PriceMatrixTableProps {
   items: PriceComparisonItem[];
   onExplainProduct?: (item: PriceComparisonItem) => void;
+  onResetFilters?: () => void;
 }
 
 export const PriceMatrixTable: React.FC<PriceMatrixTableProps> = ({
   items,
+  onResetFilters,
 }) => {
   if (items.length === 0) {
     return (
-      <div className="rounded-xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 p-12 text-center shadow-sm">
-        <Info className="w-8 h-8 mx-auto text-slate-400 mb-3" />
-        <h3 className="text-sm font-bold text-slate-800 dark:text-slate-200">
-          Không tìm thấy sản phẩm nào
-        </h3>
-        <p className="text-xs text-slate-500 mt-1">
-          Hãy thử điều chỉnh bộ lọc hoặc từ khóa tìm kiếm của bạn.
-        </p>
-      </div>
+      <EmptyState
+        title="Không tìm thấy sản phẩm nào"
+        description="Không có sản phẩm nào phù hợp với bộ lọc hoặc từ khóa tìm kiếm hiện tại."
+        resetLabel={onResetFilters ? 'Đặt lại bộ lọc' : undefined}
+        onReset={onResetFilters}
+      />
     );
   }
 
   return (
-    <div className="rounded-xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 shadow-sm overflow-hidden">
+    <div className="rounded-xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 shadow-xs overflow-hidden">
       <div className="overflow-x-auto">
         <table className="w-full text-left text-xs border-collapse">
           <thead>
-            <tr className="bg-slate-50/80 dark:bg-slate-800/60 border-b border-slate-200 dark:border-slate-800 text-slate-500 dark:text-slate-400 font-semibold uppercase tracking-wider text-[11px]">
-              <th className="py-3 px-4">Sản phẩm</th>
+            <tr className="bg-slate-50/90 dark:bg-slate-800/80 border-b border-slate-200 dark:border-slate-800 text-slate-600 dark:text-slate-300 font-semibold text-xs sticky top-0 z-10">
+              <th className="py-3 px-4">Sản phẩm FPT</th>
               <th className="py-3 px-3 text-right">Giá FPT Shop</th>
               <th className="py-3 px-3 text-right">CellphoneS</th>
               <th className="py-3 px-3 text-right">Hoàng Hà</th>
-              <th className="py-3 px-3 text-center">
-                <span className="flex items-center justify-center gap-1 cursor-pointer">
-                  Chênh lệch <ArrowUpDown className="w-3 h-3 text-slate-400" />
-                </span>
-              </th>
+              <th className="py-3 px-3 text-center">Chênh lệch giá</th>
               <th className="py-3 px-3 text-center">Độ tin cậy</th>
             </tr>
           </thead>
-          <tbody className="divide-y divide-slate-100 dark:divide-slate-800/60">
+          <tbody className="divide-y divide-slate-100 dark:divide-slate-800/60 font-sans">
             {items.map((item) => {
               const isExpensive = item.price_diff > 0;
               const isDanger = item.price_diff_percent >= 5;
@@ -60,17 +50,27 @@ export const PriceMatrixTable: React.FC<PriceMatrixTableProps> = ({
               return (
                 <tr
                   key={item.id}
-                  className="even:bg-white dark:even:bg-slate-900 odd:bg-slate-100/80 dark:odd:bg-slate-800/60 hover:bg-orange-100/70 dark:hover:bg-orange-900/40 transition-colors duration-150"
+                  className="even:bg-white dark:even:bg-slate-900 odd:bg-slate-50/50 dark:odd:bg-slate-800/30 hover:bg-orange-50/60 dark:hover:bg-slate-800/70 transition-colors duration-100"
                 >
                   {/* Product Info */}
                   <td className="py-3 px-4 max-w-[340px]">
                     <div className="font-semibold text-slate-900 dark:text-slate-100 truncate" title={item.name}>
                       {item.name}
                     </div>
+                    <div className="mt-1 flex items-center gap-2">
+                      <span className="text-2xs font-mono text-slate-500 dark:text-slate-400">
+                        {item.sku}
+                      </span>
+                      {item.part_number && (
+                        <span className="text-2xs font-mono text-slate-400 dark:text-slate-500">
+                          PN: {item.part_number}
+                        </span>
+                      )}
+                    </div>
                   </td>
 
                   {/* FPT Price */}
-                  <td className="py-3 px-3 text-right font-bold text-slate-900 dark:text-white text-sm font-mono">
+                  <td className="py-3 px-3 text-right font-bold text-slate-900 dark:text-white text-xs font-mono">
                     {formatCurrencyVND(item.fpt_price)}
                   </td>
 
@@ -81,29 +81,26 @@ export const PriceMatrixTable: React.FC<PriceMatrixTableProps> = ({
                         <span className="font-semibold font-mono text-slate-800 dark:text-slate-200">
                           {formatCurrencyVND(item.cellphones.price)}
                         </span>
-                        <div className="flex items-center gap-1 mt-0.5">
-                          <span
-                            className={`text-[9px] px-1 py-0.2 rounded font-medium ${
-                              item.cellphones.is_in_stock
-                                ? 'bg-emerald-50 dark:bg-emerald-950/40 text-emerald-600 dark:text-emerald-400'
-                                : 'bg-slate-100 dark:bg-slate-800 text-slate-400'
-                            }`}
+                        <div className="flex items-center gap-1.5 mt-0.5">
+                          <Badge
+                            size="sm"
+                            variant={item.cellphones.is_in_stock ? 'success' : 'neutral'}
                           >
                             {item.cellphones.is_in_stock ? 'Còn hàng' : 'Hết hàng'}
-                          </span>
+                          </Badge>
                           <a
                             href={item.cellphones.url}
                             target="_blank"
                             rel="noopener noreferrer"
-                            className="text-slate-400 hover:text-slate-600 dark:hover:text-slate-200"
-                            title="Mở web CellphoneS"
+                            className="inline-flex items-center text-slate-400 hover:text-orange-600 dark:hover:text-orange-400 transition-colors p-0.5 rounded"
+                            title="Mở liên kết CellphoneS"
                           >
-                            <ExternalLink className="w-2.5 h-2.5" />
+                            <ExternalLink className="w-3.5 h-3.5" />
                           </a>
                         </div>
                       </div>
                     ) : (
-                      <span className="text-slate-400 text-[11px]">—</span>
+                      <span className="text-slate-400 text-xs font-mono">—</span>
                     )}
                   </td>
 
@@ -114,56 +111,41 @@ export const PriceMatrixTable: React.FC<PriceMatrixTableProps> = ({
                         <span className="font-semibold font-mono text-slate-800 dark:text-slate-200">
                           {formatCurrencyVND(item.hoangha.price)}
                         </span>
-                        <div className="flex items-center gap-1 mt-0.5">
-                          <span
-                            className={`text-[9px] px-1 py-0.2 rounded font-medium ${
-                              item.hoangha.is_in_stock
-                                ? 'bg-emerald-50 dark:bg-emerald-950/40 text-emerald-600 dark:text-emerald-400'
-                                : 'bg-slate-100 dark:bg-slate-800 text-slate-400'
-                            }`}
+                        <div className="flex items-center gap-1.5 mt-0.5">
+                          <Badge
+                            size="sm"
+                            variant={item.hoangha.is_in_stock ? 'success' : 'neutral'}
                           >
                             {item.hoangha.is_in_stock ? 'Còn hàng' : 'Hết hàng'}
-                          </span>
+                          </Badge>
                           <a
                             href={item.hoangha.url}
                             target="_blank"
                             rel="noopener noreferrer"
-                            className="text-slate-400 hover:text-slate-600 dark:hover:text-slate-200"
-                            title="Mở web Hoàng Hà"
+                            className="inline-flex items-center text-slate-400 hover:text-orange-600 dark:hover:text-orange-400 transition-colors p-0.5 rounded"
+                            title="Mở liên kết Hoàng Hà"
                           >
-                            <ExternalLink className="w-2.5 h-2.5" />
+                            <ExternalLink className="w-3.5 h-3.5" />
                           </a>
                         </div>
                       </div>
                     ) : (
-                      <span className="text-slate-400 text-[11px]">—</span>
+                      <span className="text-slate-400 text-xs font-mono">—</span>
                     )}
                   </td>
 
-                  {/* Price Gap Diff Badge */}
+                  {/* Price Gap Diff */}
                   <td className="py-3 px-3 text-center">
                     <div className="inline-flex flex-col items-center">
-                      <span
-                        className={`inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-bold font-mono ${
-                          isDanger
-                            ? 'bg-rose-100 text-rose-700 dark:bg-rose-950/80 dark:text-rose-400 border border-rose-300 dark:border-rose-900'
-                            : isExpensive
-                            ? 'bg-amber-100 text-amber-700 dark:bg-amber-950/80 dark:text-amber-400 border border-amber-300 dark:border-amber-900'
-                            : isCheaper
-                            ? 'bg-emerald-100 text-emerald-700 dark:bg-emerald-950/80 dark:text-emerald-400 border border-emerald-300 dark:border-emerald-900'
-                            : 'bg-blue-100 text-blue-700 dark:bg-blue-950/80 dark:text-blue-400 border border-blue-300 dark:border-blue-900'
-                        }`}
+                      <Badge
+                        size="sm"
+                        variant={
+                          isDanger ? 'danger' : isExpensive ? 'warning' : isCheaper ? 'success' : 'info'
+                        }
                       >
-                        {isExpensive ? (
-                          <TrendingUp className="w-3 h-3" />
-                        ) : isCheaper ? (
-                          <TrendingDown className="w-3 h-3" />
-                        ) : (
-                          <Equal className="w-3 h-3" />
-                        )}
-                        {formatPercent(item.price_diff_percent)}
-                      </span>
-                      <span className="text-[10px] text-slate-400 mt-0.5 font-mono">
+                        {isEqual ? '0%' : formatPercent(item.price_diff_percent)}
+                      </Badge>
+                      <span className="text-2xs text-slate-400 dark:text-slate-500 mt-0.5 font-medium">
                         {isEqual ? 'Bằng giá' : formatCurrencyVND(Math.abs(item.price_diff))}
                       </span>
                     </div>
@@ -171,17 +153,18 @@ export const PriceMatrixTable: React.FC<PriceMatrixTableProps> = ({
 
                   {/* Confidence Badge */}
                   <td className="py-3 px-3 text-center">
-                    <span
-                      className={`inline-block text-[10px] font-semibold px-2 py-0.5 rounded-full ${
+                    <Badge
+                      size="sm"
+                      variant={
                         item.confidence_score === 100
-                          ? 'bg-emerald-50 dark:bg-emerald-950/50 text-emerald-600 dark:text-emerald-400 border border-emerald-200 dark:border-emerald-800'
+                          ? 'success'
                           : item.confidence_score >= 80
-                          ? 'bg-blue-50 dark:bg-blue-950/50 text-blue-600 dark:text-blue-400 border border-blue-200 dark:border-blue-800'
-                          : 'bg-amber-50 dark:bg-amber-950/50 text-amber-600 dark:text-amber-400 border border-amber-200 dark:border-amber-800'
-                      }`}
+                          ? 'info'
+                          : 'warning'
+                      }
                     >
                       {item.confidence_score}%
-                    </span>
+                    </Badge>
                   </td>
                 </tr>
               );

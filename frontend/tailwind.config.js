@@ -9,30 +9,34 @@ export default {
     extend: {
       colors: {
         brand: {
-          fpt: '#F26F21',
-          'fpt-dark': '#D9580F',
-          'fpt-light': '#FFF5EE'
+          fpt: '#EA580C',
+          'fpt-dark': '#C2410C',
+          'fpt-light': '#FFF7ED',
+          'fpt-border': '#FED7AA'
         },
         status: {
-          danger: '#EF4444',
-          warning: '#F59E0B',
-          success: '#10B981',
-          info: '#3B82F6',
-          floor: '#EC4899'
+          danger: '#DC2626',
+          warning: '#D97706',
+          success: '#059669',
+          info: '#2563EB',
+          floor: '#DB2777'
         }
       },
       fontFamily: {
-        sans: ['Plus Jakarta Sans', 'Inter', 'system-ui', 'sans-serif'],
+        sans: ['Inter', 'system-ui', '-apple-system', 'BlinkMacSystemFont', '"Segoe UI"', 'Roboto', 'sans-serif'],
+        mono: ['"JetBrains Mono"', 'ui-monospace', 'monospace'],
       },
       fontSize: {
-        'xs': ['0.75rem', { lineHeight: '1rem' }],        // 12px
-        'sm': ['0.875rem', { lineHeight: '1.25rem' }],     // 14px
-        'base': ['1.25rem', { lineHeight: '1.75rem' }],    // 20px (scaled up from 16px)
-        'lg': ['1.375rem', { lineHeight: '2rem' }],        // 22px (scaled up from 18px)
-        'xl': ['1.5625rem', { lineHeight: '2.125rem' }],   // 25px (scaled up from 20px)
-        '2xl': ['1.875rem', { lineHeight: '2.375rem' }],   // 30px (scaled up from 24px)
-        '3xl': ['2.375rem', { lineHeight: '2.75rem' }],    // 38px (scaled up from 30px)
-        '4xl': ['2.8125rem', { lineHeight: '3.25rem' }],   // 45px (scaled up from 36px)
+        '2xs': ['0.6875rem', { lineHeight: '0.875rem', letterSpacing: '0.01em' }], // 11px
+        'xs': ['0.75rem', { lineHeight: '1rem', letterSpacing: '0.005em' }],        // 12px
+        'sm': ['0.8125rem', { lineHeight: '1.125rem' }],                           // 13px
+        'base': ['0.875rem', { lineHeight: '1.25rem' }],                            // 14px (Standard Body Text)
+        'md': ['0.9375rem', { lineHeight: '1.375rem' }],                           // 15px
+        'lg': ['1.125rem', { lineHeight: '1.5rem', letterSpacing: '-0.01em' }],     // 18px
+        'xl': ['1.25rem', { lineHeight: '1.75rem', letterSpacing: '-0.02em' }],     // 20px
+        '2xl': ['1.5rem', { lineHeight: '2rem', letterSpacing: '-0.02em' }],        // 24px
+        '3xl': ['1.875rem', { lineHeight: '2.25rem', letterSpacing: '-0.02em' }],   // 30px
+        '4xl': ['2.25rem', { lineHeight: '2.5rem', letterSpacing: '-0.03em' }],     // 36px
       }
     },
   },

@@ -1,4 +1,4 @@
-export type CrawlSource = 'FPT' | 'CELLPHONES' | 'HOANGHA' | 'FULL_PIPELINE' | 'ALL';
+export type CrawlSource = 'FPT' | 'FPTSHOP' | 'CELLPHONES' | 'HOANGHA' | 'FULL_PIPELINE' | 'ALL';
 
 export interface CrawlResult {
   id: string | number;

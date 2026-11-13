@@ -1,68 +1,84 @@
 import React, { useState, useEffect, useMemo } from 'react';
-import { Search, X } from 'lucide-react';
+import { X } from 'lucide-react';
+import { useQueryClient } from '@tanstack/react-query';
 import { ApprovalFilterTabs } from '../components/recommendations/ApprovalFilterTabs';
 import { BatchActionBar } from '../components/recommendations/BatchActionBar';
 import { RecommendationTable } from '../components/recommendations/RecommendationTable';
 import { PriceHistoryTable } from '../components/recommendations/PriceHistoryTable';
 import { PricingDetailModal } from '../components/recommendations/PricingDetailModal';
 import { Pagination } from '../components/common/Pagination';
+import { TableSkeleton } from '../components/common/TableSkeleton';
+import { ErrorBanner } from '../components/common/ErrorBanner';
 import { PricingRecommendation, PriceChangeHistoryItem, ApprovalTabType } from '../types/pricing';
 import { 
-  getRecommendationsApi, 
   approveRecommendationApi, 
   rejectRecommendationApi,
-  getPriceHistoryApi,
   applyCustomPriceApi
 } from '../api/pricingApi';
+import { 
+  useRecommendationsQuery, 
+  usePriceHistoryQuery, 
+  pricingKeys 
+} from '../hooks/usePricingQueries';
 
 interface PricingApprovalsPageProps {
-  categoryFilter: string;
+  categoryFilter?: string;
 }
 
 export const PricingApprovalsPage: React.FC<PricingApprovalsPageProps> = ({
-  categoryFilter,
+  categoryFilter: initialCategoryFilter = 'ALL',
 }) => {
+  const queryClient = useQueryClient();
+  const [categoryFilter, setCategoryFilter] = useState(initialCategoryFilter);
+
+  const { 
+    data: recData = [], 
+    isLoading: isLoadingRec, 
+    isFetching: isFetchingRec,
+    isError: isErrorRec,
+    error: errorRec,
+    refetch: refetchRec
+  } = useRecommendationsQuery();
+
+  const { 
+    data: histData = [], 
+    isLoading: isLoadingHist, 
+    isFetching: isFetchingHist,
+    isError: isErrorHist,
+    error: errorHist,
+    refetch: refetchHist
+  } = usePriceHistoryQuery();
+
+  const loading = (isLoadingRec && recData.length === 0) || (isLoadingHist && histData.length === 0);
+  const isFetching = isFetchingRec || isFetchingHist;
+
   const [recommendations, setRecommendations] = useState<PricingRecommendation[]>([]);
   const [historyItems, setHistoryItems] = useState<PriceChangeHistoryItem[]>([]);
   const [currentTab, setCurrentTab] = useState<ApprovalTabType>('PENDING');
   const [selectedIds, setSelectedIds] = useState<string[]>([]);
   const [selectedDetailItem, setSelectedDetailItem] = useState<PricingRecommendation | null>(null);
-  const [loading, setLoading] = useState(true);
 
-  // Search
+  useEffect(() => {
+    if (recData.length > 0) {
+      setRecommendations(recData);
+    }
+  }, [recData]);
+
+  useEffect(() => {
+    if (histData.length > 0) {
+      setHistoryItems(histData);
+    }
+  }, [histData]);
+
   const [searchQuery, setSearchQuery] = useState('');
-
-  // Pagination
   const [currentPage, setCurrentPage] = useState(1);
   const [pageSize, setPageSize] = useState(10);
 
-  const fetchData = async () => {
-    setLoading(true);
-    try {
-      const [recData, histData] = await Promise.all([
-        getRecommendationsApi(),
-        getPriceHistoryApi()
-      ]);
-      setRecommendations(recData);
-      setHistoryItems(histData);
-    } catch (error) {
-      console.error('Lỗi nạp dữ liệu duyệt giá:', error);
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  useEffect(() => {
-    fetchData();
-  }, []);
-
-  // Reset to page 1 and clear selections when tab, category, or search query changes
   useEffect(() => {
     setCurrentPage(1);
     setSelectedIds([]);
   }, [currentTab, categoryFilter, searchQuery]);
 
-  // Filter items according to tab, category & search query
   const filteredRecommendations = useMemo(() => {
     return recommendations.filter((r) => {
       if (r.status !== currentTab) return false;
@@ -93,7 +109,6 @@ export const PricingApprovalsPage: React.FC<PricingApprovalsPageProps> = ({
     });
   }, [historyItems, categoryFilter, searchQuery]);
 
-  // Group history items by product (SKU)
   const historyProductGroups = useMemo(() => {
     const map = new Map<string, {
       sku: string;
@@ -130,7 +145,6 @@ export const PricingApprovalsPage: React.FC<PricingApprovalsPageProps> = ({
     history: historyProductGroups.length,
   };
 
-  // Paginated data
   const totalRecPages = Math.ceil(filteredRecommendations.length / pageSize) || 1;
   const paginatedRecommendations = useMemo(() => {
     const start = (currentPage - 1) * pageSize;
@@ -143,7 +157,6 @@ export const PricingApprovalsPage: React.FC<PricingApprovalsPageProps> = ({
     return historyProductGroups.slice(start, start + pageSize);
   }, [historyProductGroups, currentPage, pageSize]);
 
-  // Selection handlers
   const handleToggleSelect = (id: string) => {
     setSelectedIds((prev) =>
       prev.includes(id) ? prev.filter((i) => i !== id) : [...prev, id]
@@ -164,7 +177,6 @@ export const PricingApprovalsPage: React.FC<PricingApprovalsPageProps> = ({
     setSelectedIds([]);
   };
 
-  // Helper to record approval into history
   const recordToHistory = (
     rec: PricingRecommendation,
     finalPrice: number,
@@ -191,7 +203,6 @@ export const PricingApprovalsPage: React.FC<PricingApprovalsPageProps> = ({
     setHistoryItems((prev) => [newHistory, ...prev]);
   };
 
-  // Actions
   const handleApprove = async (id: string) => {
     const rec = recommendations.find((r) => r.id === id);
     await approveRecommendationApi(id);
@@ -202,6 +213,7 @@ export const PricingApprovalsPage: React.FC<PricingApprovalsPageProps> = ({
       prev.map((r) => (r.id === id ? { ...r, status: 'APPROVED' } : r))
     );
     setSelectedIds((prev) => prev.filter((i) => i !== id));
+    queryClient.invalidateQueries({ queryKey: pricingKeys.all });
   };
 
   const handleReject = async (id: string) => {
@@ -210,6 +222,7 @@ export const PricingApprovalsPage: React.FC<PricingApprovalsPageProps> = ({
       prev.map((r) => (r.id === id ? { ...r, status: 'REJECTED' } : r))
     );
     setSelectedIds((prev) => prev.filter((i) => i !== id));
+    queryClient.invalidateQueries({ queryKey: pricingKeys.all });
   };
 
   const handleBatchApprove = async () => {
@@ -224,6 +237,7 @@ export const PricingApprovalsPage: React.FC<PricingApprovalsPageProps> = ({
       prev.map((r) => (selectedIds.includes(r.id) ? { ...r, status: 'APPROVED' } : r))
     );
     setSelectedIds([]);
+    queryClient.invalidateQueries({ queryKey: pricingKeys.all });
   };
 
   const handleBatchReject = async () => {
@@ -234,9 +248,9 @@ export const PricingApprovalsPage: React.FC<PricingApprovalsPageProps> = ({
       prev.map((r) => (selectedIds.includes(r.id) ? { ...r, status: 'REJECTED' } : r))
     );
     setSelectedIds([]);
+    queryClient.invalidateQueries({ queryKey: pricingKeys.all });
   };
 
-  // Apply custom or suggested price from Detail Modal
   const handleApplyFromDetail = async (
     id: string,
     finalPrice: number,
@@ -254,6 +268,7 @@ export const PricingApprovalsPage: React.FC<PricingApprovalsPageProps> = ({
         )
       );
       setSelectedIds((prev) => prev.filter((i) => i !== id));
+      queryClient.invalidateQueries({ queryKey: pricingKeys.all });
     }
     setSelectedDetailItem(null);
   };
@@ -266,10 +281,15 @@ export const PricingApprovalsPage: React.FC<PricingApprovalsPageProps> = ({
   return (
     <div>
       {/* Intro Header */}
-      <div className="mb-4">
-        <h2 className="text-base font-bold text-slate-900 dark:text-white">
-          Pricing Approvals
+      <div className="mb-3 flex items-center justify-between">
+        <h2 className="text-base font-bold text-slate-900 dark:text-white tracking-tight">
+          Phê duyệt giá đề xuất
         </h2>
+        {isFetching && !loading && (
+          <span className="text-2xs font-medium text-slate-500 dark:text-slate-400 bg-slate-100 dark:bg-slate-800 px-2.5 py-0.5 rounded-full border border-slate-200 dark:border-slate-700">
+            Đang đồng bộ dữ liệu...
+          </span>
+        )}
       </div>
 
       {/* Tabs */}
@@ -282,57 +302,103 @@ export const PricingApprovalsPage: React.FC<PricingApprovalsPageProps> = ({
         counts={counts}
       />
 
-      {/* Search Toolbar */}
-      <div className="p-3 rounded-xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 mb-4 shadow-sm flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+      {/* Integrated Category Selector + Search Toolbar */}
+      <div className="p-3 rounded-xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 mb-4 shadow-xs flex flex-col md:flex-row md:items-center justify-between gap-3">
+        {/* Category Filter Pills */}
+        <div className="flex items-center gap-1.5 shrink-0 flex-wrap">
+          <button
+            type="button"
+            onClick={() => setCategoryFilter('ALL')}
+            className={`px-3 py-1 rounded text-xs font-semibold transition ${
+              categoryFilter === 'ALL'
+                ? 'bg-orange-600 text-white shadow-xs'
+                : 'bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-200'
+            }`}
+          >
+            Tất cả
+          </button>
+          <button
+            type="button"
+            onClick={() => setCategoryFilter('PHONE')}
+            className={`px-3 py-1 rounded text-xs font-semibold transition ${
+              categoryFilter === 'PHONE'
+                ? 'bg-orange-600 text-white shadow-xs'
+                : 'bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-200'
+            }`}
+          >
+            Điện thoại
+          </button>
+          <button
+            type="button"
+            onClick={() => setCategoryFilter('LAPTOP')}
+            className={`px-3 py-1 rounded text-xs font-semibold transition ${
+              categoryFilter === 'LAPTOP'
+                ? 'bg-orange-600 text-white shadow-xs'
+                : 'bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-200'
+            }`}
+          >
+            Laptop
+          </button>
+        </div>
+
+        {/* Search Input */}
         <div className="relative flex-1 max-w-md">
-          <Search className="w-4 h-4 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2" />
           <input
             type="text"
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
-            placeholder="Tìm theo tên sản phẩm, mã SKU hoặc kịch bản..."
-            className="w-full pl-9 pr-8 py-2 text-xs rounded-lg border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 text-slate-900 dark:text-slate-100 placeholder-slate-400 focus:outline-none focus:ring-1 focus:ring-orange-500 transition"
+            placeholder="Tìm theo SKU, tên sản phẩm hoặc kịch bản..."
+            className="w-full px-3 py-1.5 text-xs rounded-md border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 text-slate-900 dark:text-slate-100 placeholder-slate-400 focus:outline-none focus:ring-1 focus:ring-orange-500 transition"
           />
           {searchQuery && (
             <button
+              type="button"
               onClick={() => setSearchQuery('')}
               className="absolute right-2.5 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 p-0.5 rounded transition"
-              title="Xóa tìm kiếm"
+              aria-label="Xóa từ khóa tìm kiếm"
             >
               <X className="w-3.5 h-3.5" />
             </button>
           )}
         </div>
-
-        <div className="text-xs text-slate-500 flex items-center gap-2">
-          <span>
-            Tìm thấy: <strong className="font-semibold text-slate-900 dark:text-white">
-              {currentTab === 'HISTORY' ? historyProductGroups.length : filteredRecommendations.length}
-            </strong> {currentTab === 'HISTORY' ? 'sản phẩm' : 'đề xuất'}
-          </span>
-        </div>
       </div>
 
-      {/* Conditional Content based on Tab */}
+      {/* Error Banners */}
+      {(isErrorRec || isErrorHist) && (
+        <ErrorBanner
+          message={(errorRec as Error)?.message || (errorHist as Error)?.message || 'Không thể nạp dữ liệu đề xuất giá.'}
+          onRetry={() => {
+            refetchRec();
+            refetchHist();
+          }}
+        />
+      )}
+
+      {/* Content based on Active Tab */}
       {currentTab === 'HISTORY' ? (
         <>
-          <PriceHistoryTable products={paginatedHistoryProducts} allItems={historyItems} />
-          <Pagination
-            currentPage={currentPage}
-            totalPages={totalHistPages}
-            totalItems={historyProductGroups.length}
-            pageSize={pageSize}
-            onPageChange={setCurrentPage}
-            onPageSizeChange={(newSize) => {
-              setPageSize(newSize);
-              setCurrentPage(1);
-            }}
-            itemLabel="sản phẩm"
-          />
+          {loading ? (
+            <TableSkeleton rows={6} cols={6} />
+          ) : (
+            <>
+              <PriceHistoryTable products={paginatedHistoryProducts} allItems={historyItems} />
+              <Pagination
+                currentPage={currentPage}
+                totalPages={totalHistPages}
+                totalItems={historyProductGroups.length}
+                pageSize={pageSize}
+                onPageChange={setCurrentPage}
+                onPageSizeChange={(newSize) => {
+                  setPageSize(newSize);
+                  setCurrentPage(1);
+                }}
+                itemLabel="sản phẩm"
+              />
+            </>
+          )}
         </>
       ) : (
         <>
-          {/* Batch Action Bar */}
           {currentTab === 'PENDING' && (
             <BatchActionBar
               selectedCount={selectedIds.length}
@@ -342,11 +408,8 @@ export const PricingApprovalsPage: React.FC<PricingApprovalsPageProps> = ({
             />
           )}
 
-          {/* Table */}
           {loading ? (
-            <div className="p-12 text-center text-slate-400 text-xs">
-              Đang nạp danh sách đề xuất giá...
-            </div>
+            <TableSkeleton rows={8} cols={8} />
           ) : (
             <>
               <RecommendationTable
@@ -385,4 +448,3 @@ export const PricingApprovalsPage: React.FC<PricingApprovalsPageProps> = ({
     </div>
   );
 };
-

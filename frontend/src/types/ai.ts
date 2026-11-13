@@ -27,10 +27,20 @@ export interface AiChatMessage {
   timestamp: string;
   tableData?: Array<Record<string, any>>;
   explainFactors?: ExplainableFactors;
+  suggestions?: string[];
 }
 
 export interface AiMessageResponse {
   message: string;
+  session_id?: string;
   tableData?: Array<Record<string, any>>;
   explainFactors?: ExplainableFactors;
+  suggestions?: string[];
+}
+
+export interface ChatSessionSummary {
+  id: string;
+  title: string;
+  created_at: string;
+  message_count: number;
 }

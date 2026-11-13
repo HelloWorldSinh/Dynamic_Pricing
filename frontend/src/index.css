@@ -3,29 +3,110 @@
 @tailwind utilities;
 
 @layer base {
+  body {
+    font-family: 'Inter', system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+    text-rendering: optimizeLegibility;
+  }
+
   :root {
-    --bg-primary: #f8fafc;
-    --bg-surface: #ffffff;
-    --bg-surface-hover: #f1f5f9;
-    --border-color: #e2e8f0;
+    /* Surfaces */
+    --surface-canvas: #f8fafc;
+    --surface-card: #ffffff;
+    --surface-subtle: #f1f5f9;
+    --surface-hover: #f8fafc;
+    --surface-active: #fff7ed;
+
+    /* Borders */
+    --border-subtle: #e2e8f0;
+    --border-strong: #cbd5e1;
+    --border-focus: #ea580c;
+
+    /* Typography */
     --text-primary: #0f172a;
+    --text-secondary: #334155;
     --text-muted: #64748b;
+
+    /* Brand FPT */
+    --brand-primary: #ea580c;
+    --brand-hover: #c2410c;
+    --brand-soft: #fff7ed;
+    --brand-border: #fed7aa;
+
+    /* Semantic Status */
+    --status-success-text: #065f46;
+    --status-success-bg: #ecfdf5;
+    --status-success-border: #a7f3d0;
+
+    --status-warning-text: #92400e;
+    --status-warning-bg: #fffbeb;
+    --status-warning-border: #fde68a;
+
+    --status-danger-text: #991b1b;
+    --status-danger-bg: #fef2f2;
+    --status-danger-border: #fecaca;
+
+    --status-floor-text: #9d174d;
+    --status-floor-bg: #fdf2f8;
+    --status-floor-border: #fbcfe8;
+
+    --status-info-text: #1e40af;
+    --status-info-bg: #eff6ff;
+    --status-info-border: #bfdbfe;
   }
 
   .dark {
-    --bg-primary: #0b0f17;
-    --bg-surface: #111827;
-    --bg-surface-hover: #1f2937;
-    --border-color: #1f2937;
+    /* Surfaces */
+    --surface-canvas: #090d16;
+    --surface-card: #0f172a;
+    --surface-subtle: #1e293b;
+    --surface-hover: #1e293b;
+    --surface-active: #2d1b0d;
+
+    /* Borders */
+    --border-subtle: #1e293b;
+    --border-strong: #334155;
+    --border-focus: #f97316;
+
+    /* Typography */
     --text-primary: #f8fafc;
+    --text-secondary: #cbd5e1;
     --text-muted: #94a3b8;
+
+    /* Brand FPT */
+    --brand-primary: #f97316;
+    --brand-hover: #ea580c;
+    --brand-soft: #431407;
+    --brand-border: #7c2d12;
+
+    /* Semantic Status */
+    --status-success-text: #6ee7b7;
+    --status-success-bg: #064e3b;
+    --status-success-border: #047857;
+
+    --status-warning-text: #fcd34d;
+    --status-warning-bg: #78350f;
+    --status-warning-border: #b45309;
+
+    --status-danger-text: #fca5a5;
+    --status-danger-bg: #7f1d1d;
+    --status-danger-border: #b91c1c;
+
+    --status-floor-text: #f472b6;
+    --status-floor-bg: #831843;
+    --status-floor-border: #be185d;
+
+    --status-info-text: #93c5fd;
+    --status-info-bg: #1e3a8a;
+    --status-info-border: #1d4ed8;
   }
 }
 
 /* Custom Scrollbar for dense data tables */
 ::-webkit-scrollbar {
-  width: 6px;
-  height: 6px;
+  width: 5px;
+  height: 5px;
 }
 
 ::-webkit-scrollbar-track {
@@ -33,14 +114,23 @@
 }
 
 ::-webkit-scrollbar-thumb {
-  background: rgba(148, 163, 184, 0.25);
+  background: rgba(148, 163, 184, 0.3);
   border-radius: 9999px;
 }
 
 .dark ::-webkit-scrollbar-thumb {
-  background: rgba(255, 255, 255, 0.15);
+  background: rgba(255, 255, 255, 0.18);
 }
 
 ::-webkit-scrollbar-thumb:hover {
-  background: rgba(148, 163, 184, 0.4);
+  background: rgba(148, 163, 184, 0.5);
+}
+
+/* Utility to hide scrollbars on horizontal tabs */
+.no-scrollbar::-webkit-scrollbar {
+  display: none;
+}
+.no-scrollbar {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
 }

@@ -1,10 +1,12 @@
-import React, { useState, useEffect, useMemo, useCallback } from 'react';
-import { DebounceTriggerBar } from '../components/matrix/DebounceTriggerBar';
-import { MatrixFilterToolbar } from '../components/matrix/MatrixFilterToolbar';
+import React, { useState, useEffect, useMemo } from 'react';
+import { UnifiedMatrixToolbar } from '../components/matrix/UnifiedMatrixToolbar';
 import { PriceMatrixTable } from '../components/matrix/PriceMatrixTable';
 import { Pagination } from '../components/common/Pagination';
+import { TableSkeleton } from '../components/common/TableSkeleton';
+import { ErrorBanner } from '../components/common/ErrorBanner';
 import { PriceComparisonItem } from '../types/pricing';
-import { getPriceMatrixApi } from '../api/pricingApi';
+import { usePriceMatrixQuery } from '../hooks/usePricingQueries';
+import { useAiChat } from '../context/AiChatContext';
 
 interface PriceMatrixPageProps {
   categoryFilter?: string;
@@ -14,10 +16,20 @@ interface PriceMatrixPageProps {
 
 export const PriceMatrixPage: React.FC<PriceMatrixPageProps> = ({
   categoryFilter: initialCategoryFilter = 'ALL',
+  onOpenAiExplain,
 }) => {
+  const { askExplanationForSku } = useAiChat();
   const [categoryFilter, setCategoryFilter] = useState(initialCategoryFilter);
-  const [items, setItems] = useState<PriceComparisonItem[]>([]);
-  const [loading, setLoading] = useState(true);
+
+  // TanStack Query for Server State & Caching
+  const { 
+    data: items = [], 
+    isLoading, 
+    isFetching, 
+    isError,
+    error,
+    refetch 
+  } = usePriceMatrixQuery(categoryFilter);
 
   // Filters
   const [searchQuery, setSearchQuery] = useState('');
@@ -29,26 +41,18 @@ export const PriceMatrixPage: React.FC<PriceMatrixPageProps> = ({
   const [currentPage, setCurrentPage] = useState(1);
   const [pageSize, setPageSize] = useState(10);
 
-  const fetchData = useCallback(async () => {
-    setLoading(true);
-    try {
-      const matrixData = await getPriceMatrixApi(categoryFilter);
-      setItems(matrixData);
-    } catch (error) {
-      console.error('Lỗi nạp dữ liệu ma trận giá:', error);
-    } finally {
-      setLoading(false);
-    }
-  }, [categoryFilter]);
-
-  useEffect(() => {
-    fetchData();
-  }, [fetchData]);
-
   // Reset to page 1 when any filter changes
   useEffect(() => {
     setCurrentPage(1);
   }, [categoryFilter, searchQuery, priceGapFilter, dohRiskFilter, inStockOnlyFilter]);
+
+  const handleResetFilters = () => {
+    setCategoryFilter('ALL');
+    setSearchQuery('');
+    setPriceGapFilter('ALL');
+    setDohRiskFilter(false);
+    setInStockOnlyFilter(false);
+  };
 
   // Filtered Items logic
   const filteredItems = useMemo(() => {
@@ -105,11 +109,8 @@ export const PriceMatrixPage: React.FC<PriceMatrixPageProps> = ({
 
   return (
     <div>
-      {/* On-Demand Crawl with 30s Debounce - Compact single-line bar */}
-      <DebounceTriggerBar category={categoryFilter} onCrawlCompleted={fetchData} />
-
-      {/* Multi-criteria Filter Toolbar with Integrated Category Selector */}
-      <MatrixFilterToolbar
+      {/* Unified Filter Toolbar with Integrated Category Selector & Crawl Trigger */}
+      <UnifiedMatrixToolbar
         categoryFilter={categoryFilter}
         setCategoryFilter={setCategoryFilter}
         searchQuery={searchQuery}
@@ -120,17 +121,41 @@ export const PriceMatrixPage: React.FC<PriceMatrixPageProps> = ({
         setDohRiskFilter={setDohRiskFilter}
         inStockOnlyFilter={inStockOnlyFilter}
         setInStockOnlyFilter={setInStockOnlyFilter}
+        onCrawlCompleted={() => refetch()}
       />
 
-      {/* Main 3-Way Comparison Table */}
-      {loading ? (
-        <div className="p-12 text-center text-slate-400 text-xs">
-          Đang nạp dữ liệu đối soát giá 3 bên...
+      {/* Background Revalidation Indicator */}
+      {isFetching && !isLoading && (
+        <div className="mb-2 text-right">
+          <span className="text-2xs font-mono font-medium text-slate-500 dark:text-slate-400 bg-slate-100 dark:bg-slate-800 px-2 py-0.5 rounded border border-slate-200 dark:border-slate-700">
+            Đang đồng bộ dữ liệu...
+          </span>
         </div>
+      )}
+
+      {/* Error Banner with Retry */}
+      {isError && (
+        <ErrorBanner
+          message={(error as Error)?.message || 'Không thể kết nối đến máy chủ lấy dữ liệu ma trận giá.'}
+          onRetry={() => refetch()}
+        />
+      )}
+
+      {/* Main 3-Way Comparison Table with Skeleton Loading */}
+      {isLoading ? (
+        <TableSkeleton rows={8} cols={6} />
       ) : (
         <>
           <PriceMatrixTable
             items={paginatedItems}
+            onResetFilters={handleResetFilters}
+            onExplainProduct={(item) => {
+              if (onOpenAiExplain) {
+                onOpenAiExplain(item);
+              } else {
+                askExplanationForSku(item.sku, item.name);
+              }
+            }}
           />
           <Pagination
             currentPage={currentPage}

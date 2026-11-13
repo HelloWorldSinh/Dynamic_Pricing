@@ -1,9 +1,12 @@
 import React, { useMemo } from 'react';
-import { ExternalLink, CheckCircle2 } from 'lucide-react';
+import { ExternalLink } from 'lucide-react';
 import { SkuMappingPair } from '../../types/matching';
 import { ConfidenceMeter } from './ConfidenceMeter';
 import { formatCurrencyVND } from '../../utils/formatters';
 import { extractSpecsFromTitle, isSpecMatch, ParsedSpecs } from '../../utils/productSpecParser';
+import { Badge } from '../common/Badge';
+import { Button } from '../common/Button';
+import { EmptyState } from '../common/EmptyState';
 
 interface SkuDetailInspectorProps {
   pair: SkuMappingPair | null;
@@ -23,13 +26,11 @@ interface SpecRowData {
   compExtracted?: boolean;
 }
 
-// Token diff helper to highlight differing words/tokens between FPT and Competitor
 function renderTokenDiff(textA: string, textB: string, isTarget: boolean) {
   if (!textA || textA === '—' || !textB || textB === '—') {
     return textA;
   }
 
-  // Tokenize preserving whitespace and delimiters
   const tokensA = textA.split(/(\s+|[,\-\/\(\)])/);
   const wordsBSet = new Set(
     textB
@@ -54,8 +55,8 @@ function renderTokenDiff(textA: string, textB: string, isTarget: boolean) {
             key={idx}
             className={`px-1 py-0.2 rounded font-mono font-bold transition-colors inline-block ${
               isTarget
-                ? 'bg-rose-100 dark:bg-rose-950/60 text-rose-700 dark:text-rose-300 border border-rose-300 dark:border-rose-800'
-                : 'bg-amber-100 dark:bg-amber-950/60 text-amber-800 dark:text-amber-200 border border-amber-300 dark:border-amber-800'
+                ? 'bg-rose-100 dark:bg-rose-950/70 text-rose-700 dark:text-rose-300 border border-rose-300 dark:border-rose-800'
+                : 'bg-amber-100 dark:bg-amber-950/70 text-amber-800 dark:text-amber-200 border border-amber-300 dark:border-amber-800'
             }`}
             title={`Sai khác: "${part}"`}
           >
@@ -76,19 +77,13 @@ export const SkuDetailInspector: React.FC<SkuDetailInspectorProps> = ({
 }) => {
   if (!pair) {
     return (
-      <div className="h-full flex flex-col items-center justify-center p-8 text-center bg-white dark:bg-slate-900 rounded-xl border border-slate-200 dark:border-slate-800">
-        <CheckCircle2 className="w-10 h-10 text-emerald-500 mb-2" />
-        <h3 className="text-sm font-bold text-slate-800 dark:text-slate-200">
-          Hàng đợi đối soát trống!
-        </h3>
-        <p className="text-xs text-slate-500 max-w-sm mt-1">
-          Toàn bộ SKU trong danh sách đều đã được xử lý xong hoặc tự động đối soát chính xác 100%.
-        </p>
-      </div>
+      <EmptyState
+        title="Hàng đợi đối soát trống"
+        description="Toàn bộ SKU trong danh sách đều đã được xử lý xong hoặc tự động đối soát chính xác 100%."
+      />
     );
   }
 
-  // Construct Complete Spec Rows for Unified Diff Table
   const tableRows = useMemo(() => {
     const rows: SpecRowData[] = [];
     const keysHandled = new Set<string>();
@@ -196,7 +191,6 @@ export const SkuDetailInspector: React.FC<SkuDetailInspectorProps> = ({
       });
     });
 
-    // 5. Add any remaining keys from specs or differing_attributes
     const allCustomKeys = [
       ...Object.keys(pair.fpt_specs || {}),
       ...Object.keys(pair.competitor_specs || {}),
@@ -225,14 +219,14 @@ export const SkuDetailInspector: React.FC<SkuDetailInspectorProps> = ({
   }, [pair]);
 
   return (
-    <div className="h-full flex flex-col bg-white dark:bg-slate-900 rounded-xl overflow-hidden">
+    <div className="h-full flex flex-col bg-white dark:bg-slate-900 rounded-xl overflow-hidden border border-slate-200 dark:border-slate-800 shadow-xs">
       {/* Workbench Action Header Bar */}
-      <div className="px-5 py-3 border-b border-slate-200 dark:border-slate-800 bg-slate-50/70 dark:bg-slate-800/40 flex flex-wrap items-center justify-between gap-3 shrink-0">
+      <div className="px-5 py-3 border-b border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-800/50 flex flex-wrap items-center justify-between gap-3 shrink-0">
         <div className="flex items-center gap-3">
-          <span className="text-xs font-mono font-bold text-orange-600 dark:text-orange-400 bg-orange-50 dark:bg-orange-950/40 px-2 py-0.5 rounded border border-orange-200 dark:border-orange-800">
+          <Badge size="sm" variant="warning">
             SKU: {pair.fpt_sku}
-          </span>
-          <span className="text-xs text-slate-400 font-medium">
+          </Badge>
+          <span className="text-2xs text-slate-400 font-mono">
             #{currentIndex + 1} / {totalInQueue} trong hàng đợi
           </span>
           <ConfidenceMeter score={pair.confidence_score} />
@@ -240,30 +234,28 @@ export const SkuDetailInspector: React.FC<SkuDetailInspectorProps> = ({
 
         {/* Action Buttons */}
         <div className="flex items-center gap-2">
-          <button
-            type="button"
+          <Button
+            size="sm"
+            variant="destructive"
             onClick={() => onReject(pair.id)}
-            className="px-3 py-1.5 rounded-lg border border-slate-200 dark:border-slate-700 hover:bg-rose-50 dark:hover:bg-rose-950/40 text-slate-600 dark:text-slate-300 hover:text-rose-600 dark:hover:text-rose-400 hover:border-rose-200 dark:border-rose-800 text-xs font-semibold transition shadow-xs cursor-pointer"
-            title="Từ chối ghép cặp"
           >
             Từ chối
-          </button>
+          </Button>
 
-          <button
-            type="button"
+          <Button
+            size="sm"
+            variant="primary"
             onClick={() => onApprove(pair.id)}
-            className="px-3.5 py-1.5 rounded-lg bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-bold transition shadow-xs cursor-pointer"
-            title="Xác nhận khớp 100%"
           >
-            Khớp 100%
-          </button>
+            Xác nhận khớp 100%
+          </Button>
         </div>
       </div>
 
       {/* Unified Side-by-Side Diff Table */}
       <div className="flex-1 overflow-y-auto">
         <table className="w-full text-left text-xs border-collapse">
-          <thead className="sticky top-0 z-10 bg-slate-100/90 dark:bg-slate-800/90 backdrop-blur-xs border-b border-slate-200 dark:border-slate-700 text-[11px] font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400">
+          <thead className="sticky top-0 z-10 bg-slate-100 dark:bg-slate-800 border-b border-slate-200 dark:border-slate-700 text-2xs font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400">
             <tr>
               <th className="py-2.5 px-4 w-[20%]">Thuộc tính</th>
               <th className="py-2.5 px-4 w-[38%] text-orange-600 dark:text-orange-400">
@@ -277,11 +269,10 @@ export const SkuDetailInspector: React.FC<SkuDetailInspectorProps> = ({
                       href={pair.competitor_url}
                       target="_blank"
                       rel="noopener noreferrer"
-                      className="inline-flex items-center gap-1 text-[10px] text-blue-600 dark:text-blue-400 hover:underline normal-case font-medium"
-                      title="Mở website đối thủ để kiểm tra thực tế"
+                      className="inline-flex items-center gap-1 text-2xs text-slate-400 hover:text-orange-600 dark:hover:text-orange-400 hover:underline font-mono"
+                      title="Mở website đối thủ"
                     >
-                      <span>Web gốc</span>
-                      <ExternalLink className="w-3 h-3" />
+                      Web gốc <ExternalLink className="w-3 h-3" />
                     </a>
                   )}
                 </div>
@@ -303,7 +294,7 @@ export const SkuDetailInspector: React.FC<SkuDetailInspectorProps> = ({
                     isDiff
                       ? 'bg-amber-50/60 dark:bg-amber-950/20 border-l-2 border-l-amber-500'
                       : isMatch
-                      ? 'hover:bg-slate-50/50 dark:hover:bg-slate-800/30'
+                      ? 'even:bg-white dark:even:bg-slate-900 odd:bg-slate-50/40 dark:odd:bg-slate-800/20 hover:bg-slate-50 dark:hover:bg-slate-800/40'
                       : 'hover:bg-slate-50/30 dark:hover:bg-slate-800/20'
                   }`}
                 >
@@ -313,9 +304,9 @@ export const SkuDetailInspector: React.FC<SkuDetailInspectorProps> = ({
                   </td>
 
                   {/* Column 2: FPT Value */}
-                  <td className="py-2.5 px-4 font-mono text-[11px] text-slate-900 dark:text-slate-100 align-top leading-relaxed">
+                  <td className="py-2.5 px-4 font-mono text-2xs text-slate-900 dark:text-slate-100 align-top leading-relaxed">
                     {row.fptVal === '—' ? (
-                      <span className="text-[10px] px-1.5 py-0.5 rounded bg-slate-100 dark:bg-slate-800 text-slate-400 font-sans font-medium">
+                      <span className="text-2xs px-1.5 py-0.5 rounded bg-slate-100 dark:bg-slate-800 text-slate-400">
                         Chưa cập nhật
                       </span>
                     ) : (
@@ -326,9 +317,9 @@ export const SkuDetailInspector: React.FC<SkuDetailInspectorProps> = ({
                   </td>
 
                   {/* Column 3: Competitor Value */}
-                  <td className="py-2.5 px-4 font-mono text-[11px] text-slate-900 dark:text-slate-100 align-top leading-relaxed">
+                  <td className="py-2.5 px-4 font-mono text-2xs text-slate-900 dark:text-slate-100 align-top leading-relaxed">
                     {row.compVal === '—' ? (
-                      <span className="text-[10px] px-1.5 py-0.5 rounded bg-amber-50 dark:bg-amber-950/40 text-amber-700 dark:text-amber-400 border border-amber-200 dark:border-amber-900/60 font-sans font-medium">
+                      <span className="text-2xs px-1.5 py-0.5 rounded bg-amber-50 dark:bg-amber-950/40 text-amber-700 dark:text-amber-400 border border-amber-200 dark:border-amber-900/60">
                         Chưa cập nhật
                       </span>
                     ) : (
@@ -341,19 +332,19 @@ export const SkuDetailInspector: React.FC<SkuDetailInspectorProps> = ({
                   {/* Column 4: Match Status */}
                   <td className="py-2.5 px-3 text-center align-top">
                     {isMatch && (
-                      <span className="inline-block text-[10px] font-bold text-emerald-700 dark:text-emerald-400 bg-emerald-50 dark:bg-emerald-950/50 px-2.5 py-0.5 rounded border border-emerald-200 dark:border-emerald-800">
-                        Khớp
-                      </span>
+                      <Badge size="sm" variant="success">
+                        KHỚP
+                      </Badge>
                     )}
                     {isDiff && (
-                      <span className="inline-block text-[10px] font-bold text-amber-700 dark:text-amber-400 bg-amber-50 dark:bg-amber-950/50 px-2.5 py-0.5 rounded border border-amber-200 dark:border-amber-800">
-                        Sai khác
-                      </span>
+                      <Badge size="sm" variant="warning">
+                        SAI KHÁC
+                      </Badge>
                     )}
                     {isMissing && (
-                      <span className="inline-block text-[10px] text-slate-400 bg-slate-100 dark:bg-slate-800 px-2 py-0.5 rounded">
-                        Chưa có
-                      </span>
+                      <Badge size="sm" variant="neutral">
+                        CHƯA CÓ
+                      </Badge>
                     )}
                   </td>
                 </tr>
