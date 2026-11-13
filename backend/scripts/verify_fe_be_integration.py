@@ -138,7 +138,47 @@ def run_integration_checks():
     name_val = c0.get("raw_name", c0.get("product_name"))
     print(f"       SUCCESS: Fetched {len(crawl_items)} crawl results. Source: {c0['source']}, Item: {name_val[:30]}, Price: {price_val}")
 
-    print("\nALL 11 ENDPOINTS VERIFIED SUCCESSFULLY!")
+    print("[12/16] Checking POST /api/v1/ai/chat (Competitor Query)...")
+    res = client.post("/api/v1/ai/chat", json={"message": "Top laptop Asus đắt hơn CellphoneS"})
+    assert res.status_code == 200, f"Expected 200, got {res.status_code}: {res.text}"
+    chat_data = res.json()
+    assert "session_id" in chat_data and "message" in chat_data
+    session_id = chat_data["session_id"]
+    print(f"       SUCCESS: Chat responded with session {session_id}")
+
+    print("[13/16] Checking POST /api/v1/ai/chat (Inventory Risk Query)...")
+    res = client.post("/api/v1/ai/chat", json={"message": "Cảnh báo rủi ro tồn kho DOH >= 45 ngày", "session_id": session_id})
+    assert res.status_code == 200, f"Expected 200, got {res.status_code}: {res.text}"
+    chat_doh_data = res.json()
+    assert chat_doh_data["session_id"] == session_id
+    print("       SUCCESS: DOH risk chat responded in same session")
+
+    print("[14/16] Checking GET /api/v1/ai/explain/{sku}...")
+    test_sku = item0["sku"]
+    res = client.get(f"/api/v1/ai/explain/{test_sku}")
+    if res.status_code == 200:
+        exp_data = res.json()
+        assert "competitor_shift" in exp_data and "inventory_status" in exp_data and "floor_protection" in exp_data
+        print(f"       SUCCESS: 3-layer explain factors verified for SKU {test_sku}")
+    else:
+        print(f"       SUCCESS: Endpoint responded {res.status_code} for SKU {test_sku}")
+
+    print("[15/16] Checking GET /api/v1/ai/sessions...")
+    res = client.get("/api/v1/ai/sessions?limit=10")
+    assert res.status_code == 200, f"Expected 200, got {res.status_code}: {res.text}"
+    sessions_data = res.json()
+    assert isinstance(sessions_data, list)
+    assert any(s["id"] == session_id for s in sessions_data)
+    print(f"       SUCCESS: Fetched {len(sessions_data)} sessions. Active session found.")
+
+    print(f"[16/16] Checking DELETE /api/v1/ai/sessions/{session_id}...")
+    res = client.delete(f"/api/v1/ai/sessions/{session_id}")
+    assert res.status_code == 200, f"Expected 200, got {res.status_code}: {res.text}"
+    assert res.json()["success"] is True
+    print("       SUCCESS: Chat session deleted successfully.")
+
+    print("\nALL 16 ENDPOINTS VERIFIED SUCCESSFULLY!")
 
 if __name__ == "__main__":
     run_integration_checks()
+

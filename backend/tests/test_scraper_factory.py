@@ -2,6 +2,7 @@ import pytest
 from app.services.scrapers.factory import ScraperFactory
 from app.services.scrapers.cellphones import CellphonesScraper
 from app.services.scrapers.hoangha import HoanghaScraper
+from app.services.scrapers.fpt import FptShopScraper
 
 
 def test_scraper_factory_returns_cellphones():
@@ -14,6 +15,12 @@ def test_scraper_factory_returns_hoangha():
     scraper = ScraperFactory.get_scraper("hoangha")
     assert isinstance(scraper, HoanghaScraper)
     assert scraper.source_name == "HOANGHA"
+
+
+def test_scraper_factory_returns_fptshop():
+    scraper = ScraperFactory.get_scraper("fptshop")
+    assert isinstance(scraper, FptShopScraper)
+    assert scraper.source_name == "FPTSHOP"
 
 
 def test_scraper_factory_raises_value_error_for_unknown_source():

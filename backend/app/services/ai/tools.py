@@ -221,3 +221,83 @@ def get_sku_explain_factors(db: Session, sku: str) -> Optional[ExplainableFactor
             is_capped=is_capped,
         ),
     )
+
+
+def search_products(
+    db: Session,
+    query: str,
+    category: Optional[str] = None,
+    brand: Optional[str] = None,
+    limit: int = 5,
+) -> List[Dict[str, Any]]:
+    """
+    Tra cứu sản phẩm trong danh mục FPT Shop theo từ khóa (Tên sản phẩm, Mã SKU, Part-Number).
+    Trả về thông tin chi tiết dạng bảng: SKU, Tên, Ngành hàng, Giá FPT, Giá sàn, Tồn kho (DOH) và Giá đối thủ tốt nhất.
+    """
+    safe_limit = max(1, min(limit, 10))
+    clean_query = query.strip()
+    if not clean_query:
+        return []
+
+    search_filter = or_(
+        Product.sku.ilike(f"%{clean_query}%"),
+        Product.name.ilike(f"%{clean_query}%"),
+        Product.part_number.ilike(f"%{clean_query}%"),
+    )
+
+    q = (
+        db.query(Product, InventoryMock)
+        .outerjoin(InventoryMock, InventoryMock.fpt_product_id == Product.id)
+        .filter(search_filter)
+    )
+
+    if category:
+        q = q.filter(func.upper(Product.category) == category.strip().upper())
+    if brand:
+        q = q.filter(Product.brand.ilike(f"%{brand.strip()}%"))
+
+    products_with_inv = q.limit(safe_limit).all()
+
+    results: List[Dict[str, Any]] = []
+    for prod, inv in products_with_inv:
+        fpt_price = int(prod.base_retail_price)
+        floor_price = int(inv.floor_price if inv and inv.floor_price > 0 else prod.floor_price)
+        stock_qty = inv.stock_quantity if inv else 0
+        doh_val = inv.doh if inv else 0
+
+        # Tra cứu đối thủ cạnh tranh tốt nhất đã map
+        mapping = (
+            db.query(SkuMapping, CrawlResult)
+            .join(CrawlResult, CrawlResult.id == SkuMapping.competitor_crawl_id)
+            .filter(
+                SkuMapping.fpt_product_id == prod.id,
+                or_(
+                    SkuMapping.status == "APPROVED",
+                    SkuMapping.confidence_score >= 0.8,
+                ),
+                CrawlResult.is_in_stock == True,
+                CrawlResult.current_price.isnot(None),
+            )
+            .order_by(CrawlResult.current_price.asc())
+            .first()
+        )
+
+        comp_info = "Chưa có mapping"
+        if mapping:
+            _, crawl = mapping
+            comp_source = "CellphoneS" if crawl.source.upper() == "CELLPHONES" else ("Hoàng Hà" if crawl.source.upper() == "HOANGHA" else crawl.source)
+            comp_price = int(crawl.current_price)
+            comp_info = f"{comp_source}: {comp_price:,}đ".replace(",", ".")
+
+        results.append({
+            "SKU": prod.sku,
+            "Tên sản phẩm": prod.name,
+            "Ngành hàng": prod.category,
+            "Giá FPT": f"{fpt_price:,}đ".replace(",", "."),
+            "Giá sàn": f"{floor_price:,}đ".replace(",", "."),
+            "Tồn kho": f"{stock_qty} máy",
+            "DOH": f"{doh_val} ngày",
+            "Đối thủ tốt nhất": comp_info,
+        })
+
+    return results

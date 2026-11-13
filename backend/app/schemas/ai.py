@@ -60,6 +60,9 @@ class AiChatResponse(BaseModel):
     explainFactors: Optional[ExplainableFactors] = Field(
         None, description="Thẻ giải trình minh bạch 3 lớp (nếu là yêu cầu giải thích)"
     )
+    suggestions: Optional[List[str]] = Field(
+        None, description="Danh sách các câu hỏi mẫu gợi ý (khi ngoài phạm vi hoặc cần định hướng)"
+    )
 
 
 class ChatMessageResponse(BaseModel):
@@ -72,6 +75,7 @@ class ChatMessageResponse(BaseModel):
     content: str
     intent: Optional[str] = None
     created_at: datetime
+    retrieved_context: Optional[Dict[str, Any]] = None
 
 
 class ChatSessionSummaryResponse(BaseModel):

@@ -1,7 +1,8 @@
 from pathlib import Path
-from typing import List, Union
+from typing import List, Optional, Union
 from pydantic import field_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
+from dotenv import load_dotenv
 import json
 
 BACKEND_DIR = Path(__file__).resolve().parent.parent.parent
@@ -9,6 +10,8 @@ DEFAULT_DB_PATH = BACKEND_DIR / "dynamic_pricing.db"
 
 
 ENV_FILE_PATH = BACKEND_DIR / ".env"
+if ENV_FILE_PATH.exists():
+    load_dotenv(ENV_FILE_PATH, override=False)
 
 
 class Settings(BaseSettings):
@@ -18,6 +21,11 @@ class Settings(BaseSettings):
     DATABASE_URL: str = f"sqlite:///{DEFAULT_DB_PATH.as_posix()}"
     DEBOUNCE_SECONDS: int = 30
     CRAWL_RETENTION_DAYS: int = 7
+
+    # AI Chatbot (PBI-017 & PBI-018)
+    GEMINI_API_KEY: Optional[str] = None
+    GEMINI_MODEL: str = "gemini-3.5-flash-lite"
+    GEMINI_FALLBACK_MODEL: str = "gemini-3.1-flash-lite"
 
     # CORS
     CORS_ORIGINS: Union[List[str], str] = [

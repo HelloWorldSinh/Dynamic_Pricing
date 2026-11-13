@@ -10,6 +10,7 @@ class SourceEnum(str, Enum):
     FULL_PIPELINE = "full_pipeline"
     CELLPHONES = "cellphones"
     HOANGHA = "hoangha"
+    FPTSHOP = "fptshop"
 
 
 class CategoryEnum(str, Enum):
@@ -19,7 +20,7 @@ class CategoryEnum(str, Enum):
 
 
 class CrawlTriggerRequest(BaseModel):
-    source: SourceEnum = Field(default=SourceEnum.FULL_PIPELINE, description="Nguồn cần cào: full_pipeline | all | cellphones | hoangha")
+    source: SourceEnum = Field(default=SourceEnum.FULL_PIPELINE, description="Nguồn cần cào: full_pipeline | all | cellphones | hoangha | fptshop")
     category: CategoryEnum = Field(default=CategoryEnum.ALL, description="Ngành hàng: all | phone | laptop")
     target_url: Optional[str] = Field(default=None, description="URL cụ thể cần cào test (tuỳ chọn)")
     limit: Optional[int] = Field(default=None, description="Số lượng tối đa cần cào (None = không giới hạn, cào hết các trang)")

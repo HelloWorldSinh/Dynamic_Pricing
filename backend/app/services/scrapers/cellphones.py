@@ -7,7 +7,6 @@ import time
 from typing import Any, Dict, List, Optional
 
 import requests
-from bs4 import BeautifulSoup
 
 # Đảm bảo import được app.* kể cả khi chạy trực tiếp file này
 project_root = os.path.abspath(os.path.join(os.path.dirname(__file__), "../../.."))
@@ -25,7 +24,7 @@ logger = logging.getLogger(__name__)
 
 class CellphonesScraper(BaseScraper):
     """Scraper thu thập dữ liệu giá và thông số kỹ thuật từ CellphoneS (cellphones.com.vn).
-    Hỗ trợ cào toàn bộ danh mục từ trang đầu đến trang cuối (không giới hạn) qua GraphQL API.
+    Hỗ trợ cào toàn bộ danh mục và sản phẩm đơn lẻ 100% qua GraphQL API (không cào DOM HTML).
     """
 
     GRAPHQL_URL = "https://api.cellphones.com.vn/v2/graphql/query"
@@ -98,94 +97,154 @@ class CellphonesScraper(BaseScraper):
             return " / ".join(formatted)
         return None
 
-    def scrape_product(self, url: str) -> Optional[ScrapedProductItem]:
-        """Cào thông tin chi tiết một sản phẩm cụ thể từ URL HTML."""
-        headers = {
-            "User-Agent": (
-                "Mozilla/5.0 (Windows NT 10.0; Win64; x64) "
-                "AppleWebKit/537.36 (KHTML, like Gecko) "
-                "Chrome/124.0.0.0 Safari/537.36"
-            ),
-            "Accept-Language": "vi-VN,vi;q=0.9,en-US;q=0.8,en;q=0.7",
-        }
+    def _parse_product_dict(
+        self,
+        p: Dict[str, Any],
+        seen_urls: Optional[set] = None
+    ) -> Optional[ScrapedProductItem]:
+        """Chuẩn hóa một item sản phẩm từ GraphQL API của CellphoneS thành ScrapedProductItem."""
+        gen = p.get("general") or {}
+        filt = p.get("filterable") or {}
+        attrs = gen.get("attributes") or {}
 
-        try:
-            response = requests.get(url, headers=headers, timeout=12)
-            response.raise_for_status()
-        except requests.exceptions.RequestException as e:
-            logger.error(f"[CellphoneS] Lỗi khi gửi request tới {url}: {e}")
+        name = (gen.get("name") or "").strip()
+        if not name or name == "N/A":
             return None
 
-        soup = BeautifulSoup(response.text, "html.parser")
+        url_path = (gen.get("url_path") or "").strip()
+        full_url = url_path if url_path.startswith("http") else f"{self.BASE_URL}/{url_path.lstrip('/')}"
 
-        # 1. Trích xuất tên sản phẩm
-        title_tag = soup.find("h1")
-        product_name = title_tag.get_text(strip=True) if title_tag else "N/A"
+        # Khử trùng lặp sản phẩm giữa các trang phân trang
+        if seen_urls is not None and full_url in seen_urls:
+            return None
 
-        # 2. Trích xuất giá sản phẩm
-        price_tag = soup.select_one(".sale-price, .product__price--show, .special-price, .t-price")
-        old_price_tag = soup.select_one(".base-price, .product__price--through, .old-price")
+        # Lọc bỏ hàng cũ, hàng trưng bày, đã kích hoạt
+        cond = attrs.get("product_condition")
+        if cond and cond != "Mới":
+            return None
+        if self.USED_PRODUCT_RE.search(f"{name} {url_path}"):
+            return None
 
-        current_price_str = price_tag.get_text(strip=True) if price_tag else None
-        old_price_str = old_price_tag.get_text(strip=True) if old_price_tag else None
+        if seen_urls is not None:
+            seen_urls.add(full_url)
 
-        # Fallback 1: Trích xuất từ JSON-LD (Schema.org)
-        if not current_price_str:
-            for script in soup.find_all("script", type="application/ld+json"):
-                try:
-                    data = json.loads(script.string)
-                    if isinstance(data, dict) and data.get("@type") == "Product":
-                        offers = data.get("offers", {})
-                        if isinstance(offers, dict) and "price" in offers:
-                            current_price_str = str(offers["price"])
-                            break
-                except (json.JSONDecodeError, TypeError, ValueError):
-                    continue
+        # Giá bán & Giá niêm yết
+        price_val = filt.get("price")
+        special_price_val = filt.get("special_price")
 
-        current_price = self._clean_price(current_price_str)
-        original_price = self._clean_price(old_price_str)
+        # current_price ưu tiên special_price nếu > 0, ngược lại lấy price
+        current_price = (
+            int(special_price_val)
+            if special_price_val and special_price_val > 0
+            else (int(price_val) if price_val and price_val > 0 else None)
+        )
+        original_price = int(price_val) if price_val and price_val > 0 else current_price
 
         # Lọc bỏ sản phẩm ngừng kinh doanh (không có giá bán hợp lệ hoặc giá <= 0)
         if not current_price or current_price <= 0:
-            logger.info(f"[CellphoneS] Bỏ qua sản phẩm ngừng kinh doanh (không có giá hợp lệ): {url}")
             return None
 
-        # 3. Trạng thái còn hàng (Out of stock check)
-        is_in_stock = True
-        btn_buy = soup.select_one(".btn-buy, .button__buy")
-        if btn_buy:
-            btn_text = btn_buy.get_text(strip=True).lower()
-            if "hết hàng" in btn_text or "tạm hết hàng" in btn_text or "sắp về hàng" in btn_text:
-                is_in_stock = False
+        # Tình trạng kho
+        stock = filt.get("stock", 0)
+        is_in_stock = bool(stock and stock > 0)
 
-        # 4. Trích xuất thông số kỹ thuật
-        specifications: Dict[str, Any] = {}
-        spec_table = soup.find("table")
-        if spec_table:
-            for row in spec_table.find_all("tr"):
-                cols = row.find_all(["td", "th"])
-                if len(cols) >= 2:
-                    k = cols[0].get_text(strip=True)
-                    v = cols[1].get_text(strip=True)
-                    specifications[k] = v
+        # Thông số kỹ thuật
+        specs: Dict[str, Any] = {}
+        cpu_chip = attrs.get("chipset") or attrs.get("cpu")
+        if cpu_chip:
+            specs["CPU/Chip"] = self._clean_html_text(str(cpu_chip))
+        if attrs.get("ram"):
+            specs["RAM"] = self._clean_html_text(str(attrs.get("ram")))
+        if attrs.get("storage"):
+            specs["Bộ nhớ/RAM"] = self._clean_html_text(str(attrs.get("storage")))
+        else:
+            storage_from_name = self._extract_storage_from_name(name)
+            if storage_from_name:
+                specs["Bộ nhớ/RAM"] = storage_from_name
+        screen = attrs.get("display_size") or attrs.get("screen_size")
+        if screen:
+            specs["Màn hình"] = self._clean_html_text(str(screen))
+        if attrs.get("display_resolution"):
+            specs["Độ phân giải"] = self._clean_html_text(str(attrs.get("display_resolution")))
+        if attrs.get("battery"):
+            specs["Pin"] = self._clean_html_text(str(attrs.get("battery")))
+        os_ver = attrs.get("operating_system") or attrs.get("os_version")
+        if os_ver:
+            specs["HĐH"] = self._clean_html_text(str(os_ver))
+        if attrs.get("manufacturer"):
+            specs["Hãng"] = str(attrs.get("manufacturer"))
+        part_num = attrs.get("laptop_part_number") or attrs.get("model") or attrs.get("part_number")
+        if part_num:
+            specs["Part Number"] = str(part_num)
 
-        if specifications:
-            specifications["summary"] = " | ".join([f"{k}: {v}" for k, v in list(specifications.items())[:6]])
+        # Chuỗi summary hỗ trợ SKU Matcher
+        specs["summary"] = " | ".join([f"{k}: {v}" for k, v in specs.items() if k != "summary"])
 
         return ScrapedProductItem(
             source=self.source_name,
-            url=url,
-            product_name=product_name,
+            url=full_url,
+            product_name=name,
             current_price=current_price,
             original_price=original_price,
             is_in_stock=is_in_stock,
-            specifications=specifications
+            specifications=specs
         )
 
-    def get_category_product_urls(self, category: str, limit: Optional[int] = None) -> List[str]:
-        """Lấy danh sách link sản phẩm từ CellphoneS.
-        Nếu limit=None hoặc <= 0, lấy toàn bộ link sản phẩm từ trang đầu đến trang cuối.
+    def scrape_product(self, url: str) -> Optional[ScrapedProductItem]:
+        """Cào thông tin chi tiết một sản phẩm cụ thể qua GraphQL API của CellphoneS (không cào DOM HTML)."""
+        url_clean = url.split("?")[0].rstrip("/")
+        url_path = url_clean.replace("https://cellphones.com.vn/", "").replace("http://cellphones.com.vn/", "").lstrip("/")
+
+        paths = [url_path]
+        if url_path.endswith(".html"):
+            paths.append(url_path[:-5])
+        else:
+            paths.append(f"{url_path}.html")
+
+        paths_json = json.dumps(paths)
+        query = f"""
+        query getProductByUrl {{
+            products(
+                filter: {{
+                    static: {{
+                        url_path: {paths_json}
+                        province_id: 30
+                    }}
+                }}
+                page: 1
+                size: 1
+            ) {{
+                general {{
+                    product_id
+                    name
+                    attributes
+                    url_path
+                }}
+                filterable {{
+                    price
+                    special_price
+                    stock
+                }}
+            }}
+        }}
         """
+
+        headers = self._get_api_headers()
+        try:
+            res = requests.post(self.GRAPHQL_URL, json={"query": query}, headers=headers, timeout=12)
+            res.raise_for_status()
+            data = res.json()
+            products = data.get("data", {}).get("products", [])
+            if not products:
+                logger.info(f"[CellphoneS] Không tìm thấy sản phẩm qua API cho URL: {url}")
+                return None
+            return self._parse_product_dict(products[0])
+        except Exception as e:
+            logger.error(f"[CellphoneS] Lỗi khi gọi GraphQL API cho URL {url}: {e}")
+            return None
+
+    def get_category_product_urls(self, category: str, limit: Optional[int] = None) -> List[str]:
+        """Lấy danh sách link sản phẩm từ CellphoneS qua GraphQL API."""
         cate_id = self.CATEGORY_ID_MAP.get(category.lower(), "3")
         headers = self._get_api_headers(category)
         session = requests.Session()
@@ -248,6 +307,7 @@ class CellphonesScraper(BaseScraper):
         limit: Optional[int] = None,
         on_progress: Optional[Any] = None,
     ) -> List[ScrapedProductItem]:
+        """Cào danh mục sản phẩm từ CellphoneS qua GraphQL API."""
         cate_id = self.CATEGORY_ID_MAP.get(category.lower(), "3")
         headers = self._get_api_headers(category)
         session = requests.Session()
@@ -321,91 +381,10 @@ class CellphonesScraper(BaseScraper):
 
             page_items_count = 0
             for p in products:
-                gen = p.get("general") or {}
-                filt = p.get("filterable") or {}
-                attrs = gen.get("attributes") or {}
-
-                name = (gen.get("name") or "").strip()
-                if not name or name == "N/A":
+                item = self._parse_product_dict(p, seen_urls=seen_urls)
+                if not item:
                     continue
 
-                url_path = (gen.get("url_path") or "").strip()
-                full_url = url_path if url_path.startswith("http") else f"{self.BASE_URL}/{url_path.lstrip('/')}"
-
-                # Khử trùng lặp sản phẩm giữa các trang phân trang
-                if full_url in seen_urls:
-                    continue
-
-                # Lọc bỏ hàng cũ, hàng trưng bày, đã kích hoạt
-                cond = attrs.get("product_condition")
-                if cond and cond != "Mới":
-                    continue
-                if self.USED_PRODUCT_RE.search(f"{name} {url_path}"):
-                    continue
-
-                seen_urls.add(full_url)
-
-                # Giá bán & Giá niêm yết
-                price_val = filt.get("price")
-                special_price_val = filt.get("special_price")
-
-                # current_price ưu tiên special_price nếu > 0, ngược lại lấy price
-                current_price = (
-                    int(special_price_val)
-                    if special_price_val and special_price_val > 0
-                    else (int(price_val) if price_val and price_val > 0 else None)
-                )
-                original_price = int(price_val) if price_val and price_val > 0 else current_price
-
-                # Lọc bỏ sản phẩm ngừng kinh doanh (không có giá bán hợp lệ hoặc giá <= 0)
-                if not current_price or current_price <= 0:
-                    continue
-
-                # Tình trạng kho
-                stock = filt.get("stock", 0)
-                is_in_stock = bool(stock and stock > 0)
-
-                # Thông số kỹ thuật
-                specs: Dict[str, Any] = {}
-                cpu_chip = attrs.get("chipset") or attrs.get("cpu")
-                if cpu_chip:
-                    specs["CPU/Chip"] = self._clean_html_text(str(cpu_chip))
-                if attrs.get("ram"):
-                    specs["RAM"] = self._clean_html_text(str(attrs.get("ram")))
-                if attrs.get("storage"):
-                    specs["Bộ nhớ/RAM"] = self._clean_html_text(str(attrs.get("storage")))
-                else:
-                    storage_from_name = self._extract_storage_from_name(name)
-                    if storage_from_name:
-                        specs["Bộ nhớ/RAM"] = storage_from_name
-                screen = attrs.get("display_size") or attrs.get("screen_size")
-                if screen:
-                    specs["Màn hình"] = self._clean_html_text(str(screen))
-                if attrs.get("display_resolution"):
-                    specs["Độ phân giải"] = self._clean_html_text(str(attrs.get("display_resolution")))
-                if attrs.get("battery"):
-                    specs["Pin"] = self._clean_html_text(str(attrs.get("battery")))
-                os_ver = attrs.get("operating_system") or attrs.get("os_version")
-                if os_ver:
-                    specs["HĐH"] = self._clean_html_text(str(os_ver))
-                if attrs.get("manufacturer"):
-                    specs["Hãng"] = str(attrs.get("manufacturer"))
-                part_num = attrs.get("laptop_part_number") or attrs.get("model") or attrs.get("part_number")
-                if part_num:
-                    specs["Part Number"] = str(part_num)
-
-                # Chuỗi summary hỗ trợ SKU Matcher
-                specs["summary"] = " | ".join([f"{k}: {v}" for k, v in specs.items() if k != "summary"])
-
-                item = ScrapedProductItem(
-                    source=self.source_name,
-                    url=full_url,
-                    product_name=name,
-                    current_price=current_price,
-                    original_price=original_price,
-                    is_in_stock=is_in_stock,
-                    specifications=specs
-                )
                 results.append(item)
                 page_items_count += 1
 
@@ -429,6 +408,9 @@ class CellphonesScraper(BaseScraper):
 
 
 if __name__ == "__main__":
-    from collect_sample_data import run_collection
-    # Chạy thu thập toàn bộ dữ liệu CellphoneS (không giới hạn)
-    run_collection(limit=None)
+    logging.basicConfig(level=logging.INFO, format="%(asctime)s [%(levelname)s] %(message)s")
+    scraper = CellphonesScraper()
+    print("Kiểm thử cào thử nghiệm 3 sản phẩm CellphoneS...")
+    sample_items = scraper.scrape_category("phone", limit=3)
+    for it in sample_items:
+        print(f"- {it.product_name} | Giá: {it.current_price:,}đ | Còn hàng: {it.is_in_stock} | Specs: {it.specifications.get('summary', '')[:60]}...")

@@ -51,12 +51,30 @@ class PriceHistory(Base):
     id = Column(GUID(), primary_key=True, default=uuid.uuid4)
     fpt_product_id = Column(GUID(), ForeignKey("products.id"), nullable=False, index=True)
     source = Column(String(50), nullable=False, index=True)             # FPTSHOP | CELLPHONES | HOANGHA
-    price = Column(BigInteger, nullable=False)                          # Giá ghi nhận (VND)
+    price = Column(BigInteger, nullable=True)                          # Giá ghi nhận (VND)
     is_in_stock = Column(Boolean, default=True, nullable=False)         # Tình trạng còn hàng
     recorded_at = Column(DateTime, default=get_vietnam_now, nullable=False, index=True)
 
+    # Các trường mở rộng lưu chi tiết biến động giá và đồng bộ
+    old_price = Column(BigInteger, nullable=True)
+    new_price = Column(BigInteger, nullable=True)
+    price_change = Column(BigInteger, nullable=True)
+    price_change_percent = Column(Float, nullable=True)
+    cost_price = Column(BigInteger, nullable=True)
+    floor_price = Column(BigInteger, nullable=True)
+    change_type = Column(String(50), nullable=True)
+    scenario = Column(String(255), nullable=True)
+    changed_by = Column(String(100), nullable=True)
+    changed_at = Column(DateTime, nullable=True)
+    status = Column(String(50), nullable=True)
+
     # Relationships
     product = relationship("Product", back_populates="price_history")
+
+    def __init__(self, **kwargs):
+        if "price" not in kwargs and "new_price" in kwargs:
+            kwargs["price"] = kwargs["new_price"]
+        super().__init__(**kwargs)
 
 
 class PricingAuditLog(Base):

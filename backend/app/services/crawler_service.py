@@ -11,7 +11,8 @@ from app.models.crawl_result import CrawlResult
 from app.models.sku_mapping import SkuMapping
 from app.models.pricing import PriceHistory
 from app.models.product import Product
-from app.schemas.crawl import CrawlTriggerRequest, CrawlJobResponse, ScrapedProductItem
+from app.schemas.crawl import CrawlTriggerRequest, CrawlJobResponse, ScrapedProductItem, SourceEnum
+from app.services.fpt_sync_service import FptPriceSyncService
 from app.services.scrapers.factory import ScraperFactory
 from app.utils.datetime_utils import get_vietnam_now, to_vietnam_iso
 
@@ -251,33 +252,69 @@ class CrawlerService:
                     f"(Thêm mới: {stats['inserted']}, Cập nhật: {stats['updated']})."
                 )
 
-                # Dọn dẹp định kỳ các bản ghi cào cũ (> 7 ngày) chưa từng được map SKU
-                try:
-                    cleanup_days = getattr(settings, "CRAWL_RETENTION_DAYS", 7)
-                    cleaned_count = cls.cleanup_stale_crawl_results(days=cleanup_days, db=db)
-                    if cleaned_count > 0:
-                        logger.info(f"Đã dọn dẹp {cleaned_count} bản ghi cào cũ hơn {cleanup_days} ngày chưa map.")
-                except Exception as clean_err:
-                    logger.warning(f"Lỗi khi dọn dẹp bản ghi cũ trong task {task_id}: {clean_err}")
+                # Kiểm tra nếu là nguồn FPT Shop thì tiến hành đồng bộ trực tiếp vào Product, PriceHistory, PricingEngine
+                is_fpt = (
+                    (isinstance(request.source, SourceEnum) and request.source == SourceEnum.FPTSHOP)
+                    or (hasattr(request.source, "value") and request.source.value.lower() == "fptshop")
+                    or str(request.source).lower() == "fptshop"
+                )
 
-                cls.update_task_progress(
-                    task_id,
-                    status="COMPLETED",
-                    progress_percent=100,
-                    scraped_count=len(items_to_save),
-                    message=(
-                        f"Hoàn thành xuất sắc! Đã cào {len(items_to_save)} sản phẩm "
-                        f"(Mới: {stats['inserted']}, Cập nhật: {stats['updated']})."
-                    ),
-                )
-                cls._update_crawl_job_record(
-                    db=db,
-                    task_id=str(job_uuid),
-                    status="COMPLETED",
-                    total_items=len(items_to_save),
-                    success_items=stats["inserted"] + stats["updated"],
-                    error_items=max(0, len(items_to_save) - (stats["inserted"] + stats["updated"])),
-                )
+                if is_fpt:
+                    cls.update_task_progress(
+                        task_id,
+                        status="RUNNING",
+                        progress_percent=95,
+                        scraped_count=len(items_to_save),
+                        message="Đang đồng bộ giá và kích hoạt tính toán lại PricingEngine cho FPT Shop...",
+                    )
+                    sync_stats = FptPriceSyncService.sync_live_prices(
+                        db=db,
+                        scraped_items=items_to_save,
+                        auto_commit=True,
+                    )
+                    cls.update_task_progress(
+                        task_id,
+                        status="COMPLETED",
+                        progress_percent=100,
+                        scraped_count=len(items_to_save),
+                        message=f"Đã hoàn tất đồng bộ giá FPT Shop: {sync_stats['matched_count']} khớp, {sync_stats['price_updated_count']} cập nhật giá, {sync_stats['deactivated_count']} ngừng kinh doanh.",
+                    )
+                    cls._update_crawl_job_record(
+                        db=db,
+                        task_id=str(job_uuid),
+                        status="COMPLETED",
+                        total_items=len(items_to_save),
+                        success_items=stats["inserted"] + stats["updated"],
+                        error_items=max(0, len(items_to_save) - (stats["inserted"] + stats["updated"])),
+                    )
+                else:
+                    # Dọn dẹp định kỳ các bản ghi cào cũ (> 7 ngày) chưa từng được map SKU
+                    try:
+                        cleanup_days = getattr(settings, "CRAWL_RETENTION_DAYS", 7)
+                        cleaned_count = cls.cleanup_stale_crawl_results(days=cleanup_days, db=db)
+                        if cleaned_count > 0:
+                            logger.info(f"Đã dọn dẹp {cleaned_count} bản ghi cào cũ hơn {cleanup_days} ngày chưa map.")
+                    except Exception as clean_err:
+                        logger.warning(f"Lỗi khi dọn dẹp bản ghi cũ trong task {task_id}: {clean_err}")
+    
+                    cls.update_task_progress(
+                        task_id,
+                        status="COMPLETED",
+                        progress_percent=100,
+                        scraped_count=len(items_to_save),
+                        message=(
+                            f"Hoàn thành xuất sắc! Đã cào {len(items_to_save)} sản phẩm "
+                            f"(Mới: {stats['inserted']}, Cập nhật: {stats['updated']})."
+                        ),
+                    )
+                    cls._update_crawl_job_record(
+                        db=db,
+                        task_id=str(job_uuid),
+                        status="COMPLETED",
+                        total_items=len(items_to_save),
+                        success_items=stats["inserted"] + stats["updated"],
+                        error_items=max(0, len(items_to_save) - (stats["inserted"] + stats["updated"])),
+                    )
             except Exception as e:
                 db.rollback()
                 logger.error(f"Lỗi khi lưu kết quả cào vào DB: {e}")

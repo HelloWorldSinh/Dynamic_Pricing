@@ -2,6 +2,7 @@ from typing import Dict
 from app.services.scrapers.base import BaseScraper
 from app.services.scrapers.cellphones import CellphonesScraper
 from app.services.scrapers.hoangha import HoanghaScraper
+from app.services.scrapers.fpt import FptShopScraper
 from app.schemas.crawl import SourceEnum
 
 
@@ -10,6 +11,7 @@ class ScraperFactory:
     _scrapers: Dict[str, BaseScraper] = {
         SourceEnum.CELLPHONES.value: CellphonesScraper(),
         SourceEnum.HOANGHA.value: HoanghaScraper(),
+        SourceEnum.FPTSHOP.value: FptShopScraper(),
     }
 
     @classmethod

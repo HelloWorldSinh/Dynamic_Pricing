@@ -4,7 +4,7 @@ from sqlalchemy.orm import Session
 from app.core.database import get_db, SessionLocal
 from app.models.crawl_job import CrawlJob
 from app.models.crawl_result import CrawlResult
-from app.schemas.crawl import CrawlTriggerRequest, CrawlJobResponse, CrawlProgressResponse, CrawlJobRecordResponse
+from app.schemas.crawl import CrawlTriggerRequest, CrawlJobResponse, CrawlProgressResponse, CrawlJobRecordResponse, SourceEnum, CategoryEnum
 from app.services.crawler_service import CrawlerService
 
 router = APIRouter()
@@ -30,6 +30,36 @@ def trigger_crawl(
         )
 
     # 2. Đưa tác vụ vào background
+    return CrawlerService.trigger_crawl(
+        request=request,
+        background_tasks=background_tasks,
+        db_session_factory=SessionLocal
+    )
+
+
+@router.post(
+    "/sync-fpt-prices",
+    response_model=CrawlJobResponse,
+    status_code=status.HTTP_202_ACCEPTED,
+    summary="Đồng bộ giá thời gian thực từ FPT Shop",
+    description="Kích hoạt tác vụ cào và đồng bộ giá thời gian thực từ FPT Shop vào cơ sở dữ liệu. Có cơ chế Debounce 30 giây bảo vệ hệ thống."
+)
+def sync_fpt_prices(
+    background_tasks: BackgroundTasks,
+):
+    # 1. Kiểm tra debounce 30s cho nguồn FPT Shop
+    is_debounced, remaining = CrawlerService.check_debounce("fptshop")
+    if is_debounced:
+        raise HTTPException(
+            status_code=status.HTTP_429_TOO_MANY_REQUESTS,
+            detail=f"Hệ thống vừa nhận yêu cầu cho 'fptshop'. Vui lòng đợi {remaining}s trước khi kích hoạt lại."
+        )
+
+    # 2. Đưa tác vụ cào và đồng bộ FPT Shop vào background
+    request = CrawlTriggerRequest(
+        source=SourceEnum.FPTSHOP,
+        category=CategoryEnum.ALL,
+    )
     return CrawlerService.trigger_crawl(
         request=request,
         background_tasks=background_tasks,
