@@ -46,6 +46,10 @@ dist-ssr/
 Thumbs.db
 ~$*.xlsx
 
+# Personal docs & CV
+*.docx
+*.pdf
+
 docs/obsidian-notes/
 
 
